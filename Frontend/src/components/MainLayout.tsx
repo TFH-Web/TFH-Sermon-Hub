@@ -2,6 +2,7 @@ import '@fontsource/dm-sans';
 import './MainLayout.css';
 
 import Sidebar from './Sidebar';
+import type React from 'react';
 
 export default function MainLayout({
 	children,

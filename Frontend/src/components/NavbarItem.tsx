@@ -1,6 +1,7 @@
 import './NavbarItem.css';
 import { Icon, type IconifyIcon } from '@iconify-icon/react';
 import clsx from 'clsx';
+import type React from 'react';
 import { NavLink, type To } from 'react-router';
 
 export interface NavbarItemProps {
