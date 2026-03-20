@@ -2,8 +2,8 @@
 	position: fixed;
 	inset: 0;
 	display: grid;
-	grid-template-columns: minmax(auto, 15rem) 1fr;
 	grid-template-areas: "sidebar main";
+	grid-template-columns: minmax(auto, 15rem) 1fr;
 }
 
 .Layout-main {

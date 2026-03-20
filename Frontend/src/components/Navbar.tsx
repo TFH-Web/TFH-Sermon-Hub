@@ -39,13 +39,13 @@ export default function Navbar() {
 			<h2 className="Navbar-header">Admin</h2>
 			<ul className="Navbar-list">
 				<NavbarItem icon="lucide:user" to="/user-management">
-				User Management
+					User Management
 				</NavbarItem>
 				<NavbarItem icon="lucide:bell" to="/notifications">
-				Notifications
+					Notifications
 				</NavbarItem>
 				<NavbarItem icon="lucide:settings" to="/settings">
-				Settings
+					Settings
 				</NavbarItem>
 			</ul>
 		</nav>

@@ -3,11 +3,11 @@
 }
 
 .Navbar-header {
-	text-transform: uppercase;
-	font-size: var(--fs-label);
-	letter-spacing: 1.2px;
 	margin-block: 1rem 0.5rem;
 	margin-inline: 1.25rem;
+	font-size: var(--fs-label);
+	text-transform: uppercase;
+	letter-spacing: 1.2px;
 }
 
 .Navbar-list {

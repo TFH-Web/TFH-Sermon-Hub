@@ -2,17 +2,17 @@
 	display: grid;
 	grid-template-rows: 5rem 1fr 5rem;
 	grid-template-columns: 1fr;
+	max-height: 100vh;
+	font-size: var(--fs-sidebar);
 	color: var(--cl-foreground);
 	color-scheme: only dark;
 	background-color: var(--cl-background);
-	font-size: var(--fs-sidebar);
-	max-height: 100vh;
 
-	>* {
+	> * {
 		padding-inline: 1rem;
 	}
 
-	>*~* {
+	> * ~ * {
 		border-block-start: 1px solid var(--cl-outline);
 	}
 }
