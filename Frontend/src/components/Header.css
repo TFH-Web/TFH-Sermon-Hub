@@ -1,0 +1,26 @@
+.Header {
+	box-shadow: 0 -4px 8px 6px rgb(0 0 0 / 0.2);
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
+.Header-title {
+	flex: 9;
+	margin: 0;
+}
+
+.Header-search {
+	flex: 8;
+	min-height: 5ex;
+	padding-inline: 1em;
+}
+
+.Header-upload {
+	min-height: 5ex;
+	display: flex;
+	flex: none;
+	align-items: center;
+	padding: 0.5em 1em;
+	border-radius: 0.5rem;
+}

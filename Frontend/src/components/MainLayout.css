@@ -2,10 +2,20 @@
 	position: fixed;
 	inset: 0;
 	display: grid;
-	grid-template-areas: "sidebar main";
-	grid-template-columns: minmax(auto, 15rem) 1fr;
+	grid-template:
+		"sidebar header" 4rem
+		"sidebar main" 1fr / minmax(auto, 15rem) 1fr;
+}
+
+.Layout-header {
+	grid-area: header;
+	padding-inline: 2rem;
 }
 
 .Layout-main {
 	grid-area: main;
+}
+
+.Layout-sidebar {
+	grid-area: sidebar;
 }

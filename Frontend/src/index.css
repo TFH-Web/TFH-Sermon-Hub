@@ -1,5 +1,4 @@
 :root {
-	/* stylelint-disable custom-property-empty-line-before */
 	--ff-main: "DM Sans", sans-serif;
 
 	--cl-dark: oklch(18% 0 68deg);
@@ -9,10 +8,7 @@
 	--cl-foreground: light-dark(var(--cl-dark), var(--cl-light));
 	--cl-background: light-dark(var(--cl-light), var(--cl-dark));
 
-	--cl-on-accent: light-dark(
-		oklch(from var(--cl-accent) 100% calc(c * 0.1) h),
-		oklch(from var(--cl-accent) 15% calc(c * 0.1) h)
-	);
+	--cl-on-accent: oklch(from var(--cl-accent) 100% calc(c * 0.1) h);
 
 	--cl-container: light-dark(
 		oklch(from var(--cl-background) calc(l * 0.98) c h),
@@ -27,13 +23,9 @@
 		oklch(from var(--cl-accent) calc(l * 1.2) c h),
 		oklch(from var(--cl-accent) calc(l * 0.8) calc(c * 0.9) h)
 	);
-	--cl-on-accent-container: light-dark(
-		oklch(from var(--cl-accent) 100% 0.02 h),
-		oklch(from var(--cl-accent) 15% 0.02 h)
-	);
+	--cl-on-accent-container: oklch(from var(--cl-accent) 100% 0.02 h);
 
-	/* stylelint-enable custom-property-empty-line-before */
-
+	accent-color: var(--cl-accent);
 	cursor: auto;
 }
 
@@ -52,7 +44,18 @@ button {
 	font-family: inherit;
 	background-color: var(--cl-accent);
 	border: none;
+	color: var(--cl-on-accent);
 	border-radius: 0.25rem;
+}
+
+input[type="text"] {
+	border: 1px solid var(--cl-outline);
+	border-radius: 0.5rem;
+	font-family: inherit;
+
+	&:focus-visible {
+		outline-color: var(--cl-accent);
+	}
 }
 
 .u-button {

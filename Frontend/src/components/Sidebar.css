@@ -8,7 +8,7 @@
 	color-scheme: only dark;
 	background-color: var(--cl-background);
 
-	> * ~ * {
+	>*~* {
 		border-block-start: 1px solid var(--cl-outline);
 	}
 }

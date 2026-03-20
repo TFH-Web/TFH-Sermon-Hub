@@ -3,10 +3,15 @@ import './Sidebar.css';
 import { Link } from 'react-router';
 import logo from '$/assets/logo.png';
 import Profile from './Profile';
+import clsx from 'clsx';
 
-export default function Sidebar() {
+export interface SidebarProps {
+	className: string;
+}
+
+export default function Sidebar({ className }: SidebarProps) {
 	return (
-		<aside className="Sidebar">
+		<aside className={clsx('Sidebar', className)}>
 			<div className="Sidebar-title">
 				<Link className="Sidebar-titleLink" to="/">
 					<div className="Sidebar-logoContainer">
