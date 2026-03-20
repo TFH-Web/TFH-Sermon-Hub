@@ -1,0 +1,68 @@
+.FormField {
+	margin-bottom: 18px;
+}
+
+.FormField-label {
+	display: block;
+	margin-bottom: 6px;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--cl-foreground);
+}
+
+.FormField-hint {
+	margin-top: 4px;
+	font-size: 11px;
+	color: var(--cl-on-surface-muted);
+}
+
+.FormField-error {
+	margin-top: 4px;
+	font-size: 11px;
+	font-weight: 500;
+	color: var(--cl-error);
+}
+
+.FormRow {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 14px;
+}
+
+/* Form input styles */
+.FormField input,
+.FormField select,
+.FormField textarea {
+	box-sizing: border-box;
+	width: 100%;
+	padding: 10px 14px;
+	font-family: inherit;
+	font-size: 14px;
+	color: var(--cl-foreground);
+	outline: none;
+	background: var(--cl-surface);
+	border: 1.5px solid var(--cl-outline);
+	border-radius: var(--radius-sm);
+	transition: border-color 0.2s;
+}
+
+.FormField input:focus,
+.FormField select:focus,
+.FormField textarea:focus {
+	border-color: var(--cl-accent);
+}
+
+.FormField--error input,
+.FormField--error select,
+.FormField--error textarea {
+	border-color: var(--cl-error);
+}
+
+.FormField textarea {
+	min-height: 80px;
+	resize: vertical;
+}
+
+.FormField select {
+	cursor: pointer;
+}
