@@ -17,6 +17,9 @@ const sermons = [
 
 
 export default function Sermons() {
+	// Tracks the currently selected sermon filter, defaults to "All"
+	const [selectedSermonFilter, setSelectedSermonFilter]  = useState("All")
+
 	// Tracks the currently selected topic filter, defaults to "All"
 	const [selectedTopic, setSelectedTopic] = useState("All")
 
@@ -24,13 +27,97 @@ export default function Sermons() {
 	const [selectedSpeaker, setSelectedSpeaker] = useState("All")
 
 	// Tracks the currently selected series filter, defaults to "All"
-	const [selectedSeries, setSelectedSeries] = useState("All")
+	const [selectedSeries, setSelectedSeries] = useState("All")	
 
+	// Tracks the currently selected "freshness" filter, defaults to "Newest"
+	const [videoUploadRecency, setVideoUploadRecency] = useState("Newest")
 
 
 	return (
-		<MainLayout title="Sermons">
-			<h2>Stinky cheese</h2>
+		<MainLayout title="Sermons">			
+			<h2>
+			{/* Sermon Filter Buttons, clicks set as active and update the selectedSermonFilter state */}
+			<div>
+  				<button 
+					className={selectedSermonFilter === "All" ? "active-sermon-filter" : ""}
+					onClick={() => setSelectedSermonFilter("All")}>
+					All Sermons</button>
+				<button 
+					className={selectedSermonFilter === "Published" ? "active-sermon-filter" : ""}
+					onClick={() => setSelectedSermonFilter("Published")}>
+					Published</button>
+				<button 
+					className={selectedSermonFilter === "Processing" ? "active-sermon-filter" : ""}	
+					onClick={() => setSelectedSermonFilter("Processing")}>
+					Processing</button>
+				<button 
+					className={selectedSermonFilter === "Draft" ? "active-sermon-filter" : ""}
+					onClick={() => setSelectedSermonFilter("Draft")}>
+					Draft</button>
+				<button 
+					className={selectedSermonFilter === "Failed" ? "active-sermon-filter" : ""}
+					onClick={() => setSelectedSermonFilter("Failed")}>
+					Failed</button>
+			</div>
+			</h2>
+
+
+			{/* Sermon Topic Buttons, clicks set as active and update the selectedTopic state */}
+			<div>
+				<button 
+					className={selectedTopic === "All" ? "active-topic-filter" : ""}
+					onClick={() => setSelectedTopic("All")}>
+					All</button>
+				<button 
+					className={selectedTopic === "Faith" ? "active-topic-filter" : ""}
+					onClick={() => setSelectedTopic("Faith")}>
+					Faith</button>
+				<button 
+					className={selectedTopic === "Hope" ? "active-topic-filter" : ""}
+					onClick={() => setSelectedTopic("Hope")}>
+					Hope</button>
+				<button 
+					className={selectedTopic === "Grace" ? "active-topic-filter" : ""}
+					onClick={() => setSelectedTopic("Grace")}>
+					Grace</button>
+				<button 
+					className={selectedTopic === "Healing" ? "active-topic-filter" : ""}
+					onClick={() => setSelectedTopic("Healing")}>
+					Healing</button>
+				<button 
+					className={selectedTopic === "Anxiety" ? "active-topic-filter" : ""}
+					onClick={() => setSelectedTopic("Anxiety")}>
+					Anxiety</button>					
+			</div>
+			
+
+			{/* Sermon Speaker dropdown, selection updates the selectedSpeaker state */}
+			<div>
+				<select onChange={(e) => setSelectedSpeaker(e.target.value)}>
+					<option value="All">All Speakers</option>
+					<option value="Dave Patterson">Dave Patterson</option>
+					<option value="Guest Speaker">Guest Speaker</option>
+				</select>
+
+			{/* Sermon Series dropdown, selection updates the selectedSeries state */}			
+				<select onChange={(e) => setSelectedSeries(e.target.value)}>
+					<option value="All">All Series</option>
+					<option value="Living Your Best Life">Living Your Best Life</option>
+					<option value="Hope Rising">Hope Rising</option>
+					<option value="Together">Together</option>
+				</select>
+
+			{/* Video Upload Recency dropdown, selection updates the videoUploadRecency state */}		
+				<select onChange={(e) => setVideoUploadRecency(e.target.value)}>
+					<option value="Newest">Sort: Newest</option>
+					<option value="Oldest">Sort: Oldest</option>
+					<option value="Relevancy">Sort: Relevant</option>
+				</select>
+			</div>
+
+
+
+
 		</MainLayout>
 	);
 }
