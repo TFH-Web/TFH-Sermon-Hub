@@ -11,7 +11,8 @@
 	},
 	"dependencies": {
 		"@fontsource/dm-sans": "^5.2.8",
-		"eslint-plugin-simple-import-sort": "^12.1.1",
+		"@iconify-icon/react": "^3.0.3",
+		"clsx": "^2.1.1",
 		"react": "^19.2.4",
 		"react-dom": "^19.2.4",
 		"react-router": "^7.13.1",
