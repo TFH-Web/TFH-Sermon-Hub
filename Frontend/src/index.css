@@ -12,7 +12,6 @@
 }
 
 body {
-	min-height: 100vh;
 	font-family: var(--ff-main);
 	color: var(--cl-foreground);
 	background-color: var(--cl-background);

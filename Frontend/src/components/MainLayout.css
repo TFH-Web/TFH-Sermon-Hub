@@ -1,0 +1,6 @@
+.Layout {
+	position: fixed;
+	inset: 0;
+	display: grid;
+	grid-template-columns: minmax(auto, 15rem) 1fr;
+}

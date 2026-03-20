@@ -1,0 +1,4 @@
+.Sidebar {
+	color: var(--cl-background);
+	background-color: var(--cl-foreground);
+}
