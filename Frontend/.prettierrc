@@ -1,0 +1,6 @@
+{
+	"experimentalTernaries": true,
+	"useTabs": true,
+	"singleQuote": true,
+	"arrowParens": "avoid"
+}
