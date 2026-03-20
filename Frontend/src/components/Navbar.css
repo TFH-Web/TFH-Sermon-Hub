@@ -6,7 +6,7 @@
 .Navbar-header {
 	margin-block: 1rem 0.5rem;
 	margin-inline: 1.25rem;
-	font-size: var(--fs-label);
+	font-size: 0.625rem;
 	text-transform: uppercase;
 	letter-spacing: 1.2px;
 }

@@ -2,6 +2,7 @@ import Navbar from './Navbar';
 import './Sidebar.css';
 import { Link } from 'react-router';
 import logo from '$/assets/logo.png';
+import Profile from './Profile';
 
 export default function Sidebar() {
 	return (
@@ -15,7 +16,7 @@ export default function Sidebar() {
 				</Link>
 			</div>
 			<Navbar />
-			<div className="Sidebar-profile">profiel here</div>
+			<Profile />
 		</aside>
 	);
 }

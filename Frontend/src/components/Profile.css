@@ -1,0 +1,41 @@
+.Profile {
+	display: grid;
+	grid-template:
+		"initials name logout" auto
+		"initials role logout" auto / auto 1fr auto;
+	gap: 0.2em 0.75rem;
+	place-items: center start;
+	padding-inline: 1rem;
+}
+
+.Profile-name {
+	grid-area: name;
+	align-self: end;
+	margin: 0;
+	font-size: 0.8rem;
+}
+
+.Profile-role {
+	grid-area: role;
+	align-self: start;
+	margin: 0;
+	font-size: 0.7rem;
+	opacity: 0.5;
+}
+
+.Profile-initials {
+	display: grid;
+	grid-area: initials;
+	place-items: center;
+	width: 2rem;
+	aspect-ratio: 1;
+	margin: 0;
+	font-size: 0.8rem;
+	font-weight: bold;
+	background-color: var(--cl-accent);
+	border-radius: 100%;
+}
+
+.Profile-logOut {
+	grid-area: logout;
+}

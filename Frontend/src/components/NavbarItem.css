@@ -10,6 +10,14 @@
 	border-radius: 0.5rem;
 	opacity: 0.5;
 
+	&:hover,
+	&:focus-visible {
+		background-color: oklch(
+			from var(--cl-background)
+				calc(l * var(--hover-brightness, var(--hover-brightness-default))) c h
+		);
+	}
+
 	&.is-active {
 		background-color: var(--cl-accent);
 		opacity: 1;
