@@ -4,7 +4,11 @@ import './index.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 import AISearch from './AISearch.tsx';
+import AISearchResults from './AISearchResults.tsx';
+import ImportUpload from './ImportUpload.tsx';
 import { ToastProvider } from './components/ToastContext';
 import Dashboard from './Dashboard.tsx';
 import Notifications from './Notifications.tsx';
@@ -19,9 +23,12 @@ import Notifications from './Notifications.tsx';
 import Settings from './Settings.tsx';
 import Transcripts from './Transcripts.tsx';
 
+const queryClient = new QueryClient();
+
 // biome-ignore lint/style/noNonNullAssertion: we'd want to throw anyways
 createRoot(document.getElementById('root')!).render(
 	<StrictMode>
+		<QueryClientProvider client={queryClient}>
 		<ToastProvider>
 			<BrowserRouter>
 				<Routes>
@@ -30,6 +37,7 @@ createRoot(document.getElementById('root')!).render(
 					<Route path="/series" element={<Series />} />
 					<Route path="/speakers" element={<Speakers />} />
 					<Route path="/ai-search" element={<AISearch />} />
+					<Route path="/ai-search/results" element={<AISearchResults />} />
 					<Route path="/upload" element={<ImportUpload />} />
 					<Route path="/tags" element={<TagsAndMetadata />} />
 					<Route path="/transcripts" element={<Transcripts />} />
@@ -39,5 +47,6 @@ createRoot(document.getElementById('root')!).render(
 				</Routes>
 			</BrowserRouter>
 		</ToastProvider>
+   </QueryClientProvider>
 	</StrictMode>,
 );
