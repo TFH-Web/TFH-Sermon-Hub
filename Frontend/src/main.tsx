@@ -14,8 +14,10 @@ import Sermons from './Sermons.tsx';
 import Settings from './Settings.tsx';
 import Speakers from './Speakers.tsx';
 import TagsAndMetadata from './TagsAndMetadata.tsx';
+import UserManagement from './UserManagement.tsx';
+import Notifications from './Notifications.tsx';
+import Settings from './Settings.tsx';
 import Transcripts from './Transcripts.tsx';
-import UserManagement from './UserManagmenet.tsx';
 
 // biome-ignore lint/style/noNonNullAssertion: we'd want to throw anyways
 createRoot(document.getElementById('root')!).render(
