@@ -1,0 +1,19 @@
+:root {
+	/* stylelint-disable custom-property-empty-line-before */
+	--ff-main: 'DM Sans', sans-serif;
+
+	--cl-dark: oklch(18% 0 68deg);
+	--cl-light: oklch(95% 0 85deg);
+	--cl-accent: oklch(52% 0.05 135deg);
+
+	--cl-foreground: light-dark(var(--cl-dark), var(--cl-light));
+	--cl-background: light-dark(var(--cl-light), var(--cl-dark));
+	/* stylelint-enable custom-property-empty-line-before */
+}
+
+body {
+	min-height: 100vh;
+	font-family: var(--ff-main);
+	color: var(--cl-foreground);
+	background-color: var(--cl-background);
+}
