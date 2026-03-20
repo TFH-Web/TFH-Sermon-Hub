@@ -2,17 +2,56 @@
 	/* stylelint-disable custom-property-empty-line-before */
 	--ff-main: "DM Sans", sans-serif;
 
+	--fs-sidebar: 14px;
+	--fs-label: 10px;
+
 	--cl-dark: oklch(18% 0 68deg);
 	--cl-light: oklch(95% 0 85deg);
 	--cl-accent: oklch(52% 0.05 135deg);
 
 	--cl-foreground: light-dark(var(--cl-dark), var(--cl-light));
 	--cl-background: light-dark(var(--cl-light), var(--cl-dark));
+
+	--cl-on-accent: light-dark(oklch(from var(--cl-accent) 100% calc(c * 0.1) h),
+			oklch(from var(--cl-accent) 15% calc(c * 0.1) h));
+
+	--cl-container: light-dark(oklch(from var(--cl-background) calc(l * 0.98) c h),
+			oklch(from var(--cl-background) calc(l * 1.7) c h));
+	--cl-outline: light-dark(oklch(from var(--cl-accent) calc(l * 1.5) calc(c * 0.05) h),
+			oklch(from var(--cl-accent) calc(l * 0.5) calc(c * 0.05) h));
+
+	--cl-accent-container: light-dark(oklch(from var(--cl-accent) calc(l * 1.2) c h),
+			oklch(from var(--cl-accent) calc(l * 0.8) calc(c * 0.9) h));
+	--cl-on-accent-container: light-dark(oklch(from var(--cl-accent) 100% 0.02 h),
+			oklch(from var(--cl-accent) 15% 0.02 h));
+
 	/* stylelint-enable custom-property-empty-line-before */
+
+	cursor: auto;
 }
 
 body {
 	font-family: var(--ff-main);
 	color: var(--cl-foreground);
 	background-color: var(--cl-background);
+}
+
+.u-button {
+	--hover-brightness-default: 1.3;
+	--active-brightness-default: 0.9;
+
+	cursor: pointer;
+	transition: 100ms ease;
+	transition-property: filter, opacity, background-color;
+
+	&:hover,
+	&:focus-visible {
+		filter: brightness(var(--hover-brightness, var(--hover-brightness-default)));
+		opacity: 1;
+		background-color: oklch(from var(--cl-background) calc(l * var(--hover-brightness, var(--hover-brightness-default))) c h);
+	}
+
+	&:active {
+		filter: brightness(var(--active-brightness, var(--active-brightness-default)));
+	}
 }

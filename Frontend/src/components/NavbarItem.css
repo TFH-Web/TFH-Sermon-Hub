@@ -1,0 +1,30 @@
+.NavbarItem {
+	display: flex;
+	align-items: center;
+	padding: 0.5rem 1rem;
+	gap: 0.75rem;
+	justify-content: space-between;
+	border-radius: 0.5rem;
+	background-color: var(--cl-background);
+	color: var(--cl-foreground);
+	text-decoration: none;
+	opacity: 0.5;
+
+	&.is-active {
+		background-color: var(--cl-accent);
+		opacity: 1;
+	}
+
+	&::before {
+		content: unset;
+	}
+}
+
+.NavbarItem-icon {
+	flex: none;
+	font-size: 1.25em;
+}
+
+.NavbarItem-name {
+	flex: auto;
+}

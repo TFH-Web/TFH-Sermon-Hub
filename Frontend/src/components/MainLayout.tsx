@@ -8,8 +8,8 @@ export default function MainLayout({
 }: React.PropsWithChildren<unknown>) {
 	return (
 		<div className="Layout">
+			<main className="Layout-main">{children}</main>
 			<Sidebar />
-			<main>{children}</main>
 		</div>
 	);
 }
