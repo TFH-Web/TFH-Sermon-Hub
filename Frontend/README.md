@@ -25,6 +25,7 @@
 8. I modified the main.py so its "from flask import Flask, jsonify, request" and not "from flask import Flask"
 
 Note: I used PowerShell terminal on vs code to execute these commands. I am sure it works with Git Bash too.
+
 9. For the first terminal, I run .\.venv\Scripts\python.exe -m pip install Flask and .\.venv\Scripts\python.exe .\main.py on the Backend folder
 	Second terminal, I run npm run dev on the Frontend folder
 	This allows you to access the project on the web, it should be called "localhost:5173" and you either press it to follow link or just type it in your URL.
