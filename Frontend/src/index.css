@@ -1,6 +1,6 @@
 :root {
 	/* stylelint-disable custom-property-empty-line-before */
-	--ff-main: 'DM Sans', sans-serif;
+	--ff-main: "DM Sans", sans-serif;
 
 	--cl-dark: oklch(18% 0 68deg);
 	--cl-light: oklch(95% 0 85deg);
