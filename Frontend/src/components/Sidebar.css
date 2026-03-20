@@ -8,11 +8,36 @@
 	color-scheme: only dark;
 	background-color: var(--cl-background);
 
-	> * {
-		padding-inline: 1rem;
-	}
-
 	> * ~ * {
 		border-block-start: 1px solid var(--cl-outline);
 	}
+}
+
+.Sidebar-title {
+	display: flex;
+	gap: 1em;
+	align-items: center;
+	padding-inline: 1.75rem;
+}
+
+.Sidebar-titleLink {
+	display: contents;
+	color: inherit;
+}
+
+.Sidebar-logoContainer {
+	flex: none;
+	max-width: 2rem;
+}
+
+.Sidebar-logo {
+	display: block;
+	max-width: 100%;
+	height: auto;
+	filter: invert();
+}
+
+.Sidebar-header {
+	flex: auto;
+	font-size: var(--fs-title);
 }
