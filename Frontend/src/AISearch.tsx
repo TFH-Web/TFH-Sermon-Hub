@@ -1,8 +1,8 @@
 import MainLayout from '$/components/MainLayout';
 
-export default function Dashboard() {
+export default function AISearch() {
 	return (
-		<MainLayout title="Dashboard">
+		<MainLayout title="AISearch">
 			<h2>Stinky cheese</h2>
 		</MainLayout>
 	);

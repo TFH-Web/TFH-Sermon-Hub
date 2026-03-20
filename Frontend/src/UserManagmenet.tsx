@@ -1,8 +1,8 @@
 import MainLayout from '$/components/MainLayout';
 
-export default function Dashboard() {
+export default function UserManagement() {
 	return (
-		<MainLayout title="Dashboard">
+		<MainLayout title="UserManagement">
 			<h2>Stinky cheese</h2>
 		</MainLayout>
 	);
