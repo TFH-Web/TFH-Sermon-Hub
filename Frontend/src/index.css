@@ -25,6 +25,44 @@
 	);
 	--cl-on-accent-container: oklch(from var(--cl-accent) 100% 0.02 h);
 
+	--cl-error: oklch(48% 0.15 25deg);
+	--cl-error-container: light-dark(
+		oklch(from var(--cl-error) 96% 0.02 h),
+		oklch(from var(--cl-error) 25% 0.05 h)
+	);
+	--cl-on-error: oklch(100% 0 0deg);
+
+	--cl-warning: oklch(65% 0.15 60deg);
+	--cl-warning-container: light-dark(
+		oklch(from var(--cl-warning) 96% 0.02 h),
+		oklch(from var(--cl-warning) 25% 0.05 h)
+	);
+
+	--cl-info: oklch(52% 0.1 245deg);
+	--cl-info-container: light-dark(
+		oklch(from var(--cl-info) 95% 0.02 h),
+		oklch(from var(--cl-info) 25% 0.05 h)
+	);
+	--cl-on-info: oklch(30% 0.1 245deg);
+
+	--cl-surface: light-dark(oklch(100% 0 0deg), oklch(22% 0 0deg));
+	--cl-surface-dim: light-dark(oklch(98% 0 0deg), oklch(20% 0 0deg));
+	--cl-on-surface-muted: light-dark(oklch(60% 0 0deg), oklch(55% 0 0deg));
+
+	--cl-admin: oklch(65% 0.1 80deg);
+	--cl-admin-container: light-dark(
+		oklch(from var(--cl-admin) 96% 0.03 h),
+		oklch(from var(--cl-admin) 25% 0.05 h)
+	);
+
+	--radius-lg: 14px;
+	--radius-md: 10px;
+	--radius-sm: 7px;
+
+	--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+	--shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+	--shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.1);
+
 	accent-color: var(--cl-accent);
 	cursor: auto;
 }
