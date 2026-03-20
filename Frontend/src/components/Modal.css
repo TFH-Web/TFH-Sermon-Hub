@@ -1,0 +1,76 @@
+.Modal-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 100;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.45);
+	backdrop-filter: blur(2px);
+}
+
+.Modal-panel {
+	max-height: 85vh;
+	overflow-y: auto;
+	background: var(--cl-surface);
+	border-radius: calc(var(--radius-lg) + 4px);
+	box-shadow: var(--shadow-lg);
+}
+
+.Modal-panel--sm {
+	width: 420px;
+}
+
+.Modal-panel--default {
+	width: 560px;
+}
+
+.Modal-panel--lg {
+	width: 720px;
+}
+
+.Modal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 20px 24px;
+	border-bottom: 1px solid var(--cl-outline);
+}
+
+.Modal-title {
+	font-size: 17px;
+	font-weight: 700;
+	letter-spacing: -0.4px;
+}
+
+.Modal-close {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	font-size: 18px;
+	color: var(--cl-on-surface-muted);
+	cursor: pointer;
+	background: var(--cl-surface-dim);
+	border: none;
+	border-radius: 8px;
+	transition: all 0.15s;
+}
+
+.Modal-close:hover {
+	color: var(--cl-foreground);
+	background: var(--cl-outline);
+}
+
+.Modal-body {
+	padding: 24px;
+}
+
+.Modal-footer {
+	display: flex;
+	gap: 10px;
+	justify-content: flex-end;
+	padding: 16px 24px;
+	border-top: 1px solid var(--cl-outline);
+}

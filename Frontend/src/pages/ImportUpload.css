@@ -1,0 +1,52 @@
+.ImportUpload-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 16px;
+}
+
+.ImportUpload-heading {
+	font-size: 20px;
+	font-weight: 700;
+	letter-spacing: -0.5px;
+}
+
+.ImportUpload-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 16px;
+}
+
+.ImportUpload-uploadZone {
+	margin-bottom: 16px;
+}
+
+.ImportUpload-activeImports {
+	margin-bottom: 16px;
+}
+
+.ImportUpload-progressLabel {
+	font-size: 13px;
+	color: var(--cl-on-surface-muted);
+}
+
+.ImportUpload-empty {
+	padding: 24px 0;
+	font-size: 13px;
+	color: var(--cl-on-surface-muted);
+	text-align: center;
+}
+
+.ImportUpload-checkboxGroup {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.ImportUpload-checkbox {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	font-size: 13px;
+	cursor: pointer;
+}

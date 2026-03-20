@@ -1,0 +1,67 @@
+.Button {
+	display: inline-flex;
+	gap: 7px;
+	align-items: center;
+	padding: 9px 18px;
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: -0.2px;
+	white-space: nowrap;
+	cursor: pointer;
+	border: none;
+	border-radius: var(--radius-sm);
+	transition: all 0.15s;
+}
+
+.Button iconify-icon {
+	width: 15px;
+	height: 15px;
+}
+
+/* Primary */
+.Button--primary {
+	color: var(--cl-on-accent);
+	background: var(--cl-accent);
+}
+
+.Button--primary:hover {
+	filter: brightness(0.9);
+}
+
+/* Secondary */
+.Button--secondary {
+	color: var(--cl-foreground);
+	background: var(--cl-surface-dim);
+	border: 1.5px solid var(--cl-outline);
+}
+
+.Button--secondary:hover {
+	border-color: color-mix(in oklch, var(--cl-outline), black 20%);
+}
+
+/* Danger */
+.Button--danger {
+	color: var(--cl-on-error);
+	background: var(--cl-error);
+}
+
+.Button--danger:hover {
+	filter: brightness(0.9);
+}
+
+/* Ghost */
+.Button--ghost {
+	color: var(--cl-on-surface-muted);
+	background: none;
+}
+
+.Button--ghost:hover {
+	color: var(--cl-foreground);
+	background: color-mix(in oklch, var(--cl-foreground), transparent 92%);
+}
+
+/* Small */
+.Button--sm {
+	padding: 6px 12px;
+	font-size: 12px;
+}
