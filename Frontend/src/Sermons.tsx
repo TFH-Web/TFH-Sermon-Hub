@@ -2,13 +2,14 @@ import MainLayout from '$/components/MainLayout';
 import { useState } from 'react';
 
 // Mock data for sermons, replace later with actual data fetching
+// Capatilize the tags to match the filter buttons
 const sermons = [
-	{ title: "Under Grace", speaker: "Dave Patterson", date: "Feb 23, 2026", time: "42:18", tags: "grace, faith", series: ""},
-	{ title: "Walking in Freedom", speaker: "Dave Patterson", date: "Feb 16, 2026", time: "38:24", tags: "freedom, faith", series: ""},
-	{ title: "Anchored in Hope", speaker: "Geust Speaker", date: "Feb 9, 2026", time: "44:10", tags: "hope, healing", series: ""},
-	{ title: "Power of Community", speaker: "Dave Patterson", date: "Feb 2, 2026", time: "35:52", tags: "community", series: ""},
-	{ title: "Worship as a Lifestyle", speaker: "Dave Patterson", date: "Jan 26, 2026", time: "41:33", tags: "worship, prayer", series: ""},
-	{ title: "Bold Faith", speaker: "Dave Patterson", date: "Jan 19, 2026", time: "", tags: "failed", series: ""}	
+	{ title: "Under Grace", speaker: "Dave Patterson", date: "Feb 23, 2026", time: "42:18", tags: "Grace, Faith", series: "Living Your Best Life"},
+	{ title: "Walking in Freedom", speaker: "Dave Patterson", date: "Feb 16, 2026", time: "38:24", tags: "Freedom, Faith", series: "Living Your Best Life"},
+	{ title: "Anchored in Hope", speaker: "Guest Speaker", date: "Feb 9, 2026", time: "44:10", tags: "Hope, Healing", series: "Hope Rising"},
+	{ title: "Power of Community", speaker: "Dave Patterson", date: "Feb 2, 2026", time: "35:52", tags: "Community", series: "Together"},
+	{ title: "Worship as a Lifestyle", speaker: "Dave Patterson", date: "Jan 26, 2026", time: "41:33", tags: "Worship, Prayer", series: "Together"},
+	{ title: "Bold Faith", speaker: "Dave Patterson", date: "Jan 19, 2026", time: "", tags: "Failed", series: "Fearless"}	
 ]
 
 
@@ -115,13 +116,19 @@ export default function Sermons() {
 				</select>
 			</div>
 
+			
 
-			{/* Sermon List, maps over the sermons array and displays sermon details */}
-			<div>
-				{sermons.map((sermon) => (
+			<div>				
+				{sermons
+					.filter(sermon =>
+						(selectedTopic === "All" || sermon.tags.includes(selectedTopic)) &&
+						(selectedSpeaker === "All" || sermon.speaker === selectedSpeaker) &&
+						(selectedSeries === "All" || sermon.series === selectedSeries) 						
+					)					
+				.map((sermon) => (
 					<div key={sermon.title}>
 					<h3>{sermon.title}</h3>
-					<p>{sermon.speaker}</p>
+					<p>{sermon.speaker} | {sermon.series} | {sermon.date} | {sermon.time} | {sermon.tags}</p>
 					</div>
 				))}
 			</div>
