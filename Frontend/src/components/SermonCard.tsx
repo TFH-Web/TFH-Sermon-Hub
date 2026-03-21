@@ -9,7 +9,8 @@ export default function SermonCard({ sermon }: SermonCardProps) {
         <div className="sermon-card">
             {/* Sermon card container with thumbnail, information, and tags */}
             {/* Placeholder for sermon thumbnail, could be an <img> tag with sermon.thumbnailUrl in the future */}      
-            <div className="sermon-thumbnail">    
+            <div className="sermon-thumbnail">                    
+				<span className="sermon-time">{sermon.time}</span>				
             </div>
         
             {/* Sermon information section with title, speaker, date, and tags */}
