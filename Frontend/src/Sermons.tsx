@@ -116,7 +116,15 @@ export default function Sermons() {
 			</div>
 
 
-
+			{/* Sermon List, maps over the sermons array and displays sermon details */}
+			<div>
+				{sermons.map((sermon) => (
+					<div key={sermon.title}>
+					<h3>{sermon.title}</h3>
+					<p>{sermon.speaker}</p>
+					</div>
+				))}
+			</div>
 
 		</MainLayout>
 	);
