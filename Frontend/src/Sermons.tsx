@@ -1,5 +1,6 @@
 import MainLayout from '$/components/MainLayout';
 import { useState } from 'react';
+import './Sermons.css';
 
 // Mock data for sermons, replace later with actual data fetching
 // Capatilize the tags to match the filter buttons
@@ -11,10 +12,6 @@ const sermons = [
 	{ title: "Worship as a Lifestyle", speaker: "Dave Patterson", date: "Jan 26, 2026", time: "41:33", tags: "Worship, Prayer", series: "Together"},
 	{ title: "Bold Faith", speaker: "Dave Patterson", date: "Jan 19, 2026", time: "", tags: "Failed", series: "Fearless"}	
 ]
-
-
-
-
 
 
 export default function Sermons() {
