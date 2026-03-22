@@ -35,7 +35,7 @@ export default function Sermons() {
 	return (
 		<MainLayout title="Sermons">			
 			{/* Sermon Filter Buttons, clicks set as active and update the selectedSermonFilter state */}			
-			<h1><div className="sermon-tabs">
+			<div className="sermon-tabs">
   				<button 
 					className={selectedSermonFilter === "All" ? "active-sermon-filter" : "sermon-tab"}
 					onClick={() => setSelectedSermonFilter("All")}>
@@ -56,7 +56,7 @@ export default function Sermons() {
 					className={selectedSermonFilter === "Failed" ? "active-sermon-filter" : "sermon-tab"}
 					onClick={() => setSelectedSermonFilter("Failed")}>
 					Failed</button>
-			</div></h1>
+			</div>
 			
 
 
