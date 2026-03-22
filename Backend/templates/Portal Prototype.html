@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<!-- saved from url=(0060)https://samppii.github.io/190MockUp/?auth=1&screen=dashboard -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TFH Sermon Hub — Portal Prototype</title>
+<link href="./Portal Prototype_files/css2" rel="stylesheet">
+<style>
+:root{--green:#5d6f54;--green-dk:#4a5943;--green-lt:#8a9e7f;--green-m:#d4ddd0;--green-s:#eef2ec;--bg:#f3f4f1;--wh:#fff;--bk:#131210;--g50:#fafaf9;--g100:#eeedeb;--g200:#d8d7d4;--g300:#b0afac;--g400:#90918e;--g500:#6b6c69;--g600:#3d3e3b;--red:#c0392b;--red-bg:#fdf0ee;--amber:#e67e22;--amber-bg:#fef9f0;--blue:#2980b9;--blue-bg:#eef6fb;--r:14px;--rs:10px;--rx:7px;--shsm:0 1px 3px rgba(0,0,0,.04);--shmd:0 4px 16px rgba(0,0,0,.06);--shlg:0 12px 40px rgba(0,0,0,.1);--sbw:240px;--tbh:60px}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--bk);-webkit-font-smoothing:antialiased}button,input,select,textarea{font-family:inherit}a{text-decoration:none;color:inherit}
+
+.app{display:flex;min-height:100vh}
+.sidebar{width:var(--sbw);background:var(--bk);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50}
+.sb-brand{padding:20px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-logo{width:34px;height:34px;background:var(--green);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+.sb-brand span{font-size:16px;font-weight:600;letter-spacing:-.4px}
+.sb-nav{flex:1;padding:16px 12px;overflow-y:auto}
+.sb-sec{margin-bottom:24px}
+.sb-sec-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:rgba(255,255,255,.3);padding:0 12px;margin-bottom:8px}
+.sb-link{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--rx);font-size:14px;font-weight:500;color:rgba(255,255,255,.55);cursor:pointer;transition:all .15s;letter-spacing:-.2px;border:none;background:none;width:100%;text-align:left}
+.sb-link:hover{color:#fff;background:rgba(255,255,255,.06)}
+.sb-link.active{color:#fff;background:var(--green)}
+.sb-link svg{width:18px;height:18px;flex-shrink:0;opacity:.7}
+.sb-link.active svg{opacity:1}
+.sb-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px}
+.sb-user{padding:16px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px}
+.sb-avatar{width:32px;height:32px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.sb-uinfo{flex:1;min-width:0}
+.sb-uinfo p{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-uinfo small{font-size:11px;color:rgba(255,255,255,.4)}
+
+.main{flex:1;margin-left:var(--sbw);display:flex;flex-direction:column}
+.topbar{height:var(--tbh);background:var(--wh);border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;z-index:40}
+.tb-title{font-size:18px;font-weight:700;letter-spacing:-.5px}
+.tb-right{display:flex;align-items:center;gap:12px}
+.tb-search{display:flex;align-items:center;gap:8px;background:var(--g50);border:1.5px solid var(--g100);border-radius:var(--rs);padding:8px 14px;width:280px;transition:border-color .2s}
+.tb-search:focus-within{border-color:var(--green)}
+.tb-search input{border:none;background:none;font-size:13px;outline:none;flex:1;color:var(--bk)}
+.tb-search input::placeholder{color:var(--g400)}
+.tb-search svg{color:var(--g400);width:16px;height:16px;flex-shrink:0}
+.content{flex:1;padding:28px 32px;overflow-y:auto}
+
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--rx);font-size:13px;font-weight:600;letter-spacing:-.2px;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}
+.btn-p{background:var(--green);color:#fff}.btn-p:hover{background:var(--green-dk)}
+.btn-s{background:var(--g50);color:var(--g600);border:1.5px solid var(--g100)}.btn-s:hover{border-color:var(--g200);background:var(--g100)}
+.btn-d{background:var(--red);color:#fff}.btn-d:hover{background:#a93226}
+.btn-g{background:none;color:var(--g500)}.btn-g:hover{color:var(--bk);background:var(--g50)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn svg{width:15px;height:15px}
+
+.card{background:var(--wh);border-radius:var(--r);border:1px solid var(--g100)}
+.card-h{padding:18px 20px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between}
+.card-h h3{font-size:15px;font-weight:700;letter-spacing:-.3px}
+.card-b{padding:20px}
+
+.tag{display:inline-flex;align-items:center;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:600}
+.tg{background:var(--green-s);color:var(--green)}
+.tgr{background:var(--g50);color:var(--g500);border:1px solid var(--g100)}
+.tred{background:var(--red-bg);color:var(--red)}
+.tamb{background:var(--amber-bg);color:var(--amber)}
+.tblu{background:var(--blue-bg);color:var(--blue)}
+
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--g400);padding:10px 16px;border-bottom:1px solid var(--g100)}
+td{padding:14px 16px;border-bottom:1px solid var(--g100);font-size:13px;vertical-align:middle}
+tr:hover td{background:var(--g50)}
+.t-title{font-weight:600;letter-spacing:-.2px;color:var(--bk)}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat{background:var(--wh);border:1px solid var(--g100);border-radius:var(--r);padding:20px}
+.stat-l{font-size:12px;color:var(--g400);font-weight:500;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.stat-l svg{width:14px;height:14px}
+.stat-v{font-size:28px;font-weight:700;letter-spacing:-1.2px}
+.stat-c{font-size:12px;font-weight:600;margin-top:4px}
+.stat-c.up{color:var(--green)}.stat-c.dn{color:var(--red)}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.gsb{display:grid;grid-template-columns:1fr 340px;gap:20px}
+
+.sc{background:var(--wh);border:1px solid var(--g100);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:all .2s}
+.sc:hover{border-color:var(--g200);box-shadow:var(--shmd);transform:translateY(-2px)}
+.sc-img{aspect-ratio:16/9;background:var(--g100);position:relative;overflow:hidden}
+.sc-img img{width:100%;height:100%;object-fit:cover}
+.sc-dur{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.75);color:#fff;font-size:11px;font-weight:600;padding:2px 7px;border-radius:5px}
+.sc-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;background:rgba(255,255,255,.92);border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s}
+.sc:hover .sc-play{opacity:1}
+.sc-play svg{width:18px;height:18px;color:var(--bk);margin-left:1px}
+.sc-body{padding:14px 16px 16px}
+.sc-body h4{font-size:14px;font-weight:600;letter-spacing:-.3px;margin-bottom:4px;line-height:1.3}
+.sc-meta{font-size:12px;color:var(--g400);display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.sc-tags{display:flex;gap:5px;flex-wrap:wrap}
+
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.mo.show{display:flex}
+.modal{background:var(--wh);border-radius:calc(var(--r) + 4px);width:560px;max-height:85vh;overflow-y:auto;box-shadow:var(--shlg)}
+.modal-lg{width:720px}
+.mo-h{padding:20px 24px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between}
+.mo-h h2{font-size:17px;font-weight:700;letter-spacing:-.4px}
+.mo-x{width:32px;height:32px;border-radius:8px;border:none;background:var(--g50);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--g500);transition:all .15s;font-size:18px}
+.mo-x:hover{background:var(--g100);color:var(--bk)}
+.mo-body{padding:24px}
+.mo-foot{padding:16px 24px;border-top:1px solid var(--g100);display:flex;justify-content:flex-end;gap:10px}
+
+.fg{margin-bottom:18px}
+.fl{display:block;font-size:12px;font-weight:600;color:var(--g600);margin-bottom:6px}
+.fi{width:100%;padding:10px 14px;border:1.5px solid var(--g100);border-radius:var(--rx);font-size:14px;outline:none;background:var(--wh);color:var(--bk);transition:border-color .2s}
+.fi:focus{border-color:var(--green)}
+.fi.err{border-color:var(--red)}
+.f-err{font-size:11px;color:var(--red);margin-top:4px;font-weight:500;display:none}
+.f-hint{font-size:11px;color:var(--g400);margin-top:4px}
+textarea.fi{resize:vertical;min-height:80px}
+select.fi{cursor:pointer}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+.toast-c{position:fixed;top:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px}
+.toast{padding:14px 18px;border-radius:var(--rs);font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:var(--shmd);min-width:320px;animation:si .3s ease}
+.toast-ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
+.toast-err{background:var(--red-bg);border:1px solid #f5c6cb;color:var(--red)}
+.toast-warn{background:var(--amber-bg);border:1px solid #fde68a;color:#92400e}
+.toast-info{background:var(--blue-bg);border:1px solid #93c5fd;color:#1e40af}
+@keyframes si{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+.pbar{height:6px;background:var(--g100);border-radius:3px;overflow:hidden}
+.pfill{height:100%;background:var(--green);border-radius:3px;transition:width .4s}
+
+.tabs{display:flex;gap:0;border-bottom:1.5px solid var(--g100);margin-bottom:20px}
+.tab{padding:10px 18px;font-size:13px;font-weight:600;color:var(--g400);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1.5px;transition:all .15s}
+.tab:hover{color:var(--g600)}
+.tab.active{color:var(--green);border-bottom-color:var(--green)}
+
+.upz{border:2px dashed var(--g200);border-radius:var(--r);padding:48px;text-align:center;cursor:pointer;transition:all .2s;background:var(--g50)}
+.upz:hover{border-color:var(--green);background:var(--green-s)}
+.upz h3{font-size:15px;font-weight:600;margin-bottom:4px}.upz p{font-size:13px;color:var(--g400)}
+
+.imp-item{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--g100);border-radius:var(--rs);margin-bottom:10px;background:var(--wh)}
+.imp-ico{width:40px;height:40px;border-radius:8px;background:var(--g50);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.imp-info{flex:1;min-width:0}.imp-info p{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.imp-info small{font-size:11px;color:var(--g400)}
+
+.fc{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.fchip{padding:7px 14px;border-radius:100px;border:1.5px solid var(--g100);background:var(--wh);font-size:12px;font-weight:600;color:var(--g500);cursor:pointer;transition:all .15s}
+.fchip:hover{border-color:var(--green);color:var(--green)}
+.fchip.active{background:var(--green);border-color:var(--green);color:#fff}
+.fsel{padding:7px 12px;border-radius:var(--rx);border:1.5px solid var(--g100);font-size:12px;font-weight:500;color:var(--g600);background:var(--wh);cursor:pointer}
+
+.act-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--g100)}
+.act-item:last-child{border-bottom:none}
+.act-dot{width:8px;height:8px;border-radius:50%;background:var(--green);margin-top:5px;flex-shrink:0}
+.act-dot.w{background:var(--amber)}.act-dot.e{background:var(--red)}
+.act-t{font-size:13px;line-height:1.5}.act-t strong{font-weight:600}
+.act-time{font-size:11px;color:var(--g400);margin-top:2px}
+
+.dh{display:grid;grid-template-columns:1.4fr 1fr;gap:28px;margin-bottom:28px}
+.dv{aspect-ratio:16/9;background:var(--bk);border-radius:var(--r);overflow:hidden;position:relative}
+.dv img{width:100%;height:100%;object-fit:cover;opacity:.8}
+.dplay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;background:rgba(255,255,255,.95);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.dplay svg{width:24px;height:24px;color:var(--bk);margin-left:2px}
+.di h1{font-size:28px;font-weight:700;letter-spacing:-1px;line-height:1.15;margin-bottom:12px}
+.dm{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.dm-i{font-size:13px;color:var(--g400);display:flex;align-items:center;gap:5px}
+.dm-i svg{width:14px;height:14px}
+.d-sum{font-size:14px;color:var(--g500);line-height:1.65;margin-bottom:20px}
+.d-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.d-acts{display:flex;gap:10px}
+
+.tblock{background:var(--g50);border:1px solid var(--g100);border-radius:var(--rs);padding:20px;font-size:13px;line-height:1.8;color:var(--g600);max-height:400px;overflow-y:auto}
+.tblock mark{background:var(--green-m);color:var(--green-dk);padding:1px 4px;border-radius:3px}
+
+.confirm-ico{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:22px}
+.confirm-ico.dng{background:var(--red-bg);color:var(--red)}
+.confirm-txt{text-align:center}.confirm-txt h3{font-size:16px;font-weight:700;margin-bottom:6px}.confirm-txt p{font-size:13px;color:var(--g400);line-height:1.5}
+
+.sso-b{background:var(--blue-bg);border:1px solid #93c5fd;border-radius:var(--rs);padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:20px;font-size:13px;color:#1e40af}
+
+.email-pre{background:var(--g50);border:1px solid var(--g100);border-radius:var(--rs);padding:20px;font-size:13px}
+.email-pre-h{border-bottom:1px solid var(--g100);padding-bottom:12px;margin-bottom:12px}
+.email-pre-h p{margin-bottom:4px;color:var(--g400)}.email-pre-h strong{color:var(--bk)}
+.email-pre-body{line-height:1.7;color:var(--g600)}
+
+.screen{display:none}.screen.active{display:block}
+
+.capture-links{display:none;background:var(--wh);border:1px solid var(--g100);border-radius:var(--r);padding:16px 18px;margin-bottom:18px}
+.capture-links h4{font-size:13px;font-weight:700;margin-bottom:8px}
+.capture-links ul{display:flex;flex-wrap:wrap;gap:8px;list-style:none}
+.capture-links a{display:inline-flex;padding:6px 10px;border:1px solid var(--g100);border-radius:999px;font-size:12px;background:var(--g50);color:var(--g600)}
+.capture-all .capture-links{display:block}
+.capture-all .main{margin-left:0}
+.capture-all .sidebar,.capture-all .topbar{display:none}
+.capture-all .content{padding:24px}
+.capture-all .screen{display:block!important;background:var(--wh);border:1px solid var(--g100);border-radius:var(--r);padding:16px;margin-bottom:16px}
+.capture-all .screen::before{content:attr(data-screen-title);display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--g400);margin-bottom:10px}
+.mb-2{margin-bottom:8px}.mb-4{margin-bottom:16px}.mb-6{margin-bottom:24px}.mt-4{margin-top:16px}
+.flx{display:flex}.flxb{display:flex;justify-content:space-between;align-items:center}
+.tsm{font-size:13px}.tmu{color:var(--g400)}
+
+.img-ph{width:100%;height:100%;background:linear-gradient(135deg,#d9dbd8,#c6c9c4);border:1px solid var(--g200)}
+
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--g200);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar">
+  <div class="sb-brand"><div class="sb-logo">TFH</div><span>Sermon Hub</span></div>
+  <nav class="sb-nav">
+    <div class="sb-sec">
+      <div class="sb-sec-label">Main</div>
+      <a class="sb-link active" href="https://samppii.github.io/190MockUp/?auth=1&amp;screen=dashboard" onclick="event.preventDefault();go(&#39;dashboard&#39;)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>Dashboard</a>
+      <a class="sb-link" href="https://samppii.github.io/190MockUp/?auth=1&amp;screen=sermons" onclick="event.preventDefault();go(&#39;sermons&#39;)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17"></polygon><rect x="1" y="5" width="15" height="14" rx="2"></rect></svg>Sermons</a>
+      <a class="sb-link" href="https://samppii.github.io/190MockUp/?auth=1&amp;screen=series" onclick="event.preventDefault();go(&#39;series&#39;)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path></svg>Series</a>
+      <a class="sb-link" href="https://samppii.github.io/190MockUp/?auth=1&amp;screen=speakers" onclick="event.preventDefault();go(&#39;speakers&#39;)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>Speakers</a>
+      <a class="sb-link" href="https://samppii.github.io/190MockUp/?auth=1&amp;screen=search" onclick="event.preventDefault();go(&#39;search&#39;)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>AI Search</a>
+    </div>
+    <div class="sb-sec">
+      <div class="sb-sec-label">Content</div>
+      <a class="sb-link" href="https://samppii.github.io/190MockUp/?auth=1&amp;screen=import" onclick="event.preventDefault();go(&#39;import&#39;)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>Import / Upload<span class="sb-badge">3</span></a>
+      <a class="sb-link" href="https://samppii.github.io/190MockUp/?auth=1&amp;screen=tags" onclick="event.preventDefault();go(&#39;tags&#39;)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>Tags &amp; Metadata</a>
+      <a class="sb-link" href="https://samppii.github.io/190MockUp/?auth=1&amp;screen=transcripts" onclick="event.preventDefault();go(&#39;transcripts&#39;)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>Transcripts</a>
+    </div>
+    <div class="sb-sec">
+      <div class="sb-sec-label">Admin</div>
+      <a class="sb-link" href="https://samppii.github.io/190MockUp/?auth=1&amp;screen=users" onclick="event.preventDefault();go(&#39;users&#39;)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-8 0v2"></path><circle cx="12" cy="7" r="4"></circle></svg>User Management</a>
+      <a class="sb-link" href="https://samppii.github.io/190MockUp/?auth=1&amp;screen=notifications" onclick="event.preventDefault();go(&#39;notifications&#39;)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 01-3.46 0"></path></svg>Notifications</a>
+      <a class="sb-link" href="https://samppii.github.io/190MockUp/?auth=1&amp;screen=settings" onclick="event.preventDefault();go(&#39;settings&#39;)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>Settings</a>
+    </div>
+  </nav>
+  <div class="sb-user"><div class="sb-avatar">SG</div><div class="sb-uinfo"><p>Samip Gurung</p><small>Admin</small></div><button class="btn btn-g btn-sm" style="color:rgba(255,255,255,.4);padding:4px 8px" onclick="showLogin()">Log out</button></div>
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<div class="main">
+<header class="topbar">
+  <span class="tb-title" id="pt">Dashboard</span>
+  <div class="tb-right">
+    <div class="tb-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><input placeholder="Search sermons, speakers, tags…" onclick="go(&#39;search&#39;)"></div>
+    <button class="btn btn-p btn-sm" onclick="openM(&#39;m-upload&#39;)">+ Upload</button>
+  </div>
+</header>
+
+<div class="content">
+
+<div class="capture-links" id="capture-links"></div>
+
+<!-- ═══════ DASHBOARD ═══════ -->
+<div class="screen active" id="s-dashboard">
+  <div class="stats">
+    <div class="stat"><div class="stat-l">Total Sermons</div><div class="stat-v">2,437</div><div class="stat-c up">↑ 12 this month</div></div>
+    <div class="stat"><div class="stat-l">Series</div><div class="stat-v">124</div><div class="stat-c up">↑ 2 new</div></div>
+    <div class="stat"><div class="stat-l">Speakers</div><div class="stat-v">28</div></div>
+    <div class="stat"><div class="stat-l">Searches Today</div><div class="stat-v">89</div><div class="stat-c up">↑ 23%</div></div>
+  </div>
+  <div class="gsb">
+    <div>
+      <div class="card mb-6">
+        <div class="card-h"><h3>Recent Sermons</h3><button class="btn btn-g btn-sm" onclick="go(&#39;sermons&#39;)">View All →</button></div>
+        <table>
+          <thead><tr><th>Sermon</th><th>Speaker</th><th>Series</th><th>Date</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr style="cursor:pointer" onclick="go(&#39;detail&#39;)"><td class="t-title">Under Grace</td><td>Dave Patterson</td><td>Live Your Best Life</td><td>Feb 23</td><td><span class="tag tg">Published</span></td></tr>
+            <tr><td class="t-title">Walking in Freedom</td><td>Dave Patterson</td><td>Live Your Best Life</td><td>Feb 16</td><td><span class="tag tg">Published</span></td></tr>
+            <tr><td class="t-title">Anchored in Hope</td><td>Guest Speaker</td><td>Hope Rising</td><td>Feb 9</td><td><span class="tag tamb">Processing</span></td></tr>
+            <tr><td class="t-title">Power of Community</td><td>Dave Patterson</td><td>Together</td><td>Feb 2</td><td><span class="tag tg">Published</span></td></tr>
+            <tr><td class="t-title">Bold Faith</td><td>Dave Patterson</td><td>Fearless</td><td>Jan 26</td><td><span class="tag tred">Failed</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Import Activity</h3></div>
+        <div class="card-b">
+          <div class="imp-item"><div class="imp-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17"></polygon><rect x="1" y="5" width="15" height="14" rx="2"></rect></svg></div><div class="imp-info"><p>Batch Import — YouTube Library</p><small>148 videos • Started 2 hrs ago</small></div><div style="text-align:right"><div class="pbar" style="width:120px"><div class="pfill" style="width:72%"></div></div><small class="tsm tmu">72%</small></div></div>
+          <div class="imp-item"><div class="imp-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></div><div class="imp-info"><p>Sermon Notes — 2024 Archive</p><small>56 documents • Completed</small></div><span class="tag tg">Complete</span></div>
+          <div class="imp-item"><div class="imp-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e67e22" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div><div class="imp-info"><p>Vimeo Import — Legacy Content</p><small>12 videos failed transcription</small></div><span class="tag tred">12 Errors</span></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card mb-4">
+        <div class="card-h"><h3>Recent Activity</h3></div>
+        <div class="card-b">
+          <div class="act-item"><div class="act-dot"></div><div><div class="act-t"><strong>Samip Gurung</strong> uploaded "Under Grace"</div><div class="act-time">2 hours ago</div></div></div>
+          <div class="act-item"><div class="act-dot"></div><div><div class="act-t"><strong>AI Engine</strong> generated transcript for "Walking in Freedom"</div><div class="act-time">3 hours ago</div></div></div>
+          <div class="act-item"><div class="act-dot w"></div><div><div class="act-t"><strong>System</strong> — Bulk import 72% complete</div><div class="act-time">4 hours ago</div></div></div>
+          <div class="act-item"><div class="act-dot e"></div><div><div class="act-t"><strong>Import Error</strong> — "Bold Faith" transcription failed</div><div class="act-time">5 hours ago</div></div></div>
+          <div class="act-item"><div class="act-dot"></div><div><div class="act-t"><strong>Email sent</strong> — Upload complete notification to admin</div><div class="act-time">Yesterday</div></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Popular Tags</h3></div>
+        <div class="card-b"><div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tg">faith (342)</span><span class="tag tg">hope (289)</span><span class="tag tg">grace (276)</span><span class="tag tg">healing (198)</span><span class="tag tg">prayer (187)</span><span class="tag tg">anxiety (156)</span><span class="tag tg">love (149)</span><span class="tag tg">worship (134)</span><span class="tag tg">family (121)</span><span class="tag tg">leadership (98)</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ SERMONS LIST ═══════ -->
+<div class="screen" id="s-sermons">
+  <div class="flxb mb-4">
+    <div class="tabs"><button class="tab active">All Sermons</button><button class="tab">Published</button><button class="tab">Processing</button><button class="tab">Draft</button><button class="tab">Failed</button></div>
+    <button class="btn btn-p" onclick="openM(&#39;m-upload&#39;)">+ Add Sermon</button>
+  </div>
+  <div class="fc">
+    <span class="fchip active">All</span><span class="fchip">Faith</span><span class="fchip">Hope</span><span class="fchip">Grace</span><span class="fchip">Healing</span><span class="fchip">Anxiety</span>
+    <select class="fsel"><option>All Speakers</option><option>Dave Patterson</option><option>Guest Speakers</option></select>
+    <select class="fsel"><option>All Series</option><option>Live Your Best Life</option><option>Hope Rising</option><option>Together</option></select>
+    <select class="fsel"><option>Sort: Newest</option><option>Sort: Oldest</option><option>Sort: Relevance</option></select>
+  </div>
+  <div class="g3">
+    <div class="sc" onclick="go(&#39;detail&#39;)"><div class="sc-img"><div class="img-ph"></div><div class="sc-dur">42:18</div><div class="sc-play"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="8,6 19,12 8,18" fill="currentColor"></polygon></svg></div></div><div class="sc-body"><h4>Under Grace</h4><div class="sc-meta"><span>Dave Patterson</span><span>•</span><span>Feb 23, 2026</span></div><div class="sc-tags"><span class="tag tg">grace</span><span class="tag tgr">faith</span></div></div></div>
+    <div class="sc"><div class="sc-img"><div class="img-ph"></div><div class="sc-dur">38:24</div><div class="sc-play"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="8,6 19,12 8,18" fill="currentColor"></polygon></svg></div></div><div class="sc-body"><h4>Walking in Freedom</h4><div class="sc-meta"><span>Dave Patterson</span><span>•</span><span>Feb 16, 2026</span></div><div class="sc-tags"><span class="tag tg">freedom</span><span class="tag tgr">faith</span></div></div></div>
+    <div class="sc"><div class="sc-img"><div class="img-ph"></div><div class="sc-dur">44:10</div><div class="sc-play"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="8,6 19,12 8,18" fill="currentColor"></polygon></svg></div></div><div class="sc-body"><h4>Anchored in Hope</h4><div class="sc-meta"><span>Guest Speaker</span><span>•</span><span>Feb 9, 2026</span></div><div class="sc-tags"><span class="tag tg">hope</span><span class="tag tgr">healing</span></div></div></div>
+    <div class="sc"><div class="sc-img"><div class="img-ph"></div><div class="sc-dur">35:52</div><div class="sc-play"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="8,6 19,12 8,18" fill="currentColor"></polygon></svg></div></div><div class="sc-body"><h4>Power of Community</h4><div class="sc-meta"><span>Dave Patterson</span><span>•</span><span>Feb 2, 2026</span></div><div class="sc-tags"><span class="tag tg">community</span></div></div></div>
+    <div class="sc"><div class="sc-img"><div class="img-ph"></div><div class="sc-dur">41:33</div><div class="sc-play"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="8,6 19,12 8,18" fill="currentColor"></polygon></svg></div></div><div class="sc-body"><h4>Worship as a Lifestyle</h4><div class="sc-meta"><span>Dave Patterson</span><span>•</span><span>Jan 26, 2026</span></div><div class="sc-tags"><span class="tag tg">worship</span><span class="tag tgr">prayer</span></div></div></div>
+    <div class="sc"><div class="sc-img" style="display:flex;align-items:center;justify-content:center"><span class="tag tred" style="font-size:13px">⚠ Transcription Failed</span></div><div class="sc-body"><h4>Bold Faith</h4><div class="sc-meta"><span>Dave Patterson</span><span>•</span><span>Jan 19</span></div><div class="sc-tags"><span class="tag tred">failed</span></div></div></div>
+  </div>
+</div>
+
+<!-- ═══════ SERMON DETAIL ═══════ -->
+<div class="screen" id="s-detail">
+  <button class="btn btn-g btn-sm mb-4" onclick="go(&#39;sermons&#39;)">← Back to Sermons</button>
+  <div class="dh">
+    <div class="dv"><div class="img-ph"></div><div class="dplay"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="8,6 19,12 8,18" fill="currentColor"></polygon></svg></div></div>
+    <div class="di">
+      <span class="tag tg mb-2" style="display:inline-flex">Live Your Best Life Series</span>
+      <h1>Under Grace</h1>
+      <div class="dm">
+        <div class="dm-i">Dave Patterson</div>
+        <div class="dm-i">Date:  Feb 23, 2026</div>
+        <div class="dm-i">Duration:  42 min</div>
+      </div>
+      <div class="d-sum">Exploring the transformative power of grace and how it shapes our everyday decisions, relationships, and connection to God's purpose for our lives.</div>
+      <div class="d-tags"><span class="tag tg">grace</span><span class="tag tg">faith</span><span class="tag tg">transformation</span><span class="tag tg">purpose</span><span class="tag tg">relationships</span></div>
+      <div class="d-acts">
+        <button class="btn btn-p">Watch</button>
+        <button class="btn btn-s" onclick="openM(&#39;m-edit&#39;)">Edit Edit</button>
+        <button class="btn btn-s" style="color:var(--red)" onclick="openM(&#39;m-delete&#39;)">Delete</button>
+      </div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-h"><h3>AI Transcript</h3><button class="btn btn-g btn-sm">Copy</button></div><div class="card-b"><div class="tblock"><p>Good morning everyone. I'm so glad you're here today. We're continuing our series "Live Your Best Life" and today we're talking about something that is at the foundation of everything — <mark>grace</mark>.</p><br><p>A lot of people misunderstand what <mark>grace</mark> really means. It's not just a theological concept. Grace is the operating system of the Kingdom of God.</p><br><p>Let me read from Ephesians 2:8-9. "For it is by <mark>grace</mark> you have been saved, through <mark>faith</mark> — and this is not from yourselves, it is the gift of God."</p><br><p>Three things about living under <mark>grace</mark>: grace is not earned, grace changes your identity, and grace empowers your <mark>purpose</mark>...</p></div></div></div>
+    <div>
+      <div class="card mb-4"><div class="card-h"><h3>AI Summary</h3><span class="tag tblu">Auto-generated</span></div><div class="card-b"><p class="tsm" style="line-height:1.7;color:var(--g500)">Pastor Dave Patterson explores grace as the foundation of Christian living. The sermon covers three main points: grace cannot be earned, grace transforms identity, and grace empowers believers to fulfill their purpose. Drawing from Ephesians 2:8-9, Patterson emphasizes that understanding grace should change how we relate to God and each other.</p></div></div>
+      <div class="card"><div class="card-h"><h3>Metadata</h3></div><div class="card-b"><div style="display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:13px"><span class="tmu">Series</span><span>Live Your Best Life</span><span class="tmu">Series Index</span><span>#4 of 6</span><span class="tmu">Speaker</span><span>Dave Patterson</span><span class="tmu">Date</span><span>February 23, 2026</span><span class="tmu">Duration</span><span>42:18</span><span class="tmu">Video</span><span style="color:var(--blue)">youtube.com/watch?v=abc123</span><span class="tmu">Transcript</span><span class="tag tg">Generated</span><span class="tmu">Summary</span><span class="tag tg">Generated</span><span class="tmu">Tags</span><span class="tag tg">AI Generated (5)</span></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ SERIES ═══════ -->
+<div class="screen" id="s-series">
+  <div class="flxb mb-4"><h2 style="font-size:20px;font-weight:700;letter-spacing:-.5px">Sermon Series</h2><button class="btn btn-p" onclick="openM(&#39;m-series&#39;)">+ New Series</button></div>
+  <div class="g3">
+    <div class="card" style="cursor:pointer"><div style="aspect-ratio:16/9;background:linear-gradient(135deg,var(--green),var(--green-dk));border-radius:var(--r) var(--r) 0 0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:700;letter-spacing:-1px;padding:20px;text-align:center">Live Your Best Life</div><div class="card-b"><h4 style="font-size:15px;font-weight:600;margin-bottom:4px">Live Your Best Life</h4><p class="tsm tmu">6 sermons • Dave Patterson • 2026</p></div></div>
+    <div class="card" style="cursor:pointer"><div style="aspect-ratio:16/9;background:linear-gradient(135deg,#2c3e50,#1a252f);border-radius:var(--r) var(--r) 0 0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:700;letter-spacing:-1px;padding:20px;text-align:center">Hope Rising</div><div class="card-b"><h4 style="font-size:15px;font-weight:600;margin-bottom:4px">Hope Rising</h4><p class="tsm tmu">8 sermons • Multiple Speakers • 2025</p></div></div>
+    <div class="card" style="cursor:pointer"><div style="aspect-ratio:16/9;background:linear-gradient(135deg,#8e6c3e,#5c4427);border-radius:var(--r) var(--r) 0 0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:700;letter-spacing:-1px;padding:20px;text-align:center">Fearless</div><div class="card-b"><h4 style="font-size:15px;font-weight:600;margin-bottom:4px">Fearless</h4><p class="tsm tmu">5 sermons • Dave Patterson • 2025</p></div></div>
+    <div class="card" style="cursor:pointer"><div style="aspect-ratio:16/9;background:linear-gradient(135deg,#4a6741,#2d3f28);border-radius:var(--r) var(--r) 0 0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:700;letter-spacing:-1px;padding:20px;text-align:center">Together</div><div class="card-b"><h4 style="font-size:15px;font-weight:600;margin-bottom:4px">Together</h4><p class="tsm tmu">4 sermons • Dave Patterson • 2026</p></div></div>
+  </div>
+</div>
+
+<!-- ═══════ SPEAKERS ═══════ -->
+<div class="screen" id="s-speakers">
+  <div class="flxb mb-4"><h2 style="font-size:20px;font-weight:700;letter-spacing:-.5px">Speakers</h2></div>
+  <div class="g3">
+    <div class="card" style="text-align:center;padding:28px 20px"><div style="width:64px;height:64px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:#fff;font-size:22px;font-weight:700">DP</div><h4 style="font-weight:600;margin-bottom:2px">Dave Patterson</h4><p class="tsm tmu">Lead Pastor • 1,847 sermons</p></div>
+    <div class="card" style="text-align:center;padding:28px 20px"><div style="width:64px;height:64px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:#fff;font-size:22px;font-weight:700">GS</div><h4 style="font-weight:600;margin-bottom:2px">Guest Speakers</h4><p class="tsm tmu">Various • 342 sermons</p></div>
+    <div class="card" style="text-align:center;padding:28px 20px"><div style="width:64px;height:64px;border-radius:50%;background:var(--amber);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:#fff;font-size:22px;font-weight:700">WT</div><h4 style="font-weight:600;margin-bottom:2px">Worship Team</h4><p class="tsm tmu">Team • 248 sermons</p></div>
+  </div>
+</div>
+
+<!-- ═══════ AI SEARCH ═══════ -->
+<div class="screen" id="s-search">
+  <div style="max-width:720px;margin:0 auto;padding-top:40px">
+    <h2 style="font-size:28px;font-weight:700;letter-spacing:-1px;text-align:center;margin-bottom:6px">AI-Powered Sermon Search</h2>
+    <p class="tsm tmu" style="text-align:center;margin-bottom:28px">Natural language search across transcripts, tags, speakers, and topics</p>
+    <div style="display:flex;gap:0;margin-bottom:24px"><input class="fi" style="border-radius:var(--rs) 0 0 var(--rs);font-size:15px;padding:14px 20px" placeholder="e.g. &#39;What has Dave said about overcoming anxiety?&#39;" id="sinp"><button class="btn btn-p" style="border-radius:0 var(--rs) var(--rs) 0;padding:14px 24px" onclick="doSearch()">Search</button></div>
+    <div class="fc" style="justify-content:center"><span class="fchip active">All</span><span class="fchip">Sermons</span><span class="fchip">Transcripts</span><span class="fchip">Notes</span><select class="fsel"><option>Any Speaker</option></select><select class="fsel"><option>Any Date</option></select></div>
+    <div id="sres" style="display:none">
+      <p class="tsm tmu mb-4">Found <strong>12 results</strong> for "overcoming anxiety" — ranked by relevance</p>
+      <div class="card mb-4" style="cursor:pointer" onclick="go(&#39;detail&#39;)"><div class="card-b" style="display:flex;gap:16px"><div style="width:120px;height:72px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--g100)"><div class="img-ph"></div></div><div><h4 style="font-size:14px;font-weight:600;margin-bottom:4px">Under Grace — Overcoming Anxiety Through Faith</h4><p class="tsm tmu mb-2">Dave Patterson • Feb 23, 2026 • Live Your Best Life</p><p class="tsm" style="color:var(--g500)">...that's why <mark style="background:var(--green-m);padding:1px 3px;border-radius:2px">anxiety</mark> loses its grip when we understand grace...</p><div style="display:flex;gap:5px;margin-top:8px"><span class="tag tg">98% match</span><span class="tag tgr">transcript</span></div></div></div></div>
+      <div class="card mb-4" style="cursor:pointer"><div class="card-b" style="display:flex;gap:16px"><div style="width:120px;height:72px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--g100)"><div class="img-ph"></div></div><div><h4 style="font-size:14px;font-weight:600;margin-bottom:4px">Anchored in Hope — Finding Peace in Uncertain Times</h4><p class="tsm tmu mb-2">Guest Speaker • Feb 9, 2026 • Hope Rising</p><p class="tsm" style="color:var(--g500)">When <mark style="background:var(--green-m);padding:1px 3px;border-radius:2px">anxiety</mark> tells you to panic, hope says be still...</p><div style="display:flex;gap:5px;margin-top:8px"><span class="tag tg">87% match</span><span class="tag tgr">transcript</span></div></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ IMPORT / UPLOAD ═══════ -->
+<div class="screen" id="s-import">
+  <div class="flxb mb-4"><h2 style="font-size:20px;font-weight:700;letter-spacing:-.5px">Import &amp; Upload</h2></div>
+  <div class="tabs"><button class="tab active">Upload New</button><button class="tab">Bulk Import</button><button class="tab">Import History</button><button class="tab">Failed Imports</button></div>
+  <div class="g2">
+    <div>
+      <div class="upz mb-4" onclick="openM(&#39;m-upload&#39;)">
+        <div style="font-size:36px;margin-bottom:8px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--g400)" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></div>
+        <h3>Upload Sermon Content</h3>
+        <p>Drag and drop videos, notes, or documents — or click to browse</p>
+        <p style="margin-top:8px"><span class="tag tgr">YouTube Link</span> <span class="tag tgr">Vimeo Link</span> <span class="tag tgr">Video File</span> <span class="tag tgr">Documents</span></p>
+      </div>
+      <div class="card"><div class="card-h"><h3>Bulk Import from Library</h3></div><div class="card-b">
+        <div class="fg"><label class="fl">Import Source</label><select class="fi"><option>YouTube Channel</option><option>Vimeo Account</option><option>Local File Batch</option></select></div>
+        <div class="fg"><label class="fl">YouTube Channel URL</label><input class="fi" placeholder="https://youtube.com/@thefathershouse"></div>
+        <div class="fg"><label class="fl">Date Range (optional)</label><div class="frow"><input class="fi" type="date"><input class="fi" type="date"></div></div>
+        <button class="btn btn-p" onclick="showToast(&#39;Import started — 148 videos queued for processing&#39;,&#39;ok&#39;)">Start Bulk Import</button>
+      </div></div>
+    </div>
+    <div>
+      <div class="card mb-4"><div class="card-h"><h3>Active Imports</h3></div><div class="card-b">
+        <div class="imp-item"><div class="imp-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17"></polygon><rect x="1" y="5" width="15" height="14" rx="2"></rect></svg></div><div class="imp-info"><p>YouTube Library Import</p><small>148 videos • 107 complete, 41 remaining</small></div><div style="text-align:right"><div class="pbar" style="width:100px"><div class="pfill" style="width:72%"></div></div><small class="tsm tmu">72%</small></div></div>
+        <div class="imp-item"><div class="imp-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 014 4v1a4 4 0 01-8 0V6a4 4 0 014-4z"></path><path d="M6 10v3a6 6 0 0012 0v-3"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg></div><div class="imp-info"><p>AI Processing Queue</p><small>Transcripts: 12 pending • Tags: 8 pending</small></div><span class="tag tamb">In Progress</span></div>
+      </div></div>
+      <div class="card"><div class="card-h"><h3>Failed Imports</h3><span class="tag tred">3 items</span></div><div class="card-b">
+        <div class="imp-item"><div class="imp-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg></div><div class="imp-info"><p>Bold Faith — Transcription Error</p><small>Audio quality too low for AI processing</small></div><button class="btn btn-s btn-sm" onclick="showToast(&#39;Retrying transcription for Bold Faith...&#39;,&#39;info&#39;)">Retry</button></div>
+        <div class="imp-item"><div class="imp-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg></div><div class="imp-info"><p>Sunday Worship (2019) — Video Not Found</p><small>YouTube link returned 404</small></div><button class="btn btn-s btn-sm">Fix Link</button></div>
+        <div class="imp-item"><div class="imp-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg></div><div class="imp-info"><p>Notes Upload — Format Error</p><small>Unsupported file type: .pages</small></div><button class="btn btn-s btn-sm">Re-upload</button></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ TAGS & METADATA ═══════ -->
+<div class="screen" id="s-tags">
+  <div class="flxb mb-4"><h2 style="font-size:20px;font-weight:700;letter-spacing:-.5px">Tags &amp; Metadata</h2><button class="btn btn-p" onclick="openM(&#39;m-tag&#39;)">+ Add Tag</button></div>
+  <div class="sso-b">AITags are auto-generated by AI at import time and weighted by relevance. You can also manually add, edit, or remove tags.</div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Tag</th><th>Sermons</th><th>Relevance Weight</th><th>Source</th><th>Actions</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag tg">faith</span></td><td>342</td><td><div class="pbar" style="width:80px"><div class="pfill" style="width:95%"></div></div></td><td><span class="tag tblu">AI</span></td><td><button class="btn btn-g btn-sm">Edit</button> <button class="btn btn-g btn-sm" style="color:var(--red)">Delete</button></td></tr>
+        <tr><td><span class="tag tg">hope</span></td><td>289</td><td><div class="pbar" style="width:80px"><div class="pfill" style="width:88%"></div></div></td><td><span class="tag tblu">AI</span></td><td><button class="btn btn-g btn-sm">Edit</button> <button class="btn btn-g btn-sm" style="color:var(--red)">Delete</button></td></tr>
+        <tr><td><span class="tag tg">grace</span></td><td>276</td><td><div class="pbar" style="width:80px"><div class="pfill" style="width:84%"></div></div></td><td><span class="tag tblu">AI</span></td><td><button class="btn btn-g btn-sm">Edit</button> <button class="btn btn-g btn-sm" style="color:var(--red)">Delete</button></td></tr>
+        <tr><td><span class="tag tg">healing</span></td><td>198</td><td><div class="pbar" style="width:80px"><div class="pfill" style="width:72%"></div></div></td><td><span class="tag tblu">AI</span></td><td><button class="btn btn-g btn-sm">Edit</button> <button class="btn btn-g btn-sm" style="color:var(--red)">Delete</button></td></tr>
+        <tr><td><span class="tag tg">anxiety</span></td><td>156</td><td><div class="pbar" style="width:80px"><div class="pfill" style="width:60%"></div></div></td><td><span class="tag tgr">Manual</span></td><td><button class="btn btn-g btn-sm">Edit</button> <button class="btn btn-g btn-sm" style="color:var(--red)">Delete</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════ TRANSCRIPTS ═══════ -->
+<div class="screen" id="s-transcripts">
+  <div class="flxb mb-4"><h2 style="font-size:20px;font-weight:700;letter-spacing:-.5px">Transcripts</h2></div>
+  <div class="sso-b">AITranscripts are auto-generated by AI when sermons are imported. They are searchable by keyword and stored alongside video links.</div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Sermon</th><th>Speaker</th><th>Date</th><th>Transcript Status</th><th>Word Count</th><th>Actions</th></tr></thead>
+      <tbody>
+        <tr><td class="t-title">Under Grace</td><td>Dave Patterson</td><td>Feb 23</td><td><span class="tag tg">Complete</span></td><td>4,218</td><td><button class="btn btn-g btn-sm" onclick="go(&#39;detail&#39;)">View</button> <button class="btn btn-g btn-sm">Download</button></td></tr>
+        <tr><td class="t-title">Walking in Freedom</td><td>Dave Patterson</td><td>Feb 16</td><td><span class="tag tg">Complete</span></td><td>3,892</td><td><button class="btn btn-g btn-sm">View</button> <button class="btn btn-g btn-sm">Download</button></td></tr>
+        <tr><td class="t-title">Anchored in Hope</td><td>Guest Speaker</td><td>Feb 9</td><td><span class="tag tamb">Processing</span></td><td>—</td><td><span class="tmu tsm">In progress...</span></td></tr>
+        <tr><td class="t-title">Bold Faith</td><td>Dave Patterson</td><td>Jan 26</td><td><span class="tag tred">Failed</span></td><td>—</td><td><button class="btn btn-s btn-sm" onclick="showToast(&#39;Retrying transcription...&#39;,&#39;info&#39;)">Retry</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════ USER MANAGEMENT ═══════ -->
+<div class="screen" id="s-users">
+  <div class="flxb mb-4"><h2 style="font-size:20px;font-weight:700;letter-spacing:-.5px">User Management</h2><button class="btn btn-p" onclick="openM(&#39;m-user&#39;)">+ Add User</button></div>
+  <div class="sso-b">Authentication is managed through Microsoft Entra SSO. All users must sign in with their organizational Microsoft account.</div>
+  <div class="card">
+    <table>
+      <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Privacy Level</th><th>Last Active</th><th>Actions</th></tr></thead>
+      <tbody>
+        <tr><td><div class="flx" style="align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">SG</div><div><div class="t-title">Samip Gurung</div><small class="tmu">Team Lead</small></div></div></td><td>samip@tfh.org</td><td><span class="tag" style="background:#fef3c7;color:#92400e">Admin</span></td><td><span class="tag tg">Full Access</span></td><td>Just now</td><td><button class="btn btn-g btn-sm">Edit</button></td></tr>
+        <tr><td><div class="flx" style="align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">GY</div><div><div class="t-title">Givin Yang</div></div></div></td><td>givin@tfh.org</td><td><span class="tag" style="background:#fef3c7;color:#92400e">Admin</span></td><td><span class="tag tg">Full Access</span></td><td>2 hours ago</td><td><button class="btn btn-g btn-sm">Edit</button></td></tr>
+        <tr><td><div class="flx" style="align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:var(--amber);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">NE</div><div><div class="t-title">Nicole Espinoza</div></div></div></td><td>nicole@tfh.org</td><td><span class="tag tblu">User</span></td><td><span class="tag tgr">Standard</span></td><td>Yesterday</td><td><button class="btn btn-g btn-sm">Edit</button> <button class="btn btn-g btn-sm" style="color:var(--red)" onclick="openM(&#39;m-deluser&#39;)">Remove</button></td></tr>
+        <tr><td><div class="flx" style="align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:var(--g300);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">JP</div><div><div class="t-title">June Paulino</div></div></div></td><td>june@tfh.org</td><td><span class="tag tblu">User</span></td><td><span class="tag tgr">Standard</span></td><td>3 days ago</td><td><button class="btn btn-g btn-sm">Edit</button> <button class="btn btn-g btn-sm" style="color:var(--red)">Remove</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════ NOTIFICATIONS ═══════ -->
+<div class="screen" id="s-notifications">
+  <div class="flxb mb-4"><h2 style="font-size:20px;font-weight:700;letter-spacing:-.5px">Email Notifications</h2></div>
+  <p class="tsm tmu mb-4">Admin notifications for upload completions, failures, and system events. Emails are sent only to admin accounts.</p>
+  <div class="g2">
+    <div>
+      <div class="card mb-4"><div class="card-h"><h3>Notification Settings</h3></div><div class="card-b">
+        <div class="fg"><label class="fl">Notify on:</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer"><input type="checkbox" checked=""> Completed uploads</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer"><input type="checkbox" checked=""> Failed uploads / import attempts</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer"><input type="checkbox" checked=""> AI processing complete</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer"><input type="checkbox"> Version changes / updates</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" checked=""> New user registrations</label>
+        </div>
+        <button class="btn btn-p" onclick="showToast(&#39;Notification settings saved&#39;,&#39;ok&#39;)">Save Settings</button>
+      </div></div>
+      <div class="card"><div class="card-h"><h3>Recent Notifications Sent</h3></div><div class="card-b">
+        <div class="act-item"><div class="act-dot"></div><div><div class="act-t"><strong>Upload Complete</strong> — "Under Grace" successfully imported</div><div class="act-time">Sent to samip@tfh.org • 2 hours ago</div></div></div>
+        <div class="act-item"><div class="act-dot e"></div><div><div class="act-t"><strong>Import Failed</strong> — "Bold Faith" transcription error</div><div class="act-time">Sent to samip@tfh.org • 5 hours ago</div></div></div>
+        <div class="act-item"><div class="act-dot w"></div><div><div class="act-t"><strong>Bulk Import Update</strong> — 107/148 videos processed</div><div class="act-time">Sent to all admins • 6 hours ago</div></div></div>
+      </div></div>
+    </div>
+    <div>
+      <div class="card"><div class="card-h"><h3>Email Preview</h3></div><div class="card-b">
+        <div class="email-pre">
+          <div class="email-pre-h"><p>From: <strong>TFH Sermon Hub &lt;noreply@sermonhub.tfh.org&gt;</strong></p><p>To: <strong>samip@tfh.org</strong></p><p>Subject: <strong>Upload Complete — "Under Grace"</strong></p></div>
+          <div class="email-pre-body">
+            <p><strong>Sermon Hub — Upload Report</strong></p><br>
+            <p>Hi Samip,</p><br>
+            <p>The following content has been successfully imported and processed:</p><br>
+            <p><strong>Sermon:</strong> Under Grace<br><strong>Speaker:</strong> Dave Patterson<br><strong>Series:</strong> Live Your Best Life (#4 of 6)<br><strong>Date:</strong> February 23, 2026</p><br>
+            <p><strong>AI Processing:</strong><br>Transcript generated (4,218 words)<br>Summary generated<br>Tags generated (5 tags: grace, faith, transformation, purpose, relationships)</p><br>
+            <p>— TFH Sermon Hub</p>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ SETTINGS ═══════ -->
+<div class="screen" id="s-settings">
+  <div class="flxb mb-4"><h2 style="font-size:20px;font-weight:700;letter-spacing:-.5px">Settings</h2></div>
+  <div class="tabs"><button class="tab active">General</button><button class="tab">Authentication</button><button class="tab">AI Configuration</button><button class="tab">Security</button><button class="tab">Backup</button></div>
+  <div class="g2">
+    <div>
+      <div class="card mb-4"><div class="card-h"><h3>Authentication — Microsoft Entra SSO</h3></div><div class="card-b">
+        <div class="sso-b">All authentication is handled through Microsoft Entra SSO. Users must log in with their organizational account.</div>
+        <div class="fg"><label class="fl">Tenant ID</label><input class="fi" value="tfh-org-tenant-abc123" disabled=""></div>
+        <div class="fg"><label class="fl">Client ID</label><input class="fi" value="••••••••-••••-••••-••••-••••••••" disabled=""></div>
+        <div class="fg"><label class="fl">SSO Status</label><div><span class="tag tg">Connected &amp; Active</span></div></div>
+      </div></div>
+      <div class="card"><div class="card-h"><h3>AI Configuration</h3></div><div class="card-b">
+        <div class="fg"><label class="fl">AI Provider</label><select class="fi"><option>Local LLM (Development)</option><option>Claude API</option><option>ChatGPT API</option></select></div>
+        <div class="f-hint mb-4">Switch between local AI (free, for development) and paid API (production). System can switch via configuration.</div>
+        <div class="fg"><label class="fl">Processing Mode</label><select class="fi"><option>Process at Import Time (One-time cost)</option><option>Process on Demand</option></select></div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer"><input type="checkbox" checked=""> Auto-generate transcripts</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer"><input type="checkbox" checked=""> Auto-generate summaries</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" checked=""> Auto-generate tags (weighted by relevance)</label>
+        <button class="btn btn-p mt-4" onclick="showToast(&#39;AI settings saved&#39;,&#39;ok&#39;)">Save Configuration</button>
+      </div></div>
+    </div>
+    <div>
+      <div class="card mb-4"><div class="card-h"><h3>Hosting &amp; Infrastructure</h3></div><div class="card-b">
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:13px"><span class="tmu">Provider</span><span>DigitalOcean</span><span class="tmu">Region</span><span>SFO3 (San Francisco)</span><span class="tmu">Status</span><span class="tag tg">Healthy</span><span class="tmu">SSL</span><span class="tag tg">HTTPS Active</span><span class="tmu">Last Backup</span><span>Today at 3:00 AM</span><span class="tmu">Storage Used</span><span>24.6 GB / 100 GB</span></div>
+      </div></div>
+      <div class="card mb-4"><div class="card-h"><h3>Security</h3></div><div class="card-b">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer"><input type="checkbox" checked=""> Require login for all access</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer"><input type="checkbox" checked=""> HTTPS only</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer"><input type="checkbox" checked=""> Secure session cookies (HttpOnly, SameSite, Max-Age)</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" checked=""> Automated daily backups</label>
+      </div></div>
+      <div class="card"><div class="card-h"><h3>Roles &amp; Privacy Levels</h3></div><div class="card-b">
+        <div style="font-size:13px;line-height:2">
+          <div class="flxb"><span><strong>Admin</strong> — Full access, manage users, upload, edit, delete</span><span class="tag" style="background:#fef3c7;color:#92400e">Level 3</span></div>
+          <div class="flxb"><span><strong>Internal User</strong> — View, search, read transcripts</span><span class="tag tblu">Level 2</span></div>
+          <div class="flxb"><span><strong>Public (Future)</strong> — Basic search, read only</span><span class="tag tgr">Level 1</span></div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ═══ MODALS ═══ -->
+
+<!-- Upload Modal -->
+<div class="mo" id="m-upload" onclick="if(event.target===this)closeM(this)">
+<div class="modal modal-lg">
+  <div class="mo-h"><h2>Upload Sermon</h2><button class="mo-x" onclick="closeM(this.closest(&#39;.mo&#39;))">✕</button></div>
+  <div class="mo-body">
+    <div class="upz mb-4" id="drop-zone"><div style="font-size:36px;margin-bottom:8px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--g400)" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></div><h3>Drag &amp; drop files here</h3><p>Video, audio, documents, or sermon notes</p></div>
+    <div class="fg"><label class="fl">Or paste a video link</label><input class="fi" placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."></div>
+    <hr style="border:none;border-top:1px solid var(--g100);margin:20px 0">
+    <div class="frow">
+      <div class="fg"><label class="fl">Sermon Title *</label><input class="fi" placeholder="Enter sermon title" id="up-title"></div>
+      <div class="fg"><label class="fl">Speaker *</label><select class="fi"><option value="">Select speaker</option><option>Dave Patterson</option><option>Guest Speaker</option></select></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Series</label><select class="fi"><option>Select series</option><option>Live Your Best Life</option><option>Hope Rising</option><option>Together</option><option>Fearless</option></select></div>
+      <div class="fg"><label class="fl">Date</label><input class="fi" type="date"></div>
+    </div>
+    <div class="fg"><label class="fl">Sermon Notes / Outline (optional)</label><textarea class="fi" placeholder="Paste sermon notes, outline, or supplemental text here..."></textarea></div>
+    <div class="fg">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" checked=""> Auto-generate transcript via AI</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-top:6px"><input type="checkbox" checked=""> Auto-generate summary and tags via AI</label>
+    </div>
+  </div>
+  <div class="mo-foot">
+    <button class="btn btn-s" onclick="closeM(this.closest(&#39;.mo&#39;))">Cancel</button>
+    <button class="btn btn-p" onclick="tryUpload()">Upload &amp; Process</button>
+  </div>
+</div></div>
+
+<!-- Edit Sermon Modal -->
+<div class="mo" id="m-edit" onclick="if(event.target===this)closeM(this)">
+<div class="modal modal-lg">
+  <div class="mo-h"><h2>Edit Sermon</h2><button class="mo-x" onclick="closeM(this.closest(&#39;.mo&#39;))">✕</button></div>
+  <div class="mo-body">
+    <div class="frow"><div class="fg"><label class="fl">Sermon Title</label><input class="fi" value="Under Grace"></div><div class="fg"><label class="fl">Speaker</label><select class="fi"><option selected="">Dave Patterson</option><option>Guest Speaker</option></select></div></div>
+    <div class="frow"><div class="fg"><label class="fl">Series</label><select class="fi"><option selected="">Live Your Best Life</option></select></div><div class="fg"><label class="fl">Series Index</label><input class="fi" value="4"></div></div>
+    <div class="frow"><div class="fg"><label class="fl">Date</label><input class="fi" type="date" value="2026-02-23"></div><div class="fg"><label class="fl">Video Link</label><input class="fi" value="https://youtube.com/watch?v=abc123"></div></div>
+    <div class="fg"><label class="fl">Tags (comma-separated)</label><input class="fi" value="grace, faith, transformation, purpose, relationships"></div>
+    <div class="fg"><label class="fl">Sermon Notes</label><textarea class="fi">Sermon outline and supplemental notes go here...</textarea></div>
+  </div>
+  <div class="mo-foot"><button class="btn btn-s" onclick="closeM(this.closest(&#39;.mo&#39;))">Cancel</button><button class="btn btn-p" onclick="closeM(this.closest(&#39;.mo&#39;));showToast(&#39;Sermon updated successfully&#39;,&#39;ok&#39;)">Save Changes</button></div>
+</div></div>
+
+<!-- Delete Confirm Modal -->
+<div class="mo" id="m-delete" onclick="if(event.target===this)closeM(this)">
+<div class="modal" style="width:420px">
+  <div class="mo-body" style="padding:32px">
+    <div class="confirm-ico dng"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg></div>
+    <div class="confirm-txt"><h3>Delete "Under Grace"?</h3><p>This will permanently remove the sermon, transcript, tags, and all associated metadata. This action cannot be undone.</p></div>
+  </div>
+  <div class="mo-foot"><button class="btn btn-s" onclick="closeM(this.closest(&#39;.mo&#39;))">Cancel</button><button class="btn btn-d" onclick="closeM(this.closest(&#39;.mo&#39;));showToast(&#39;Sermon deleted successfully&#39;,&#39;ok&#39;);go(&#39;sermons&#39;)">Delete Sermon</button></div>
+</div></div>
+
+<!-- Delete User Confirm -->
+<div class="mo" id="m-deluser" onclick="if(event.target===this)closeM(this)">
+<div class="modal" style="width:420px">
+  <div class="mo-body" style="padding:32px">
+    <div class="confirm-ico dng">!</div>
+    <div class="confirm-txt"><h3>Remove User?</h3><p>This will revoke their access to Sermon Hub. Their Microsoft Entra account will not be affected.</p></div>
+  </div>
+  <div class="mo-foot"><button class="btn btn-s" onclick="closeM(this.closest(&#39;.mo&#39;))">Cancel</button><button class="btn btn-d" onclick="closeM(this.closest(&#39;.mo&#39;));showToast(&#39;User removed&#39;,&#39;ok&#39;)">Remove User</button></div>
+</div></div>
+
+<!-- Add User Modal -->
+<div class="mo" id="m-user" onclick="if(event.target===this)closeM(this)">
+<div class="modal">
+  <div class="mo-h"><h2>Add User</h2><button class="mo-x" onclick="closeM(this.closest(&#39;.mo&#39;))">✕</button></div>
+  <div class="mo-body">
+    <div class="sso-b">Users must have a Microsoft Entra account in your organization to access Sermon Hub.</div>
+    <div class="fg"><label class="fl">Email (Microsoft Entra)</label><input class="fi" placeholder="user@tfh.org"></div>
+    <div class="fg"><label class="fl">Display Name</label><input class="fi" placeholder="Full name"></div>
+    <div class="fg"><label class="fl">Role</label><select class="fi"><option>Internal User</option><option>Admin</option></select></div>
+    <div class="fg"><label class="fl">Privacy Level</label><select class="fi"><option>Standard (Level 2)</option><option>Full Access (Level 3)</option><option>Read Only (Level 1)</option></select></div>
+  </div>
+  <div class="mo-foot"><button class="btn btn-s" onclick="closeM(this.closest(&#39;.mo&#39;))">Cancel</button><button class="btn btn-p" onclick="closeM(this.closest(&#39;.mo&#39;));showToast(&#39;User invited via Microsoft Entra SSO&#39;,&#39;ok&#39;)">Add User</button></div>
+</div></div>
+
+<!-- Add Series Modal -->
+<div class="mo" id="m-series" onclick="if(event.target===this)closeM(this)">
+<div class="modal">
+  <div class="mo-h"><h2>New Series</h2><button class="mo-x" onclick="closeM(this.closest(&#39;.mo&#39;))">✕</button></div>
+  <div class="mo-body">
+    <div class="fg"><label class="fl">Series Name</label><input class="fi" placeholder="e.g. Live Your Best Life"></div>
+    <div class="fg"><label class="fl">Description</label><textarea class="fi" placeholder="Brief description of this series"></textarea></div>
+    <div class="frow"><div class="fg"><label class="fl">Start Date</label><input class="fi" type="date"></div><div class="fg"><label class="fl">Primary Speaker</label><select class="fi"><option>Dave Patterson</option><option>Guest Speaker</option></select></div></div>
+  </div>
+  <div class="mo-foot"><button class="btn btn-s" onclick="closeM(this.closest(&#39;.mo&#39;))">Cancel</button><button class="btn btn-p" onclick="closeM(this.closest(&#39;.mo&#39;));showToast(&#39;Series created&#39;,&#39;ok&#39;)">Create Series</button></div>
+</div></div>
+
+<!-- Add Tag Modal -->
+<div class="mo" id="m-tag" onclick="if(event.target===this)closeM(this)">
+  <div class="modal" style="width:420px">
+    <div class="mo-h">
+      <h2>Add Tag</h2>
+      <button class="mo-x" onclick="closeM(this.closest('.mo'))">✕</button>
+    </div>
+    <div class="mo-body">
+      <div class="fg">
+        <label class="fl">Tag Name</label>
+        <input class="fi" id="new-tag-name" placeholder="e.g. forgiveness">
+      </div>
+      <div class="fg">
+        <label class="fl">Category (optional)</label>
+        <select class="fi" id="new-tag-source">
+          <option value="General">General</option>
+          <option value="Topic">Topic</option>
+          <option value="Scripture">Scripture</option>
+          <option value="Emotion">Emotion</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Sermons</label>
+        <input class="fi" type="number" id="new-tag-sermons" value="0">
+      </div>
+      <div class="fg">
+        <label class="fl">Relevance %</label>
+        <input class="fi" type="number" id="new-tag-weight" value="0" max="100">
+      </div>
+    </div>
+    <div class="mo-foot">
+      <button class="btn btn-s" onclick="closeM(this.closest('.mo'))">Cancel</button>
+      <button class="btn btn-p" id="add-tag-btn">Add Tag</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Tag Modal -->
+<div class="mo" id="m-edit-tag" onclick="if(event.target===this)closeM(this)">
+  <div class="modal" style="width:420px; min-height:400px;">
+    <div class="mo-h">
+      <h2>Edit Tag</h2>
+      <button class="mo-x" onclick="closeM(this.closest('.mo'))">✕</button>
+    </div>
+    <div class="mo-body">
+      <div class="fg">
+        <label class="fl">Tag Name</label>
+        <input class="fi" id="edit-tag-name" placeholder="Tag Name">
+      </div>
+      <div class="fg">
+        <label class="fl">Category</label>
+        <select class="fi" id="edit-tag-source">
+          <option value="Manual">Manual</option>
+          <option value="AI">AI</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Sermons</label>
+        <input class="fi" type="number" id="edit-tag-sermons" value="0">
+      </div>
+      <div class="fg">
+        <label class="fl">Relevance %</label>
+        <input class="fi" type="number" id="edit-tag-weight" value="0" max="100">
+      </div>
+    </div>
+    <div class="mo-foot">
+      <button class="btn btn-s" onclick="closeM(this.closest('.mo'))">Cancel</button>
+      <button class="btn btn-p" id="save-edit-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Tag Modal -->
+<div class="mo" id="m-delete-tag" onclick="if(event.target===this)closeM(this)">
+  <div class="modal" style="width:420px; min-height:200px;">
+    <div class="mo-h">
+      <h2>Delete Tag</h2>
+      <button class="mo-x" onclick="closeM(this.closest('.mo'))">✕</button>
+    </div>
+    <div class="mo-body">
+      <p id="delete-tag-msg" style="font-size:16px;">Are you sure you want to delete this tag?</p>
+    </div>
+    <div class="mo-foot">
+      <button class="btn btn-s" onclick="closeM(this.closest('.mo'))">Cancel</button>
+      <button class="btn btn-p" id="confirm-delete-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Login Screen (shown as modal for demo) -->
+<div class="mo" id="m-login" onclick="if(event.target===this)closeM(this)">
+<div class="modal" style="width:400px">
+  <div class="mo-body" style="padding:40px;text-align:center">
+    <div style="width:48px;height:48px;background:var(--green);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#fff;font-weight:700;font-size:16px">TFH</div>
+    <h2 style="font-size:22px;font-weight:700;letter-spacing:-.6px;margin-bottom:4px">Sermon Hub</h2>
+    <p class="tsm tmu mb-6">Sign in with your organization account</p>
+    <button class="btn btn-p" style="width:100%;justify-content:center;padding:12px" onclick="closeM(this.closest(&#39;.mo&#39;));showToast(&#39;Signed in via Microsoft Entra SSO&#39;,&#39;ok&#39;)">
+      <svg width="16" height="16" viewBox="0 0 21 21"><rect width="10" height="10" fill="#f25022"></rect><rect x="11" width="10" height="10" fill="#7fba00"></rect><rect y="11" width="10" height="10" fill="#00a4ef"></rect><rect x="11" y="11" width="10" height="10" fill="#ffb900"></rect></svg>
+      Sign in with Microsoft
+    </button>
+    <p class="tsm tmu mt-4">Protected by Microsoft Entra SSO</p>
+  </div>
+</div></div>
+
+<!-- Login Screen -->
+<div id="login-screen" style="position: fixed; inset: 0px; z-index: 300; background: var(--bg); display: none; align-items: center; justify-content: center;">
+  <div style="width:400px;background:var(--wh);border-radius:calc(var(--r) + 4px);box-shadow:var(--shlg);padding:48px 40px;text-align:center;">
+    <div style="width:56px;height:56px;background:var(--green);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;color:#fff;font-weight:700;font-size:18px">TFH</div>
+    <h2 style="font-size:24px;font-weight:700;letter-spacing:-.7px;margin-bottom:4px">Sermon Hub</h2>
+    <p class="tsm tmu" style="margin-bottom:32px">Sign in with your organization account to continue</p>
+    <button class="btn btn-p" style="width:100%;justify-content:center;padding:13px;font-size:14px" onclick="doLogin()">
+      <svg width="16" height="16" viewBox="0 0 21 21"><rect width="10" height="10" fill="#f25022"></rect><rect x="11" width="10" height="10" fill="#7fba00"></rect><rect y="11" width="10" height="10" fill="#00a4ef"></rect><rect x="11" y="11" width="10" height="10" fill="#ffb900"></rect></svg>
+      Sign in with Microsoft
+    </button>
+    <p class="tsm tmu" style="margin-top:20px">All access requires Microsoft Entra SSO authentication</p>
+    <div id="login-error" style="display:none;margin-top:16px;padding:12px;background:var(--red-bg);border:1px solid #f5c6cb;border-radius:var(--rx);font-size:13px;color:var(--red);font-weight:500;text-align:left">
+      Authentication failed. Your account does not have access to Sermon Hub. Contact your administrator.
+    </div>
+    <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--g100)">
+      <p class="tsm tmu">The Father's House — Sermon Hub Portal</p>
+      <p style="font-size:11px;color:var(--g300);margin-top:4px">Protected by Microsoft Entra SSO</p>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-c" id="toasts"></div>
+
+<script>
+// URL state support for design capture (e.g. ?auth=1&screen=sermons&mode=all)
+const allScreens = ['dashboard','sermons','detail','series','speakers','search','import','tags','transcripts','users','notifications','settings'];
+
+function getUrlState() {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    auth: params.get('auth'),
+    screen: params.get('screen'),
+    modal: params.get('modal'),
+    mode: params.get('mode'),
+    wire: params.get('wire')
+  };
+}
+
+function renderCaptureLinks() {
+  const host = document.getElementById('capture-links');
+  if(!host) return;
+  host.innerHTML = '<h4>Wire-ready deep links</h4><ul>' + allScreens.map(id => '<li><a href="?auth=1&screen=' + id + '">' + (titles[id] || id) + '</a></li>').join('') + '</ul>';
+}
+
+function enableCaptureAllMode() {
+  document.body.classList.add('capture-all');
+  document.getElementById('login-screen').style.display = 'none';
+  document.querySelectorAll('.screen').forEach(screen => {
+    const id = screen.id.replace('s-','');
+    screen.classList.add('active');
+    screen.setAttribute('data-screen-title', titles[id] || id);
+  });
+  renderCaptureLinks();
+}
+
+function applyUrlState() {
+  const state = getUrlState();
+  if(state.auth === '1') {
+    document.getElementById('login-screen').style.display = 'none';
+  }
+  if(state.mode === 'all' || state.screen === 'all') {
+    enableCaptureAllMode();
+    return;
+  }
+  if(state.screen) {
+    go(state.screen);
+  }
+  if(state.modal) {
+    const modal = document.getElementById('m-' + state.modal);
+    if(modal) modal.classList.add('show');
+  }
+  if(state.wire === '1') {
+    document.body.classList.add('capture-all');
+    renderCaptureLinks();
+    document.body.classList.remove('capture-all');
+    document.getElementById('capture-links').style.display = 'block';
+  }
+}
+
+// Login / Logout
+function doLogin() {
+  document.getElementById('login-screen').style.display = 'none';
+  showToast('Signed in via Microsoft Entra SSO','ok');
+}
+function showLogin() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-error').style.display = 'none';
+}
+function showLoginError() {
+  document.getElementById('login-error').style.display = 'block';
+}
+
+// Screen navigation
+const titles = {dashboard:'Dashboard',sermons:'Sermons',detail:'Sermon Detail',series:'Series',speakers:'Speakers',search:'AI Search',import:'Import / Upload',tags:'Tags & Metadata',transcripts:'Transcripts',users:'User Management',notifications:'Notifications',settings:'Settings'};
+
+function go(id) {
+  const target = document.getElementById('s-'+id);
+  if(!target) return;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  target.classList.add('active');
+  document.getElementById('pt').textContent = titles[id]||id;
+  document.querySelectorAll('.sb-link').forEach(l => l.classList.remove('active'));
+  const links = document.querySelectorAll('.sb-link');
+  const map = {dashboard:0,sermons:1,series:2,speakers:3,search:4,import:5,tags:6,transcripts:7,users:8,notifications:9,settings:10,detail:1};
+  if(map[id]!==undefined && links[map[id]]) links[map[id]].classList.add('active');
+  const params = new URLSearchParams(window.location.search);
+  if(!params.get('auth')) params.set('auth','1');
+  params.set('screen', id);
+  window.history.replaceState({}, '', window.location.pathname + '?' + params.toString());
+  window.scrollTo(0,0);
+}
+
+// Modal
+function openM(id){ document.getElementById(id).classList.add('show'); }
+function closeM(el) {
+  if (typeof el === 'string') {
+    el = document.getElementById(el);
+  }
+  if (el) el.classList.remove('show');
+}
+
+// Initialize state from URL once core functions are available
+applyUrlState();
+
+// Toast notifications
+function showToast(msg, type) {
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+  const icons = {ok:'',err:'X',warn:'!',info:''};
+  const cls = {ok:'toast-ok',err:'toast-err',warn:'toast-warn',info:'toast-info'};
+  t.className = 'toast '+(cls[type]||'toast-info');
+  t.innerHTML = (icons[type]||'')+ ' ' + msg + '<span class="toast-close" onclick="this.parentElement.remove()">✕</span>';
+  c.appendChild(t);
+  setTimeout(()=>t.remove(), 5000);
+}
+
+// Search demo
+function doSearch() {
+  const v = document.getElementById('sinp').value;
+  if(v.trim()) {
+    document.getElementById('sres').style.display = 'block';
+  }
+}
+
+// Upload validation demo
+function tryUpload() {
+  const t = document.getElementById('up-title');
+  if(!t.value.trim()) {
+    t.classList.add('err');
+    let e = t.nextElementSibling;
+    if(!e || !e.classList.contains('f-err')) {
+      e = document.createElement('div');
+      e.className = 'f-err';
+      e.style.display = 'block';
+      e.textContent = 'Sermon title is required';
+      t.after(e);
+    }
+    showToast('Please fill in all required fields','err');
+    return;
+  }
+  t.classList.remove('err');
+  const fe = t.nextElementSibling;
+  if(fe && fe.classList.contains('f-err')) fe.remove();
+  closeM(document.getElementById('m-upload'));
+  showToast('Sermon uploaded — AI processing started','ok');
+}
+
+// Filter chip toggle
+document.querySelectorAll('.fchip').forEach(c => {
+  c.addEventListener('click', () => {
+    c.closest('.fc').querySelectorAll('.fchip').forEach(x=>x.classList.remove('active'));
+    c.classList.add('active');
+  });
+});
+
+// Tab toggle
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    t.closest('.tabs').querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+  });
+});
+
+// Tag Functionality
+document.addEventListener('DOMContentLoaded', () => {
+  const tableBody = document.querySelector('#s-tags tbody');
+  let currentEditRow = null; // track the row being edited
+
+  // Function to attach Edit/Delete buttons
+  function attachRowEvents(row) {
+    const editBtn = row.querySelector('button:nth-of-type(1)');
+    const deleteBtn = row.querySelector('button:nth-of-type(2)');
+
+    editBtn.addEventListener('click', () => {
+      currentEditRow = row;
+      const tagCell = row.querySelector('td span.tg');
+      const sermonsCell = row.children[1];
+      const pfillDiv = row.querySelector('.pfill');
+      const sourceCell = row.querySelector('td span.tblu, td span.tgr');
+
+      document.querySelector('#edit-tag-name').value = tagCell.textContent;
+      document.querySelector('#edit-tag-sermons').value = sermonsCell.textContent;
+      document.querySelector('#edit-tag-weight').value = parseInt(pfillDiv.style.width);
+      document.querySelector('#edit-tag-source').value = sourceCell.textContent;
+
+      openM('m-edit-tag'); // open modal
+    });
+
+  deleteBtn.addEventListener('click', () => {
+    currentEditRow = row; // store the row to delete
+    const tagCell = row.querySelector('td span.tg');
+    document.getElementById('delete-tag-msg').textContent = `Are you sure you want to delete the tag "${tagCell.textContent}"?`;
+    openM('m-delete-tag');
+  });
+  }
+
+  // Attach to existing rows
+  tableBody.querySelectorAll('tr').forEach(row => attachRowEvents(row));
+
+  // Add tag button
+  document.querySelector('#add-tag-btn').addEventListener('click', () => {
+    const name = document.querySelector('#new-tag-name').value.trim();
+    const sermons = parseInt(document.querySelector('#new-tag-sermons').value) || 0;
+    const weight = parseInt(document.querySelector('#new-tag-weight').value) || 0;
+    const source = document.querySelector('#new-tag-source').value;
+
+    if (!name) return alert('Tag name cannot be empty');
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td><span class="tag tg">${name}</span></td>
+      <td>${sermons}</td>
+      <td>
+        <div class="pbar" style="width:80px">
+          <div class="pfill" style="width:${weight}%"></div>
+        </div>
+      </td>
+      <td><span class="tag ${source === 'AI' ? 'tblu' : 'tgr'}">${source}</span></td>
+      <td>
+        <button class="btn btn-g btn-sm">Edit</button>
+        <button class="btn btn-g btn-sm" style="color:var(--red)">Delete</button>
+      </td>
+    `;
+    tableBody.appendChild(row);
+    attachRowEvents(row);
+    closeM('m-tag');
+    document.querySelector('#new-tag-name').value = '';
+    document.querySelector('#new-tag-sermons').value = 0;
+    document.querySelector('#new-tag-weight').value = 0;
+  });
+
+  // Save edit button
+  document.querySelector('#save-edit-btn').addEventListener('click', () => {
+  if (!currentEditRow) return;
+
+  const name = document.querySelector('#edit-tag-name').value.trim();
+  const sermons = parseInt(document.querySelector('#edit-tag-sermons').value) || 0;
+  const weight = parseInt(document.querySelector('#edit-tag-weight').value) || 0;
+  const source = document.querySelector('#edit-tag-source').value;
+
+  if (!name) return alert('Tag name cannot be empty');
+
+  currentEditRow.querySelector('td span.tg').textContent = name;
+  currentEditRow.children[1].textContent = sermons;
+  currentEditRow.querySelector('.pfill').style.width = weight + '%';
+  const sourceCell = currentEditRow.querySelector('td span.tblu, td span.tgr');
+  sourceCell.textContent = source;
+  sourceCell.className = `tag ${source === 'AI' ? 'tblu' : 'tgr'}`;
+
+  closeM(document.getElementById('m-edit-tag')); // <-- fixed
+  currentEditRow = null;
+  });
+
+  // Confirm Delete button
+  document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+  if (!currentEditRow) return;
+  currentEditRow.remove();
+  showToast('Tag deleted', 'ok');
+  closeM('m-delete-tag');
+  currentEditRow = null;
+});
+});
+
+</script>
+
+
+</body></html>
