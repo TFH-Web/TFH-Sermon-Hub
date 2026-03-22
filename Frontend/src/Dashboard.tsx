@@ -3,7 +3,7 @@ import MainLayout from '$/components/MainLayout';
 import StatCard from '$/components/StatCard';
 import RecentSermonsCard, { type Sermon } from '$/components/RecentSermonsTable';
 
-{/* Mock data for recent sermons */}
+// Mock data for recent sermons
 const recentSermons: Sermon[] = [
   { id: '1', title: 'Under Grace',        speaker: 'Dave Patterson', series: 'Live Your Best Life', date: 'Feb 23', status: 'Published'  },
   { id: '2', title: 'Walking in Freedom', speaker: 'Dave Patterson', series: 'Live Your Best Life', date: 'Feb 16', status: 'Published'  },
@@ -16,7 +16,6 @@ export default function Dashboard() {
 	return (
 		<MainLayout title="Dashboard">
 		<div>
-			{/* Mock data for statistics */}
 			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: "16px"}}>
 				<StatCard label="Total Sermons"   value="2,437" trend="12 this month"/>
 				<StatCard label="Series"          value="124"   trend="2 new" />
