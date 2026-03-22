@@ -4,6 +4,9 @@ on:
     branches: [ main, dev ]
   pull_request:
     branches: [ main, dev ]
+defaults:
+  run:
+    working-directory: ./Frontend
 jobs:
   test:
     timeout-minutes: 60
