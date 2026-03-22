@@ -1,3 +1,4 @@
+# Request will be needed when adding request validation
 from flask import request, jsonify, g
 
 # Checks the Authorization header for a valid JWT token and reads the user's role from the token. Raises an error if the token is missing, invalid, or if the role is not present in the token.
