@@ -1,0 +1,38 @@
+.NavbarItem {
+	display: flex;
+	gap: 0.75rem;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.5rem 1rem;
+	color: var(--cl-foreground);
+	text-decoration: none;
+	background-color: var(--cl-background);
+	border-radius: 0.5rem;
+	opacity: 0.5;
+
+	&:hover,
+	&:focus-visible {
+		background-color: oklch(
+			from var(--cl-background)
+				calc(l * var(--hover-brightness, var(--hover-brightness-default))) c h
+		);
+	}
+
+	&.is-active {
+		background-color: var(--cl-accent);
+		opacity: 1;
+	}
+
+	&::before {
+		content: unset;
+	}
+}
+
+.NavbarItem-icon {
+	flex: none;
+	font-size: 1.25em;
+}
+
+.NavbarItem-name {
+	flex: auto;
+}

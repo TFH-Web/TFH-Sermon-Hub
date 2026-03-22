@@ -1,0 +1,23 @@
+.Layout {
+	position: fixed;
+	inset: 0;
+	display: grid;
+	grid-template:
+		"sidebar header" 4rem
+		"sidebar main" 1fr / minmax(auto, 15rem) 1fr;
+}
+
+.Layout-header {
+	grid-area: header;
+	padding-inline: 2rem;
+}
+
+.Layout-main {
+	grid-area: main;
+	padding: 1rem 2rem;
+	overflow-y: auto;
+}
+
+.Layout-sidebar {
+	grid-area: sidebar;
+}

@@ -1,0 +1,43 @@
+.Sidebar {
+	display: grid;
+	grid-template-rows: 5rem 1fr 5rem;
+	grid-template-columns: 1fr;
+	max-height: 100vh;
+	font-size: 0.9rem;
+	color: var(--cl-foreground);
+	color-scheme: only dark;
+	background-color: var(--cl-background);
+
+	>*~* {
+		border-block-start: 1px solid var(--cl-outline);
+	}
+}
+
+.Sidebar-title {
+	display: flex;
+	gap: 1em;
+	align-items: center;
+	padding-inline: 1.75rem;
+}
+
+.Sidebar-titleLink {
+	display: contents;
+	color: inherit;
+}
+
+.Sidebar-logoContainer {
+	flex: none;
+	max-width: 2rem;
+}
+
+.Sidebar-logo {
+	display: block;
+	max-width: 100%;
+	height: auto;
+	filter: invert();
+}
+
+.Sidebar-header {
+	flex: auto;
+	font-size: 1.25rem;
+}

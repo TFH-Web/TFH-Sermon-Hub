@@ -1,0 +1,28 @@
+.TabBar {
+	display: flex;
+	gap: 0;
+	margin-bottom: 20px;
+	border-bottom: 1.5px solid var(--cl-outline);
+}
+
+.TabBar-tab {
+	padding: 10px 18px;
+	margin-bottom: -1.5px;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--cl-on-surface-muted);
+	cursor: pointer;
+	background: none;
+	border: none;
+	border-bottom: 2px solid transparent;
+	transition: all 0.15s;
+}
+
+.TabBar-tab:hover {
+	color: var(--cl-foreground);
+}
+
+.TabBar-tab--active {
+	color: var(--cl-accent);
+	border-bottom-color: var(--cl-accent);
+}
