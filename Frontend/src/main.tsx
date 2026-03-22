@@ -16,8 +16,6 @@ import Sermons from './Sermons.tsx';
 import Speakers from './Speakers.tsx';
 import TagsAndMetadata from './TagsAndMetadata.tsx';
 import UserManagement from './UserManagement.tsx';
-import Notifications from './Notifications.tsx';
-import Settings from './Settings.tsx';
 import Transcripts from './Transcripts.tsx';
 
 const queryClient = new QueryClient();

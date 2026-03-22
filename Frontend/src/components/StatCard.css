@@ -1,0 +1,27 @@
+.StatCard {
+	background-color: #ffffff;
+	border: 1px solid #eee;
+	border-radius: 12px;
+	padding: 16px;
+	min-width: 300px;
+	min-height: 50px;
+	text-align: left;
+}
+
+.StatCard-label {
+	color: #888;
+	font-size: 12px;
+}
+
+.StatCard-value {
+	color: black;
+	font-size: 30px;
+	font-weight: 700;
+	margin: 4px 0;
+}
+
+.StatCard-trend {
+	color: #5D6F6A;
+	font-size: 13px;
+	font-weight: 600;
+}
