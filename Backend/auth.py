@@ -22,3 +22,27 @@ def parse_role_from_token():
     # If an error occurs then the user is not authenticated and the role is set to None
     except Exception as error:
         g.current_user_role = None
+
+
+# Decorator that locks routes behind a role check. Key for the user is stored in g.current_user_role
+def require_role(required_role):
+    def decorator(function_to_wrap):
+        @wraps(function_to_wrap)
+        # Wrapper function, checks role before running. Grabs positional and keyword arguments to pass to the wrapped function
+        def check_role_then_run(*args, **kwargs):
+            # Parse the role from the token and store it in the global context
+            parse_role_from_token()
+
+            # On an invalid token the request is not authenticated,and 401 is returned. Frontend should handle this by redirecting to the login page
+            if g.current_user_role is None:
+                return jsonify({"error": "Missing or invalid token. Please log in."}), 401
+            
+            # If the user's role does not meet the required role, return a 403 Forbidden error. Frontend should handle this by showing an error message or redirecting to a "not authorized" page
+            if g.current_user_role != required_role:
+                return jsonify({"error": f"Access denied. Required role: {required_role}"}), 403
+
+            # Both checks passed, run the wrapped function with the original arguments
+            return function_to_wrap(*args, **kwargs)
+        
+        return check_role_then_run
+    return decorator
