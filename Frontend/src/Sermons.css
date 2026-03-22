@@ -11,7 +11,7 @@
 .sermon-tabs button {
     background: transparent !important;
     border-radius: 0 !important;
-    color: #7c7c7c;
+    color: #222222;
     border: none;
     padding: 8px 16px;
     cursor: pointer;
@@ -23,14 +23,14 @@
     background: transparent !important;
     background-color: transparent !important;
     --cl-accent: transparent !important;
-    --cl-on-accent: #7c7c7c !important;
+    --cl-on-accent: #202020 !important;
     border: none !important;
     border-radius: 0 !important;
     padding: 8px 16px;
     cursor: pointer;
-    color: #7c7c7c !important;
+    color: #000000 !important;
     font-size: 0.95rem;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
 }
 
 /* Selected tabs, green bunderline, darker text*/
@@ -82,13 +82,6 @@
     font-size: 0.9rem;
 }
 
-/* Filter dropdowns */
-.sermon-filters {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 24px;
-}
-
 /* Filter dropdown styles */
 .sermon-filters {
     padding: 10px 12px;
@@ -97,6 +90,9 @@
     color: #1f1f1f;
     font-size: 0.9rem;
     cursor: pointer;
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
 }
 
 /* Filters Container */
