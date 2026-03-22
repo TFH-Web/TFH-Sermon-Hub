@@ -32,7 +32,7 @@ export default function AISearch() {
 	}
 
 	return (
-		<MainLayout title="AISearch">
+		<MainLayout title="AI Search">
 			<section
 				style={{
 					width: '100%',
