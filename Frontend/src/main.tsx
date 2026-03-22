@@ -10,15 +10,15 @@ import AISearch from './AISearch.tsx';
 import AISearchResults from './AISearchResults.tsx';
 import { ToastProvider } from './components/ToastContext';
 import Dashboard from './Dashboard.tsx';
-import Notifications from './Notifications.tsx';
 import ImportUpload from './pages/ImportUpload.tsx';
 import Series from './Series.tsx';
 import Sermons from './Sermons.tsx';
-import Settings from './Settings.tsx';
 import Speakers from './Speakers.tsx';
 import TagsAndMetadata from './TagsAndMetadata.tsx';
 import UserManagement from './UserManagement.tsx';
 import Transcripts from './Transcripts.tsx';
+import Notifications from './Notifications.tsx';
+import Settings from './Settings.tsx';
 
 const queryClient = new QueryClient();
 
