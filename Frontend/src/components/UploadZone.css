@@ -1,0 +1,36 @@
+.UploadZone {
+	padding: 48px;
+	color: var(--cl-on-surface-muted);
+	text-align: center;
+	cursor: pointer;
+	background: var(--cl-surface-dim);
+	border: 2px dashed var(--cl-outline);
+	border-radius: var(--radius-lg);
+	transition: all 0.2s;
+}
+
+.UploadZone:hover {
+	background: var(--cl-accent-container);
+	border-color: var(--cl-accent);
+}
+
+.UploadZone-heading {
+	margin-top: 12px;
+	margin-bottom: 4px;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--cl-foreground);
+}
+
+.UploadZone-text {
+	margin-bottom: 16px;
+	font-size: 13px;
+	color: var(--cl-on-surface-muted);
+}
+
+.UploadZone-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	justify-content: center;
+}
