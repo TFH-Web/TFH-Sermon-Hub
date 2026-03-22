@@ -8,6 +8,8 @@
 	"files": {
 		"includes": [
 			"src/**/*",
+			"e2e/**/*",
+			"tests/**/*",
 			"biome.json",
 			"index.html",
 			"package.json",
