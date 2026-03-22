@@ -17,6 +17,8 @@ import Speakers from './Speakers.tsx';
 import TagsAndMetadata from './TagsAndMetadata.tsx';
 import UserManagement from './UserManagement.tsx';
 import Transcripts from './Transcripts.tsx';
+import Notifications from './Notifications.tsx';
+import Settings from './Settings.tsx';
 
 const queryClient = new QueryClient();
 
