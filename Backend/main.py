@@ -2,6 +2,7 @@ from models import Sermon, serialize_to_dict, Speaker, serialize_many_to_dicts, 
 from flask import Flask, jsonify, request
 from database import db
 from app import app
+from auth import parse_role_from_token
 
 @app.route("/series")
 def get_all_series():
