@@ -9,6 +9,7 @@ defaults:
     working-directory: ./Frontend
 jobs:
   test:
+    name: Run Playwright tests
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
