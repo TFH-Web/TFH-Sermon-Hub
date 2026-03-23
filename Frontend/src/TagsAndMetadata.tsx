@@ -14,13 +14,6 @@ export default function TagsAndMetadata() {
 				}}
 			>
 				
-			<h3 
-				style={{
-				textAlign: 'left'
-				}}
-			>
-				Tags & Metadata</h3>
-
 			<button
 				key={'addtag'}
 				className="Header-upload"
