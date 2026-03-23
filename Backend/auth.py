@@ -1,10 +1,6 @@
-# Request will be needed when adding request validation
-from flask import request, jsonify, g
+from flask import jsonify, g
 
-# Checks the Authorization header for a valid JWT token and reads the user's role from the token. Raises an error if the token is missing, invalid, or if the role is not present in the token.
 from flask_jwt_extended import verify_jwt_in_request, get_jwt
-
-# Decorator to protect routes and ensure the user has the required role, as well as making debugging easier by printing the token's claims
 from functools import wraps
 
 
