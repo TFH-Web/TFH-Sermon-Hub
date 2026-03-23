@@ -1,4 +1,4 @@
-import { useState }  from "react";
+import { useState, type ChangeEvent }  from "react";
 // import "./AddTagModal.css"
 import { useToast } from '$/components/ToastContext';
 import Button from '$/components/Button';
@@ -39,10 +39,10 @@ export default function AddTagModal({
         showToast('Tag Added', 'success');
         setTag('');
     }
-    const handleTagChange = event => {
+    const handleTagChange = (event: ChangeEvent<HTMLInputElement, HTMLInputElement>) => {
         setTag(event.target.value);
     }
-    const handleCategoryChange = event => {
+    const handleCategoryChange = (event: ChangeEvent<HTMLSelectElement, HTMLSelectElement>) => {
         console.log("category was " + category);
         setCategory(event.target.value);
         console.log("category is now " + category);
