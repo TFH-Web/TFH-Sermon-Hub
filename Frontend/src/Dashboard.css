@@ -1,0 +1,14 @@
+.Dashboard-stats {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 16px;
+	margin-bottom: 16px;
+}
+
+/* Two-column layout: main content on left, sidebar on right */
+.Dashboard-body {
+	display: grid;
+	grid-template-columns: 1fr 320px;
+	gap: 16px;
+	align-items: start;
+}

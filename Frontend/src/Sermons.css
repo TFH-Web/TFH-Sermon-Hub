@@ -1,0 +1,171 @@
+/* Sermons.css, transparent background by default when not selected. !important was to override global styles */
+.sermon-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #e0e0e0; /* subtle divider line under all tabs */
+    padding-bottom: 8px;
+}
+
+/* Default unselected tabs, transparent background */
+.sermon-tabs button {
+    background: transparent !important;
+    border-radius: 0 !important;
+    color: #222222;
+    border: none;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+
+/* Unselected tabs, transparent background, gray text */
+.sermon-tab {
+    background: transparent !important;
+    background-color: transparent !important;
+    --cl-accent: transparent !important;
+    --cl-on-accent: #202020 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 8px 16px;
+    cursor: pointer;
+    color: #000000 !important;
+    font-size: 0.95rem;
+    margin-bottom: 16px;
+}
+
+/* Selected tabs, green bunderline, darker text*/
+.active-sermon-filter {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none;
+    border-bottom: 2px solid #7a9166;
+    border-radius: 0;
+    outline: none;
+    margin-bottom: -2px;
+    color: #48662d;
+    padding: 8px 30px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.95rem;  
+}
+
+
+/* Topic filter pills */
+.topic-filters {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+/* Default unselected topic pills, transparent background */
+.topic-pill {
+    background: transparent !important;
+    background-color: transparent !important;
+    --cl-accent: transparent !important;
+    --cl-on-accent: #1f1f1f !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 20px !important;
+    padding: 6px 16px;
+    cursor: pointer;
+    color: #1f1f1f !important;
+    font-size: 0.9rem;
+}
+
+/* Selected topic pills, green background and white text */
+.active-topic-filter {
+    background: #7a9166;
+    border: 1px solid #7a9166;
+    border-radius: 20px;
+    padding: 10px 15px;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: 0.9rem;
+}
+
+/* Filter dropdown styles */
+.sermon-filters {
+    padding: 10px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    color: #1f1f1f;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+/* Filters Container */
+.filters-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Sermon grid, 3 card layout */
+.sermon-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 10px
+}
+
+/* Sermon card */
+.sermon-card {
+    background: #bdbcbc !important;
+    border-radius: 12px;
+    padding: 0px;
+    border: 1px solid #e0e0e0;
+    cursor: pointer;
+    overflow: hidden;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Sermon thumbnail */
+.sermon-thumbnail {
+    position: relative;
+    background: #a3a8a0; 
+    height: 240px;
+}
+
+/* Sermon info section */
+.sermon-info {
+    background: #ffffff !important;
+    padding: 4px 16px 8px 16px;
+    margin: 0;
+    height: 110px;
+}
+
+/* Sermon time section */
+.sermon-time {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.7); 
+    color: #ffffff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+/* Tags container */
+.sermon-tags {
+    background: #ffffff !important;
+    display: flex;
+    gap: 8px;
+    padding: 0 16px 16px 16px;
+    margin: 0;
+}
+
+/* Tag pills */
+.tag-pill {
+    border: 1px solid #474545;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    color: #2e2e2e;
+}
