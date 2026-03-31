@@ -1,82 +1,43 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from fastapi.requests import Request
-from pydantic import BaseModel
-from typing import List, Optional
+from flask import Flask, request, jsonify, render_template, send_from_directory
 import uuid
 import os
 
-# --- AI processing placeholder ---
+app = Flask(__name__)
+                                                                                                        # In-memory DB
+sermons_db = {}
+                                                                                                        # AI processing placeholder
 def process_sermon_ai(file_path: str):
-    # Integrate OpenAI/Claude/Local LLM here
     return {
         "transcript": "Generated transcript text...",
         "summary": "Generated summary...",
         "tags": ["faith", "grace", "purpose"]
     }
 
-# --- Models ---
-class Sermon(BaseModel):
-    id: str
-    title: str
-    speaker: str
-    series: Optional[str] = None
-    date: Optional[str] = None
-    video_link: Optional[str] = None
-    transcript: Optional[str] = None
-    summary: Optional[str] = None
-    tags: Optional[List[str]] = []
+                                                                                                        # Routes
+@app.route("/")
+def portal():
+    return render_template("Portal Prototype.html")
 
-# --- App setup ---
-app = FastAPI()
-
-# CORS for frontend JS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Update to your frontend URL in production
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Serve static files (JS, CSS, images)
-app.mount("/static", StaticFiles(directory="."), name="static")
-
-# Templates folder
-templates = Jinja2Templates(directory="templates")
-
-# In-memory DB (replace with real DB in production)
-sermons_db = {}
-
-# --- Routes ---
-
-# Serve the portal prototype HTML
-@app.get("/")
-def portal(request: Request):
-    return templates.TemplateResponse("Portal Prototype.html", {"request": request})
-
-# Upload sermon
-@app.post("/upload-sermon")
-async def upload_sermon(
-    title: str = Form(...),
-    speaker: str = Form(...),
-    series: Optional[str] = Form(None),
-    date: Optional[str] = Form(None),
-    video_link: Optional[str] = Form(None),
-    file: UploadFile = File(None),
-    auto_ai: bool = Form(True)
-):
+                                                                                                        # Upload sermon
+@app.route("/upload-sermon", methods=["POST"])
+def upload_sermon():
     sermon_id = str(uuid.uuid4())
+
+    title = request.form.get("title")
+    speaker = request.form.get("speaker")
+    series = request.form.get("series")
+    date = request.form.get("date")
+    video_link = request.form.get("video_link")
+    auto_ai = request.form.get("auto_ai", "true").lower() == "true"
+
+    file = request.files.get("file")
     file_path = None
 
     if file:
         upload_dir = "uploads"
         os.makedirs(upload_dir, exist_ok=True)
         file_path = os.path.join(upload_dir, f"{sermon_id}_{file.filename}")
-        with open(file_path, "wb") as f:
-            f.write(await file.read())
+        file.save(file_path)
 
     transcript, summary, tags = None, None, []
 
@@ -86,38 +47,45 @@ async def upload_sermon(
         summary = ai_result["summary"]
         tags = ai_result["tags"]
 
-    sermon = Sermon(
-        id=sermon_id,
-        title=title,
-        speaker=speaker,
-        series=series,
-        date=date,
-        video_link=video_link,
-        transcript=transcript,
-        summary=summary,
-        tags=tags
-    )
+    sermon = {
+        "id": sermon_id,
+        "title": title,
+        "speaker": speaker,
+        "series": series,
+        "date": date,
+        "video_link": video_link,
+        "transcript": transcript,
+        "summary": summary,
+        "tags": tags
+    }
 
     sermons_db[sermon_id] = sermon
-    return JSONResponse({"status": "ok", "sermon": sermon.dict()})
 
-# Get all sermons
-@app.get("/sermons", response_model=List[Sermon])
-async def get_sermons():
-    return list(sermons_db.values())
+    return jsonify({"status": "ok", "sermon": sermon})
 
-# Get single sermon by ID
-@app.get("/sermon/{sermon_id}", response_model=Sermon)
-async def get_sermon(sermon_id: str):
+
+                                                                                                        # Get all sermons
+@app.route("/sermons", methods=["GET"])
+def get_sermons():
+    return jsonify(list(sermons_db.values()))
+
+
+                                                                                                        # Get single sermon
+@app.route("/sermon/<sermon_id>", methods=["GET"])
+def get_sermon(sermon_id):
     sermon = sermons_db.get(sermon_id)
     if not sermon:
-        raise HTTPException(status_code=404, detail="Sermon not found")
-    return sermon
+        return jsonify({"error": "Sermon not found"}), 404
+    return jsonify(sermon)
 
-# Delete sermon
-@app.delete("/sermon/{sermon_id}")
-async def delete_sermon(sermon_id: str):
+
+                                                                                                        # Delete sermon
+@app.route("/sermon/<sermon_id>", methods=["DELETE"])
+def delete_sermon(sermon_id):
     if sermon_id in sermons_db:
         del sermons_db[sermon_id]
-        return {"status": "deleted"}
-    raise HTTPException(status_code=404, detail="Sermon not found")
+        return jsonify({"status": "deleted"})
+    return jsonify({"error": "Sermon not found"}), 404
+
+if __name__ == "__main__":
+    app.run(debug=True)
