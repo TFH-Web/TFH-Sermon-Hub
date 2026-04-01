@@ -1,5 +1,3 @@
-import os
-from app import app
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase, MappedAsDataclass
 from sqlalchemy.engine import Engine
@@ -13,11 +11,6 @@ class Base(DeclarativeBase, MappedAsDataclass):
 
 
 db = SQLAlchemy(model_class=Base)
-
-if DB_URI_KEY not in os.environ:
-    raise KeyError(f"{DB_URI_KEY} should be set in the environment")
-app.config[DB_URI_KEY] = os.environ[DB_URI_KEY]
-db.init_app(app)
 
 
 @event.listens_for(Engine, "connect")
