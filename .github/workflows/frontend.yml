@@ -45,8 +45,8 @@ jobs:
         with:
           name: Frontend
 
-      - name: Display structure of downloaded files
-        run: ls -R
+      - name: Install dependencies
+        run: npm ci
 
       - name: Run Vitest tests
         run: npm run test
@@ -60,6 +60,9 @@ jobs:
       - uses: actions/download-artifact@v6
         with:
           name: Frontend
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
