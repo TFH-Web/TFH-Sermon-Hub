@@ -76,3 +76,18 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 30
+
+  biome:
+    name: Run Biome checks
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v6
+        with:
+          name: Frontend
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Biome
+        run: npx biome ci
