@@ -1,9 +1,9 @@
 import Navbar from './Navbar';
 import './Sidebar.css';
+import clsx from 'clsx';
 import { Link } from 'react-router';
 import logo from '$/assets/logo.png';
 import Profile from './Profile';
-import clsx from 'clsx';
 
 export interface SidebarProps {
 	className: string;

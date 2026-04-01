@@ -1,16 +1,16 @@
 .ImportActivity {
+	padding: 24px 28px;
+	margin-top: 16px;
 	background: #fff;
 	border: 1px solid #eee;
 	border-radius: 12px;
-	padding: 24px 28px;
-	margin-top: 16px;
 }
 
 .ImportActivity-title {
+	margin: 0 0 16px 0;
 	font-size: 16px;
 	font-weight: 700;
 	color: #111;
-	margin: 0 0 16px 0;
 }
 
 /* Lighten the ImportItem borders within this card */
@@ -25,8 +25,8 @@
 /* Progress bar + percentage shown side by side for active imports */
 .ImportActivity-progressWrap {
 	display: flex;
-	align-items: center;
 	gap: 8px;
+	align-items: center;
 }
 
 .ImportActivity-pct {
@@ -38,20 +38,20 @@
 
 /* Status badges for complete and failed */
 .ImportActivity-badge {
+	padding: 4px 12px;
 	font-size: 12px;
 	font-weight: 600;
-	padding: 4px 12px;
-	border-radius: 20px;
 	white-space: nowrap;
+	border-radius: 20px;
 }
 
 .ImportActivity-badge--complete {
-	background: #f0f0f0;
 	color: #555;
+	background: #f0f0f0;
 }
 
 .ImportActivity-badge--failed {
+	font-weight: 700;
 	color: #c0392b;
 	background: transparent;
-	font-weight: 700;
 }

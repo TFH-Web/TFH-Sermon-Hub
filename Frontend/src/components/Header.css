@@ -1,8 +1,8 @@
 .Header {
-	box-shadow: 0 -4px 8px 6px rgb(0 0 0 / 0.2);
 	display: flex;
-	align-items: center;
 	gap: 1rem;
+	align-items: center;
+	box-shadow: 0 -4px 8px 6px rgb(0 0 0 / 0.2);
 }
 
 .Header-title {
@@ -17,10 +17,10 @@
 }
 
 .Header-upload {
-	min-height: 5ex;
 	display: flex;
 	flex: none;
 	align-items: center;
+	min-height: 5ex;
 	padding: 0.5em 1em;
 	border-radius: 0.5rem;
 }

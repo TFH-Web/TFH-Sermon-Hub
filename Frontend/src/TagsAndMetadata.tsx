@@ -1,4 +1,4 @@
-import { useState }  from "react";
+import { useState } from 'react';
 import MainLayout from '$/components/MainLayout';
 import AddTagModal from '$/modals/AddTagModal';
 
@@ -7,48 +7,42 @@ export default function TagsAndMetadata() {
 
 	return (
 		<MainLayout title="Tags & Metadata">
-			<div 
+			<div
 				style={{
-				display: 'flex',
-				justifyContent: 'left',
+					display: 'flex',
+					justifyContent: 'left',
 				}}
 			>
-				
-			<button
-				key={'addtag'}
-				className="Header-upload"
-				type="button"
-				onClick={() =>  setAddTagOpen(true)}
-				style={{
-					position: 'absolute',
-					right: 0,
-					height: '40px',
-					padding: '0 16px',
-					marginRight: '1.8rem',
-					marginTop: '0.5rem',
-					// borderRadius: '999px',
-					border: '1px solid #d8d8d8',
-					// background: 'addtag' ? '#7a9166' : '#ffffff',
-					// color: type === option.value ? '#ffffff' : '#363636',
-					background: '#5e6f55',
-					color: '#ffffff',
-					fontWeight: 600,
-					cursor: 'pointer',
+				<button
+					key={'addtag'}
+					className="Header-upload"
+					type="button"
+					onClick={() => setAddTagOpen(true)}
+					style={{
+						position: 'absolute',
+						right: 0,
+						height: '40px',
+						padding: '0 16px',
+						marginRight: '1.8rem',
+						marginTop: '0.5rem',
+						// borderRadius: '999px',
+						border: '1px solid #d8d8d8',
+						// background: 'addtag' ? '#7a9166' : '#ffffff',
+						// color: type === option.value ? '#ffffff' : '#363636',
+						background: '#5e6f55',
+						color: '#ffffff',
+						fontWeight: 600,
+						cursor: 'pointer',
 					}}
-			>
-				+ Add Tag
-							</button>
-
+				>
+					+ Add Tag
+				</button>
 			</div>
 
-		<AddTagModal
-			isOpen={addTagOpen}
-			onClose={() => setAddTagOpen(false)}
-		> 
-			</AddTagModal>
-
+			<AddTagModal
+				isOpen={addTagOpen}
+				onClose={() => setAddTagOpen(false)}
+			></AddTagModal>
 		</MainLayout>
-
-
 	);
 }
