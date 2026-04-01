@@ -45,6 +45,9 @@ jobs:
         with:
           name: Frontend
 
+      - name: Display structure of downloaded files
+        run: ls -R
+
       - name: Run Vitest tests
         run: npm run test
 
