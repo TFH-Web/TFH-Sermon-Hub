@@ -89,5 +89,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Create blank .gitignore
+        run: touch .gitignore
+
       - name: Run Biome
         run: npx biome ci
