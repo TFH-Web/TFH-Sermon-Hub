@@ -80,20 +80,10 @@ a {
 button {
 	padding: 0.1em 0.5em;
 	font-family: inherit;
+	color: var(--cl-on-accent);
 	background-color: var(--cl-accent);
 	border: none;
-	color: var(--cl-on-accent);
 	border-radius: 0.25rem;
-}
-
-input[type="text"] {
-	border: 1px solid var(--cl-outline);
-	border-radius: 0.5rem;
-	font-family: inherit;
-
-	&:focus-visible {
-		outline-color: var(--cl-accent);
-	}
 }
 
 .u-button {
@@ -116,5 +106,15 @@ input[type="text"] {
 		filter: brightness(
 			var(--active-brightness, var(--active-brightness-default))
 		);
+	}
+}
+
+input[type="text"] {
+	font-family: inherit;
+	border: 1px solid var(--cl-outline);
+	border-radius: 0.5rem;
+
+	&:focus-visible {
+		outline-color: var(--cl-accent);
 	}
 }

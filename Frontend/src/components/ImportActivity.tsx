@@ -1,5 +1,5 @@
-import type React from 'react';
 import { Icon } from '@iconify-icon/react';
+import type React from 'react';
 import { dashboardImports } from '../data/imports';
 import ImportItem from './ImportItem';
 import ProgressBar from './ProgressBar';
@@ -8,8 +8,8 @@ import './ImportActivity.css';
 // Maps icon string from data to an iconify icon name
 const iconMap: Record<string, string> = {
 	youtube: 'lucide:video',
-	file:    'lucide:file-text',
-	video:   'lucide:video',
+	file: 'lucide:file-text',
+	video: 'lucide:video',
 };
 
 export default function ImportActivity() {
@@ -17,17 +17,20 @@ export default function ImportActivity() {
 		<div className="ImportActivity">
 			<h2 className="ImportActivity-title">Import Activity</h2>
 
-			{dashboardImports.map((job) => {
+			{dashboardImports.map(job => {
 				// Show warning triangle for failed items, otherwise use icon map
-				const iconName = job.status === 'failed'
-					? 'lucide:alert-triangle'
-					: (iconMap[job.icon] ?? 'lucide:file');
+				const iconName =
+					job.status === 'failed'
+						? 'lucide:alert-triangle'
+						: (iconMap[job.icon] ?? 'lucide:file');
 
 				const icon = (
 					<Icon
 						icon={iconName}
 						width={20}
-						className={job.status === 'failed' ? 'ImportActivity-iconFailed' : ''}
+						className={
+							job.status === 'failed' ? 'ImportActivity-iconFailed' : ''
+						}
 					/>
 				);
 

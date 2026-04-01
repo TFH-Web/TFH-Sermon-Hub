@@ -1,7 +1,11 @@
 from flask import jsonify, g
-
-from flask_jwt_extended import verify_jwt_in_request, get_jwt
+from flask_jwt_extended import verify_jwt_in_request, get_jwt, JWTManager
 from functools import wraps
+
+JWT_SECRET_ID = 'JWT_SECRET_KEY'
+
+# Initialize JWTManager
+jwt = JWTManager()
 
 
 # Verifies the token and reads in the roles. Handles cases where the token is missing, invalid, or without a role claim

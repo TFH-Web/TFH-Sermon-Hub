@@ -1,4 +1,4 @@
-import { useState, type SubmitEvent } from 'react';
+import { type SubmitEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '$/components/MainLayout';
 
@@ -79,7 +79,7 @@ export default function AISearch() {
 							type="text"
 							placeholder="e.g. What has Dave said about overcoming anxiety?"
 							value={query}
-							onChange={(e) => setQuery(e.target.value)}
+							onChange={e => setQuery(e.target.value)}
 							style={{
 								flex: 1,
 								height: '56px',
@@ -121,7 +121,7 @@ export default function AISearch() {
 							flexWrap: 'wrap',
 						}}
 					>
-						{contentOptions.map((option) => (
+						{contentOptions.map(option => (
 							<button
 								key={option.value}
 								type="button"
@@ -143,7 +143,7 @@ export default function AISearch() {
 
 						<select
 							value={speaker}
-							onChange={(e) => setSpeaker(e.target.value)}
+							onChange={e => setSpeaker(e.target.value)}
 							style={{
 								height: '40px',
 								padding: '0 12px',
@@ -163,7 +163,7 @@ export default function AISearch() {
 
 						<select
 							value={date}
-							onChange={(e) => setDate(e.target.value)}
+							onChange={e => setDate(e.target.value)}
 							style={{
 								height: '40px',
 								padding: '0 12px',

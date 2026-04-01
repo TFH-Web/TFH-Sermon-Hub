@@ -1,56 +1,72 @@
 import './RecentSermonsTable.css';
 
 export type Sermon = {
-  id: string;
-  title: string;
-  speaker: string;
-  series: string;
-  date: string;
-  status: 'Published' | 'Processing' | 'Failed';
+	id: string;
+	title: string;
+	speaker: string;
+	series: string;
+	date: string;
+	status: 'Published' | 'Processing' | 'Failed';
 };
 
 const statusClass: Record<Sermon['status'], string> = {
-  Published:  'RecentSermonsCard-badge--published',
-  Processing: 'RecentSermonsCard-badge--processing',
-  Failed:     'RecentSermonsCard-badge--failed',
+	Published: 'RecentSermonsCard-badge--published',
+	Processing: 'RecentSermonsCard-badge--processing',
+	Failed: 'RecentSermonsCard-badge--failed',
 };
 
 function RecentSermonsCard({ sermons }: { sermons: Sermon[] }) {
-  return (
-    <div className="RecentSermonsCard">
-      <div className="RecentSermonsCard-header">
-        <span className="RecentSermonsCard-title">Recent Sermons</span>
-        <a href="#" className="RecentSermonsCard-viewAll">View All →</a>
-      </div>
+	return (
+		<div className="RecentSermonsCard">
+			<div className="RecentSermonsCard-header">
+				<span className="RecentSermonsCard-title">Recent Sermons</span>
+				<a href="./" className="RecentSermonsCard-viewAll">
+					View All →
+				</a>
+			</div>
 
-      <table className="RecentSermonsCard-table">
-        <thead>
-          <tr>
-            <th className="RecentSermonsCard-colHeader RecentSermonsCard-colSermon">SERMON</th>
-            <th className="RecentSermonsCard-colHeader RecentSermonsCard-colSpeaker">SPEAKER</th>
-            <th className="RecentSermonsCard-colHeader RecentSermonsCard-colSeries">SERIES</th>
-            <th className="RecentSermonsCard-colHeader RecentSermonsCard-colDate">DATE</th>
-            <th className="RecentSermonsCard-colHeader RecentSermonsCard-colStatus">STATUS</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sermons.map((s, i) => (
-            <tr key={i} className="RecentSermonsCard-row">
-              <td className="RecentSermonsCard-cell RecentSermonsCard-cell--title">{s.title}</td>
-              <td className="RecentSermonsCard-cell">{s.speaker}</td>
-              <td className="RecentSermonsCard-cell">{s.series}</td>
-              <td className="RecentSermonsCard-cell">{s.date}</td>
-              <td className="RecentSermonsCard-cell">
-                <span className={`RecentSermonsCard-badge ${statusClass[s.status]}`}>
-                  {s.status}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+			<table className="RecentSermonsCard-table">
+				<thead>
+					<tr>
+						<th className="RecentSermonsCard-colHeader RecentSermonsCard-colSermon">
+							SERMON
+						</th>
+						<th className="RecentSermonsCard-colHeader RecentSermonsCard-colSpeaker">
+							SPEAKER
+						</th>
+						<th className="RecentSermonsCard-colHeader RecentSermonsCard-colSeries">
+							SERIES
+						</th>
+						<th className="RecentSermonsCard-colHeader RecentSermonsCard-colDate">
+							DATE
+						</th>
+						<th className="RecentSermonsCard-colHeader RecentSermonsCard-colStatus">
+							STATUS
+						</th>
+					</tr>
+				</thead>
+				<tbody>
+					{sermons.map(s => (
+						<tr key={s.id} className="RecentSermonsCard-row">
+							<td className="RecentSermonsCard-cell RecentSermonsCard-cell--title">
+								{s.title}
+							</td>
+							<td className="RecentSermonsCard-cell">{s.speaker}</td>
+							<td className="RecentSermonsCard-cell">{s.series}</td>
+							<td className="RecentSermonsCard-cell">{s.date}</td>
+							<td className="RecentSermonsCard-cell">
+								<span
+									className={`RecentSermonsCard-badge ${statusClass[s.status]}`}
+								>
+									{s.status}
+								</span>
+							</td>
+						</tr>
+					))}
+				</tbody>
+			</table>
+		</div>
+	);
 }
 
 export default RecentSermonsCard;

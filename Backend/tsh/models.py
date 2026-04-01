@@ -1,7 +1,7 @@
 from dataclasses import asdict
 from enum import Enum
 from datetime import date
-from database import db
+from tsh.database import db
 from sqlalchemy import (
     String,
     UniqueConstraint,
@@ -99,6 +99,7 @@ def serialize_to_dict(obj: Any) -> dict:
         return {k: convert_value(v) for k, v in data}
 
     return asdict(obj, dict_factory=dict_enum_factory)
+
 
 def serialize_many_to_dicts(objs: Iterable[Any]) -> List[dict]:
     return [serialize_to_dict(obj) for obj in objs]

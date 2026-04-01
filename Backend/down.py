@@ -1,11 +1,12 @@
 #!/usr/bin/env poetry run python3
-from database import db
-from app import app
+from tsh.database import db
+from tsh.app import create_app
 
 
 def main():
-    from models import Series, Speaker, Tag, Sermon, sermon_tag_m2m
+    from tsh.models import Series, Speaker, Tag, Sermon, sermon_tag_m2m  # noqa: F401
 
+    app = create_app('testing.cfg')
     with app.app_context():
         db.drop_all()
 
