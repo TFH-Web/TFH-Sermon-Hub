@@ -6,7 +6,7 @@ on:
     branches: [ main, dev ]
 
 env:
-  PYTHON_VERSION: '3.15'
+  PYTHON_VERSION: '3.13'
 
 defaults:
   run:
