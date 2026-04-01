@@ -29,7 +29,7 @@ export default function Sermons() {
 	const [selectedSeries, setSelectedSeries] = useState("All")	
 
 	// Tracks the currently selected "freshness" filter, defaults to "Newest"
-	const [videoUploadRecency, setVideoUploadRecency] = useState("Newest")
+	const [_videoUploadRecency, setVideoUploadRecency] = useState("Newest")
 
 
 	return (
