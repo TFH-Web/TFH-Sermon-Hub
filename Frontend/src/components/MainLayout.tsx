@@ -2,9 +2,9 @@ import '@fontsource/dm-sans';
 import '@fontsource/dm-sans/600';
 import './MainLayout.css';
 
-import Sidebar from './Sidebar';
 import type React from 'react';
 import Header from './Header';
+import Sidebar from './Sidebar';
 
 export interface MainLayoutProps {
 	title: string;

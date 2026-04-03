@@ -8,6 +8,8 @@
 		"build": "tsc -b && vite build",
 		"lint": "biome check --write",
 		"preview": "vite preview",
+		"test": "vitest run",
+		"test:watch": "vitest",
 		"e2e": "playwright test",
 		"e2e:ui": "playwright test --ui"
 	},
@@ -33,6 +35,7 @@
 		"@vitejs/plugin-react": "^6.0.1",
 		"globals": "^17.4.0",
 		"typescript": "~5.9.3",
-		"vite": "^8.0.1"
+		"vite": "^8.0.1",
+		"vitest": "^4.1.2"
 	}
 }
