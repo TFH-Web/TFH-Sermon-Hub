@@ -1,0 +1,47 @@
+.SearchResultCard {
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 12px;
+	padding: 20px;
+}
+
+.SearchResultCard-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 16px;
+}
+
+.SearchResultCard-main {
+	flex: 1;
+	min-width: 0;
+}
+
+.SearchResultCard-title {
+	margin: 0 0 8px 0;
+	font-size: 22px;
+	font-weight: 700;
+	color: #1f1f1f;
+}
+
+.SearchResultCard-meta {
+	margin: 0 0 8px 0;
+	color: #666;
+	font-size: 14px;
+}
+
+.SearchResultCard-summary {
+	margin: 0;
+	color: #444;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.SearchResultCard-score {
+	min-width: 120px;
+	text-align: right;
+	color: #6f865f;
+	font-weight: 700;
+	font-size: 14px;
+	white-space: nowrap;
+}
