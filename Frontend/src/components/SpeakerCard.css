@@ -1,0 +1,48 @@
+@import '../index.css';
+
+.speaker-card {
+    background-color: var(--cl-surface);
+    border-radius: 15px;
+    padding: 20px 20px;
+    text-align: center;
+    
+}
+
+.speaker-icon {
+    color: white;
+    font-size: 20px;
+
+    width: 60px;
+    height: 60px;
+    margin: 8px auto 8px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: red;
+}
+
+.speaker-name {
+    /* display: flex;
+    justify-content: center;
+    align-items:center; */
+    margin-top: 0px;
+    margin-bottom: 0px;
+
+    font-size: 18px;
+    font-weight: 700;
+
+}
+
+.speaker-info {
+    color: gray;
+
+    /* display: flex;
+    justify-content: center;
+    align-items:center; */
+
+    /* margin: 0px auto 0px; */
+
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
