@@ -1,4 +1,4 @@
-import { getFullName, getInitials, getUser } from '$/lib/user';
+import { getFullName, getInitials, getUser } from '$/types/user';
 import './Profile.css';
 
 export default function Profile() {
