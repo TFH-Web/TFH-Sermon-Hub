@@ -26,7 +26,9 @@ export default function Settings() {
 		<MainLayout title="Settings">
 			{/* Subheader */}
 			<div className="Settings-header">
-				<h2 className="Settings-heading">Settings</h2>
+				<h2 className="Settings-heading" aria-hidden="true">
+					Settings
+				</h2>
 			</div>
 
 			{/* Tab bar */}
