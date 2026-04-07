@@ -21,7 +21,7 @@ function RecentSermonsCard({ sermons }: { sermons: Sermon[] }) {
 		<div className="RecentSermonsCard">
 			<div className="RecentSermonsCard-header">
 				<span className="RecentSermonsCard-title">Recent Sermons</span>
-				<a href="./" className="RecentSermonsCard-viewAll">
+				<a href="./sermons" className="RecentSermonsCard-viewAll">
 					View All →
 				</a>
 			</div>
