@@ -101,16 +101,18 @@ export default function Settings() {
 									Log out all sessions on password change
 								</label>
 							</div>
-							<Button
-								variant="primary"
-								onClick={() =>
-									showToast(
-										'Session settings saved',
-									)
-								}
-							>
-								Save Settings
-							</Button>	
+							<div style={{ marginTop: '16px' }}>
+								<Button
+									variant="primary"
+									onClick={() =>
+										showToast(
+											'Session settings saved',
+										)
+									}
+								>
+									Save Settings
+								</Button>	
+							</div>
 						</div>
 					</Card>
 				</div>
@@ -204,6 +206,76 @@ export default function Settings() {
 						
 								Save Settings
 							</Button>
+						</div>
+					</Card>
+				</div>
+			)}
+
+			{/* Security Tab */}
+			{activeTab === 'Security' && (
+				<div className="Settings-grid">
+					{/* Access Control Settings */}
+					<Card>
+						<CardHeader title="Access Control" />
+						<div className="Card-body">
+							<div className="Settings-checkboxGroup">
+								<label className="Settings-checkbox">
+									<input type="checkbox" />
+									Require login for all access
+								</label>
+								<label className="Settings-checkbox">
+									<input type="checkbox" defaultChecked />
+									HTTPS only
+								</label>
+								<label className="Settings-checkbox">
+									<input type="checkbox" defaultChecked />
+									Secure session cookies (HttpOnly, SameSite, Max-Age)
+								</label>
+								<label className="Settings-checkbox">
+									<input type="checkbox"/>
+									Allow public read-only API access
+								</label>
+								<label className="Settings-checkbox">
+									<input type="checkbox"/>
+									Enable audit logging
+								</label>
+							</div>
+							<div style={{ marginTop: '16px' }}>
+								<Button
+									variant="primary"
+									onClick={() =>
+										showToast(
+											'Security settings saved',
+										)
+									}>
+							
+									Save Settings
+								</Button>
+							</div>
+						</div>
+					</Card>
+
+					{/* Roles & Privacy Levels */}
+					<Card>
+						<CardHeader title="Roles & Privacy Levels" />
+						<div className="Card-body">
+							<div className = "Settings-roles-body">		
+								<p className="Settings-roles-text">
+									<span><strong>Admin - </strong> Full access, manage users, upload, edit, delete</span>
+									<Tag variant="admin">Level 3</Tag>
+								</p>		
+								<p className="Settings-roles-text">
+									<span><strong>Internal User - </strong> View, search, read transcripts</span>
+									<Tag variant="blue">Level 2</Tag>
+								</p>
+								<p className="Settings-roles-text">
+									<span><strong>Public (Future) - </strong> Basic search, read only</span>
+									<Tag variant="outline">Level 1</Tag>
+								</p>
+							</div>
+							<InfoBanner 
+								message="Role assignments are managed in the user management section."
+							/>
 						</div>
 					</Card>
 				</div>
