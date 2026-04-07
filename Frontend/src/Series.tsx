@@ -38,10 +38,12 @@ const series = [
 
 // Component to display the list of sermon series
 export default function Series() {
+	{/* TODO: wire up AI search logic once teammate's branch is merged to dev */}
 	return (
 		<MainLayout title="Series">
 			{/* Top Right New Series Button */}
 			<div className="series-header">
+				{/* TODO: wire up the NewSeriesModal once TFH-299 is merged to dev */}
 				<button type="button"  className="new-series-button">
 					+ New Series
 				</button>
