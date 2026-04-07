@@ -61,7 +61,7 @@ export default function Series() {
 						<div className="series-info">
 							<div className="series-name">{series.title}</div>
 							<div className="series-meta-data">
-								{series.sermonCount} Sermons • {series.speaker} • {series.year}
+								{series.sermonCount} sermons • {series.speaker} • {series.year}
 							</div>
 						</div>
 					</div>
