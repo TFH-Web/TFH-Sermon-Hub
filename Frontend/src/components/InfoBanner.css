@@ -1,0 +1,14 @@
+.info-banner {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Info (default) */
+.info-banner-info {
+  background-color: #eef6fb;
+  border-color: #93c5fd;
+  color: #1e40c2;
+}
