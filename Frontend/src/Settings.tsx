@@ -1,17 +1,22 @@
+import { useState } from 'react';
 import MainLayout from '$/components/MainLayout';
 import TabBar from '$/components/TabBar';
-import { useState } from 'react';
 import './Settings.css';
+import { Link } from 'react-router-dom';
+import Button from '$/components/Button';
 import { Card, CardHeader } from '$/components/Card';
 import { FormField } from '$/components/FormField';
-import Tag from '$/components/Tag';
-import Button from '$/components/Button';
-import { useToast } from '$/components/ToastContext';
 import { InfoBanner } from '$/components/InfoBanner';
-import { Link } from 'react-router-dom';
+import Tag from '$/components/Tag';
+import { useToast } from '$/components/ToastContext';
 
-
-const tabs = ['General', 'Authentication', 'AI Configuration', 'Security', 'Backup'];
+const tabs = [
+	'General',
+	'Authentication',
+	'AI Configuration',
+	'Security',
+	'Backup',
+];
 
 export default function Settings() {
 	const [activeTab, setActiveTab] = useState('General');
@@ -30,29 +35,24 @@ export default function Settings() {
 			{/* Authentication Tab */}
 			{activeTab === 'Authentication' && (
 				<div className="Settings-grid">
-					{/* Microsoft Entra SSO Settings */}					
+					{/* Microsoft Entra SSO Settings */}
 					<Card>
 						<CardHeader title="Microsoft Entra SSO" />
 						<div className="Card-body">
-							<InfoBanner 
-								message="All authentication is handled through Microsoft Entra SSO. Users must log in with their organizational account."
-							/>
+							<InfoBanner message="All authentication is handled through Microsoft Entra SSO. Users must log in with their organizational account." />
 							<FormField label="Tenant ID">
-								<input 
-									type="text" 
-									placeholder="tfh-org-tenant-abc123" 
-								/>
+								<input type="text" placeholder="tfh-org-tenant-abc123" />
 							</FormField>
 							<FormField label="Client ID">
-								<input 
-									type="text" 
-									placeholder="••••••••-••••-••••-••••-••••••••" 
+								<input
+									type="text"
+									placeholder="••••••••-••••-••••-••••-••••••••"
 								/>
 							</FormField>
 							<FormField label="Redirect URI">
-								<input 
-									type="text" 
-									placeholder="https://sermonhub.tfh.org/auth/callback" 
+								<input
+									type="text"
+									placeholder="https://sermonhub.tfh.org/auth/callback"
 								/>
 							</FormField>
 							<FormField label="SSO Status">
@@ -61,14 +61,11 @@ export default function Settings() {
 							<Button
 								variant="secondary"
 								onClick={() =>
-									showToast(
-										'Contact IT to reconfigure SSO credentials',
-										"info"
-									)
+									showToast('Contact IT to reconfigure SSO credentials', 'info')
 								}
 							>
 								Reconfigure SSO
-							</Button>					
+							</Button>
 						</div>
 					</Card>
 
@@ -105,14 +102,10 @@ export default function Settings() {
 							<div style={{ marginTop: '16px' }}>
 								<Button
 									variant="primary"
-									onClick={() =>
-										showToast(
-											'Session settings saved',
-										)
-									}
+									onClick={() => showToast('Session settings saved')}
 								>
 									Save Settings
-								</Button>	
+								</Button>
 							</div>
 						</div>
 					</Card>
@@ -133,15 +126,12 @@ export default function Settings() {
 									<option>ChatGPT API</option>
 								</select>
 							</FormField>
-							<InfoBanner 
+							<InfoBanner
 								message="Switch between local AI (free, for development) and paid API (production). Configure per-environment in deployment settings."
 								variant="gray"
 							/>
 							<FormField label="API Key">
-								<input
-									type="text"
-									placeholder="sk-•••••••••••••"
-								/>
+								<input type="text" placeholder="sk-•••••••••••••" />
 							</FormField>
 							<FormField label="Model">
 								<select>
@@ -153,12 +143,8 @@ export default function Settings() {
 							</FormField>
 							<Button
 								variant="primary"
-								onClick={() =>
-									showToast(
-										'AI provider settings saved',
-									)
-								}>
-						
+								onClick={() => showToast('AI provider settings saved')}
+							>
 								Save Provider
 							</Button>
 						</div>
@@ -199,12 +185,8 @@ export default function Settings() {
 							</FormField>
 							<Button
 								variant="primary"
-								onClick={() =>
-									showToast(
-										'Processing settings saved',
-									)
-								}>
-						
+								onClick={() => showToast('Processing settings saved')}
+							>
 								Save Settings
 							</Button>
 						</div>
@@ -233,23 +215,19 @@ export default function Settings() {
 									Secure session cookies (HttpOnly, SameSite, Max-Age)
 								</label>
 								<label className="Settings-checkbox">
-									<input type="checkbox"/>
+									<input type="checkbox" />
 									Allow public read-only API access
 								</label>
 								<label className="Settings-checkbox">
-									<input type="checkbox"/>
+									<input type="checkbox" />
 									Enable audit logging
 								</label>
 							</div>
 							<div style={{ marginTop: '16px' }}>
 								<Button
 									variant="primary"
-									onClick={() =>
-										showToast(
-											'Security settings saved',
-										)
-									}>
-							
+									onClick={() => showToast('Security settings saved')}
+								>
 									Save Settings
 								</Button>
 							</div>
@@ -260,22 +238,35 @@ export default function Settings() {
 					<Card>
 						<CardHeader title="Roles & Privacy Levels" />
 						<div className="Card-body">
-							<div className = "Settings-roles-body">		
+							<div className="Settings-roles-body">
 								<p className="Settings-roles-text">
-									<span><strong>Admin - </strong> Full access, manage users, upload, edit, delete</span>
+									<span>
+										<strong>Admin - </strong> Full access, manage users, upload,
+										edit, delete
+									</span>
 									<Tag variant="admin">Level 3</Tag>
-								</p>		
+								</p>
 								<p className="Settings-roles-text">
-									<span><strong>Internal User - </strong> View, search, read transcripts</span>
+									<span>
+										<strong>Internal User - </strong> View, search, read
+										transcripts
+									</span>
 									<Tag variant="blue">Level 2</Tag>
 								</p>
 								<p className="Settings-roles-text">
-									<span><strong>Public (Future) - </strong> Basic search, read only</span>
+									<span>
+										<strong>Public (Future) - </strong> Basic search, read only
+									</span>
 									<Tag variant="outline">Level 1</Tag>
 								</p>
 							</div>
 							<InfoBanner
-								message={<>Role assignments are managed in <Link to="/user-management">User Management</Link>.</>}
+								message={
+									<>
+										Role assignments are managed in{' '}
+										<Link to="/user-management">User Management</Link>.
+									</>
+								}
 							/>
 						</div>
 					</Card>

@@ -57,10 +57,7 @@ function RecentSermonsCard({ sermons }: { sermons: Sermon[] }) {
 							<td className="RecentSermonsCard-cell">{s.date}</td>
 							<td className="RecentSermonsCard-cell">
 								<span>
-									<Tag {...statusClass[s.status]}>
-										{s.status}
-									</Tag>	
-									
+									<Tag {...statusClass[s.status]}>{s.status}</Tag>
 								</span>
 							</td>
 						</tr>
