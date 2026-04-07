@@ -43,7 +43,7 @@
 		oklch(from var(--cl-info) 95% 0.02 h),
 		oklch(from var(--cl-info) 25% 0.05 h)
 	);
-	--cl-on-info: oklch(30% 0.1 245deg);
+	--cl-on-info: oklch(40% 0.15 245deg);
 
 	--cl-surface: light-dark(oklch(100% 0 0deg), oklch(22% 0 0deg));
 	--cl-surface-dim: light-dark(oklch(98% 0 0deg), oklch(20% 0 0deg));

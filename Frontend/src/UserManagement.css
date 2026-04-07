@@ -1,0 +1,23 @@
+.UserManagement-header {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	gap: 2rem;
+	align-items: center;
+}
+
+.Header-info {
+	padding: 0.75em 1.25em;
+	margin: 0;
+	font-size: 0.9rem;
+	color: var(--cl-on-info);
+	background-color: var(--cl-info-container);
+	border: 1px solid
+		oklch(from var(--cl-info-container) calc(l * 0.7) calc(c * 1.2) h);
+	border-radius: 0.5rem;
+}
+
+.Header-addUser {
+	display: flex;
+	align-items: center;
+	padding: 0.75em 1em;
+}
