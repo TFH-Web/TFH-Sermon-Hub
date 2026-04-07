@@ -1,9 +1,10 @@
+import type { ReactNode } from "react";
 import "./InfoBanner.css";
 
 type BannerVariant = "info" | "gray";
 
 interface InfoBannerProps {
-  message: string;
+  message: ReactNode;
   variant?: BannerVariant
 }
 

@@ -8,6 +8,7 @@ import Tag from '$/components/Tag';
 import Button from '$/components/Button';
 import { useToast } from '$/components/ToastContext';
 import { InfoBanner } from '$/components/InfoBanner';
+import { Link } from 'react-router-dom';
 
 
 const tabs = ['General', 'Authentication', 'AI Configuration', 'Security', 'Backup'];
@@ -273,8 +274,8 @@ export default function Settings() {
 									<Tag variant="outline">Level 1</Tag>
 								</p>
 							</div>
-							<InfoBanner 
-								message="Role assignments are managed in the user management section."
+							<InfoBanner
+								message={<>Role assignments are managed in <Link to="/user-management">User Management</Link>.</>}
 							/>
 						</div>
 					</Card>

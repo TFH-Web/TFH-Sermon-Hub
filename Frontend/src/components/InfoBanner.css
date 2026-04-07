@@ -13,6 +13,17 @@
   color: #1e40c2;
 }
 
+/* Links inside banners */
+.info-banner a {
+  color: #2980b9;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.info-banner a:hover {
+  opacity: 0.75;
+}
+
 /* Info (gray) */
 .info-banner-gray {
   background-color: #ffffff;
