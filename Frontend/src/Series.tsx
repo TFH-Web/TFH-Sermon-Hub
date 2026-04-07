@@ -2,7 +2,6 @@ import MainLayout from '$/components/MainLayout';
 
 import './Series.css';
 
-
 // Mock data for sermon series, each series will have a unique gradient color for the banner
 const series = [
 	{
@@ -35,10 +34,8 @@ const series = [
 	},
 ];
 
-
 // Component to display the list of sermon series
 export default function Series() {
-	{/* TODO: wire up AI search logic once teammate's branch is merged to dev */}
 	return (
 		<MainLayout title="Series">
 			{/* Top Right New Series Button */}
@@ -46,16 +43,19 @@ export default function Series() {
 				{/* Title for page */}
 				<h2 className="series-section-title">Sermon Series</h2>
 				{/* TODO: wire up the NewSeriesModal once TFH-299 is merged to dev */}
-				<button type="button"  className="new-series-button">
+				<button type="button" className="new-series-button">
 					+ New Series
 				</button>
 			</div>
 
 			{/* Series List as a Grid */}
-			<div className="series-grid">				
-				{series.map((series => (
+			<div className="series-grid">
+				{series.map(series => (
 					<div key={series.title} className="series-card">
-						<div className="series-banner" style={{ background: series.banner }}>
+						<div
+							className="series-banner"
+							style={{ background: series.banner }}
+						>
 							<span className="series-banner-title">{series.title}</span>
 						</div>
 						<div className="series-info">
@@ -65,8 +65,8 @@ export default function Series() {
 							</div>
 						</div>
 					</div>
-				)))}
-			</div>		
+				))}
+			</div>
 		</MainLayout>
 	);
 }
