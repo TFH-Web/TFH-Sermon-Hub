@@ -1,4 +1,5 @@
 import './RecentSermonsTable.css';
+import Tag, { type TagProps } from './Tag';
 
 export type Sermon = {
 	id: string;
@@ -9,10 +10,10 @@ export type Sermon = {
 	status: 'Published' | 'Processing' | 'Failed';
 };
 
-const statusClass: Record<Sermon['status'], string> = {
-	Published: 'RecentSermonsCard-badge--published',
-	Processing: 'RecentSermonsCard-badge--processing',
-	Failed: 'RecentSermonsCard-badge--failed',
+const statusClass: Record<Sermon['status'], Pick<TagProps, 'variant'>> = {
+	Published: { variant: 'green' },
+	Processing: { variant: 'amber' },
+	Failed: { variant: 'red' },
 };
 
 function RecentSermonsCard({ sermons }: { sermons: Sermon[] }) {
@@ -55,10 +56,11 @@ function RecentSermonsCard({ sermons }: { sermons: Sermon[] }) {
 							<td className="RecentSermonsCard-cell">{s.series}</td>
 							<td className="RecentSermonsCard-cell">{s.date}</td>
 							<td className="RecentSermonsCard-cell">
-								<span
-									className={`RecentSermonsCard-badge ${statusClass[s.status]}`}
-								>
-									{s.status}
+								<span>
+									<Tag {...statusClass[s.status]}>
+										{s.status}
+									</Tag>	
+									
 								</span>
 							</td>
 						</tr>
