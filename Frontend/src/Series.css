@@ -1,0 +1,92 @@
+/* Pushes New Series button to the right and adds some spacing */
+.series-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 24px;
+}
+
+/* Makes Green button in the same styling as the active filters in Sermons.css */
+.new-series-button {
+    background: #48662d; 
+    border: none;
+    color: #ffffff;
+    padding: 8px 16px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: .9rem;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.new-series-button:hover {
+    background: #3a5223;
+}
+
+/* 3 column grid as done in the mockup, auto rows to make the cards the same height */
+.series-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    overflow-y:auto
+}
+
+/* Card styling, mirroring the SermonCard styling in Sermons.css */
+.series-card {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	transition: transform 0.2s, box-shadow 0.2s;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+/* Colored gradient banners for the backgrounds of the cards */
+.series-banner {
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Lifts the cards on hover and adds a shadow for visual feedback */
+/* Creative liberty, not in the mockup but adds a nice touch to the UI */
+.series-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.13);
+}
+
+/* Bold title centered onto the banner */
+.series-banner-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #ffffff;
+    text-align: center;
+    padding: 0 20px;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Container for the series details below the banner */
+.series-info {
+    padding: 12px 16px 16px 16px;
+    background: #ffffff;
+}
+
+/* Series title styling */
+.series-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 4px;
+}
+
+/* The muted text for the description portion of the cards */
+.series-meta-data {
+    font-size: 0.82rem;
+    color: #888;
+}
