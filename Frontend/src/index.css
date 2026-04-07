@@ -11,11 +11,11 @@
 	--cl-on-accent: oklch(from var(--cl-accent) 100% calc(c * 0.1) h);
 
 	--cl-container: light-dark(
-		oklch(from var(--cl-background) calc(l * 0.98) c h),
+		oklch(from var(--cl-background) calc(l * 1.03) c h),
 		oklch(from var(--cl-background) calc(l * 1.7) c h)
 	);
 	--cl-outline: light-dark(
-		oklch(from var(--cl-accent) calc(l * 1.5) calc(c * 0.05) h),
+		oklch(from var(--cl-accent) calc(l * 1.7) calc(c * 0.05) h),
 		oklch(from var(--cl-accent) calc(l * 0.5) calc(c * 0.05) h)
 	);
 
@@ -31,12 +31,17 @@
 		oklch(from var(--cl-error) 25% 0.05 h)
 	);
 	--cl-on-error: oklch(100% 0 0deg);
+	--cl-on-error-container: oklch(
+		from var(--cl-error-container) calc(l * 0.4) calc(c * 1.5) h
+	);
+	--cl-error-outline: oklch(from var(--cl-error) l c h / 40%);
 
 	--cl-warning: oklch(65% 0.15 60deg);
 	--cl-warning-container: light-dark(
 		oklch(from var(--cl-warning) 96% 0.02 h),
 		oklch(from var(--cl-warning) 25% 0.05 h)
 	);
+	--cl-warning-outline: oklch(from var(--cl-warning) l c h / 40%);
 
 	--cl-info: oklch(52% 0.1 245deg);
 	--cl-info-container: light-dark(
@@ -44,16 +49,26 @@
 		oklch(from var(--cl-info) 25% 0.05 h)
 	);
 	--cl-on-info: oklch(40% 0.15 245deg);
+	--cl-info-outline: oklch(from var(--cl-info) l c h / 40%);
 
 	--cl-surface: light-dark(oklch(100% 0 0deg), oklch(22% 0 0deg));
 	--cl-surface-dim: light-dark(oklch(98% 0 0deg), oklch(20% 0 0deg));
 	--cl-on-surface-muted: light-dark(oklch(60% 0 0deg), oklch(55% 0 0deg));
+
+	--cl-user: var(--cl-info);
+	--cl-user-container: var(--cl-info-container);
+	--cl-on-user: var(--cl-on-info);
+	--cl-user-outline: var(--cl-info-outline);
 
 	--cl-admin: oklch(65% 0.1 80deg);
 	--cl-admin-container: light-dark(
 		oklch(from var(--cl-admin) 96% 0.03 h),
 		oklch(from var(--cl-admin) 25% 0.05 h)
 	);
+	--cl-on-admin-container: oklch(
+		from var(--cl-admin-container) calc(l * 0.4) calc(c * 1.5) h
+	);
+	--cl-admin-outline: oklch(from var(--cl-admin) l c h / 40%);
 
 	--radius-lg: 14px;
 	--radius-md: 10px;

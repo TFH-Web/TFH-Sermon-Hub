@@ -11,8 +11,7 @@
 	font-size: 0.9rem;
 	color: var(--cl-on-info);
 	background-color: var(--cl-info-container);
-	border: 1px solid
-		oklch(from var(--cl-info-container) calc(l * 0.7) calc(c * 1.2) h);
+	border: 1px solid var(--cl-info-outline);
 	border-radius: 0.5rem;
 }
 
@@ -20,4 +19,118 @@
 	display: flex;
 	align-items: center;
 	padding: 0.75em 1em;
+}
+
+.UserManagement-users {
+	display: grid;
+
+	grid-template-columns: repeat(5, auto);
+	margin-block: 2rem;
+	background-color: var(--cl-container);
+	border-radius: 0.5rem;
+	box-shadow: 0 2px 6px -4px rgb(0 0 0 / 50%);
+
+	thead,
+	tbody,
+	tr {
+		display: contents;
+	}
+
+	th {
+		justify-self: start;
+		padding-block: 0.5rem;
+		font-size: 0.8rem;
+		font-weight: normal;
+		text-transform: uppercase;
+		letter-spacing: 1.2px;
+		opacity: 0.6;
+	}
+
+	td {
+		padding-block: 1rem;
+		border-block-start: 1px solid var(--cl-outline);
+	}
+
+	th,
+	td {
+		&:where(:first-child, :last-child) {
+			padding-inline: 0.75rem;
+		}
+	}
+
+	p {
+		margin: 0;
+	}
+
+	tbody > tr:where(:hover, :focus-visible) > * {
+		background-color: oklch(from var(--cl-container) calc(l * 0.95) c h);
+	}
+
+	tr > * {
+		transition: background-color 50ms ease;
+	}
+}
+
+.Users-name {
+	display: flex;
+	gap: 1em;
+	align-items: center;
+}
+
+.Users-initials {
+	display: grid;
+	place-items: center;
+	min-height: 2.25rem;
+	aspect-ratio: 1;
+	font-size: 0.9rem;
+	color: var(--cl-light);
+	background-color: oklch(30% 0.2 var(--h));
+	border-radius: 100%;
+}
+
+.Users-fullName {
+	font-weight: bold;
+}
+
+.Users-email,
+.Users-role,
+.Users-lastActive {
+	display: grid;
+	place-items: center start;
+}
+
+.Users-roleChip {
+	padding: 0.25em 0.75em;
+	font-size: 0.8rem;
+	border-radius: 1rem;
+
+	&.is-admin {
+		color: var(--cl-admin);
+		background-color: var(--cl-admin-container);
+		border: 1px solid var(--cl-admin-outline);
+	}
+
+	&.is-user {
+		color: var(--cl-user);
+		background-color: var(--cl-user-container);
+		border: 1px solid var(--cl-user-outline);
+	}
+}
+
+.Users-actions {
+	display: flex;
+	gap: 1rem;
+	align-items: center;
+}
+
+.Users-actionEdit {
+	color: var(--cl-on-info);
+	background-color: var(--cl-info-container);
+	border: 1px solid var(--cl-info-outline);
+}
+
+.Users-actionRemove {
+	color: var(--cl-on-error-container);
+	background-color: var(--cl-error-container);
+	border: 1px solid var(--cl-error-outline);
 }
