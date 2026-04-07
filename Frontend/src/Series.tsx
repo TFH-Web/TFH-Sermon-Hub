@@ -41,7 +41,7 @@ export default function Series() {
 			{/* Top Right New Series Button */}
 			<div className="series-header">
 				{/* Title for page */}
-				<h2 className="series-section-title">Sermon Series</h2>
+				<p className="series-section-title">Sermon Series</p>
 				{/* TODO: wire up the NewSeriesModal once TFH-299 is merged to dev */}
 				<button type="button" className="new-series-button">
 					+ New Series
