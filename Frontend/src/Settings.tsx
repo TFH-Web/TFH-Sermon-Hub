@@ -24,13 +24,6 @@ export default function Settings() {
 
 	return (
 		<MainLayout title="Settings">
-			{/* Subheader */}
-			<div className="Settings-header">
-				<h2 className="Settings-heading" aria-hidden="true">
-					Settings
-				</h2>
-			</div>
-
 			{/* Tab bar */}
 			<TabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
