@@ -1,8 +1,16 @@
+/* Section label on the top left */
+.series-section-title {
+    font-size: 24px;
+    font-weight: 1000;
+    color: #1a1a1a
+}
+
 /* Pushes New Series button to the right and adds some spacing */
 .series-header {
     display: flex;
-    justify-content: flex-end;
-    margin-bottom: 24px;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
 }
 
 /* Makes Green button in the same styling as the active filters in Sermons.css */
@@ -35,15 +43,13 @@
 .series-card {
     background: #ffffff;
     border: 1px solid #e0e0e0;
-    border-radius: 12px;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-	transition: transform 0.2s, box-shadow 0.2s;
-    overflow: hidden;
     cursor: pointer;
+    display: flex;
+    flex-direction: column;	
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
 /* Colored gradient banners for the backgrounds of the cards */
@@ -63,7 +69,7 @@
 
 /* Bold title centered onto the banner */
 .series-banner-title {
-    font-size: 1.2rem;
+    font-size: 22px;
     font-weight: 700;
     color: #ffffff;
     text-align: center;
@@ -73,20 +79,20 @@
 
 /* Container for the series details below the banner */
 .series-info {
-    padding: 12px 16px 16px 16px;
     background: #ffffff;
+    padding: 10px 14px 14px 14px;
 }
 
 /* Series title styling */
 .series-name {
-    font-size: 0.95rem;
-    font-weight: 600;
+    font-size: 17px;
+    font-weight: 700;
     color: #1a1a1a;
     margin-bottom: 4px;
 }
 
 /* The muted text for the description portion of the cards */
 .series-meta-data {
-    font-size: 0.82rem;
-    color: #888;
+    font-size: 14px;
+    color: #666;
 }
