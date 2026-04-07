@@ -37,7 +37,7 @@ suite('Names', () => {
 	test('full name should work', () => {
 		expect(getFullName(testAdmin)).toBe('Jane Doe');
 		expect(getFullName(testUser)).toBe('John Doe');
-	})
+	});
 });
 
 test('only admins can remove, only users can be removed', () => {
