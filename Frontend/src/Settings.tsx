@@ -115,6 +115,99 @@ export default function Settings() {
 					</Card>
 				</div>
 			)}
+
+			{/* AI Configuration Tab */}
+			{activeTab === 'AI Configuration' && (
+				<div className="Settings-grid">
+					{/* AI Provider Settings */}
+					<Card>
+						<CardHeader title="AI Provider Settings" />
+						<div className="Card-body">
+							<FormField label="Provider">
+								<select>
+									<option>Local LLM (Development)</option>
+									<option>Claude API</option>
+									<option>ChatGPT API</option>
+								</select>
+							</FormField>
+							<InfoBanner 
+								message="Switch between local AI (free, for development) and paid API (production). Configure per-environment in deployment settings."
+								variant="gray"
+							/>
+							<FormField label="API Key">
+								<input
+									type="text"
+									placeholder="sk-•••••••••••••"
+								/>
+							</FormField>
+							<FormField label="Model">
+								<select>
+									<option>claude-opus-4 (Best quality)</option>
+									<option>claude-sonnet-4 (Balanced)</option>
+									<option>gpt-4o</option>
+									<option>gpt-4o-mini (Faster/Lower cost)</option>
+								</select>
+							</FormField>
+							<Button
+								variant="primary"
+								onClick={() =>
+									showToast(
+										'AI provider settings saved',
+									)
+								}>
+						
+								Save Provider
+							</Button>
+						</div>
+					</Card>
+
+					{/* Processing Options */}
+					<Card>
+						<CardHeader title="Processing Options" />
+						<div className="Card-body">
+							<FormField label="Processing Mode">
+								<select>
+									<option>Process at Import Time (one-time cost)</option>
+									<option>Process on Demand</option>
+								</select>
+							</FormField>
+							<FormField label="Transcript Language">
+								<select>
+									<option>Auto-detect</option>
+									<option>English</option>
+									<option>Spanish</option>
+								</select>
+							</FormField>
+							<FormField label="Auto-generate on Import">
+								<div className="Settings-checkboxGroup">
+									<label className="Settings-checkbox">
+										<input type="checkbox" defaultChecked />
+										Transcripts
+									</label>
+									<label className="Settings-checkbox">
+										<input type="checkbox" defaultChecked />
+										Summaries
+									</label>
+									<label className="Settings-checkbox">
+										<input type="checkbox" defaultChecked />
+										Tags (weighted by relevance)
+									</label>
+								</div>
+							</FormField>
+							<Button
+								variant="primary"
+								onClick={() =>
+									showToast(
+										'Processing settings saved',
+									)
+								}>
+						
+								Save Settings
+							</Button>
+						</div>
+					</Card>
+				</div>
+			)}
 		</MainLayout>
 	);
 }

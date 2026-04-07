@@ -30,7 +30,7 @@
 }
 
 /* Form input styles */
-.FormField input,
+.FormField input:not([type="checkbox"]),
 .FormField select,
 .FormField textarea {
 	box-sizing: border-box;
@@ -46,13 +46,13 @@
 	transition: border-color 0.2s;
 }
 
-.FormField input:focus,
+.FormField input:not([type="checkbox"]):focus,
 .FormField select:focus,
 .FormField textarea:focus {
 	border-color: var(--cl-accent);
 }
 
-.FormField--error input,
+.FormField--error input:not([type="checkbox"]),
 .FormField--error select,
 .FormField--error textarea {
 	border-color: var(--cl-error);

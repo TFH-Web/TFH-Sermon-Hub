@@ -12,3 +12,13 @@
   border-color: #93c5fd;
   color: #1e40c2;
 }
+
+/* Info (gray) */
+.info-banner-gray {
+  background-color: #ffffff;
+  border-color: transparent; 
+  color: #999892;
+  font-size: 11px;
+  padding: 0px 0px;
+  
+}
