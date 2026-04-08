@@ -3,7 +3,6 @@ import MainLayout from '$/components/MainLayout';
 import NewSeriesModal from '$/modals/NewSeriesModal';
 import './Series.css';
 
-
 // Mock data for sermon series, each series will have a unique gradient color for the banner
 const series = [
 	{
