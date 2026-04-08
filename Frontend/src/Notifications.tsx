@@ -1,8 +1,19 @@
+import { useState } from 'react';
 import './Notifications.css';
 import MainLayout from '$/components/MainLayout';
 import { Card, CardHeader } from '$/components/Card';
+import Button from '$/components/Button';
+import { useToast } from '$/components/ToastContext';
 
 export default function Notifications() {
+	const { showToast } = useToast();
+
+	const [completedUploads, setCompletedUploads] = useState(true);
+	const [failedUploads, setFailedUploads] = useState(true);
+	const [aiProcessing, setAiProcessing] = useState(true);
+	const [versionChanges, setVersionChanges] = useState(false);
+	const [newUsers, setNewUsers] = useState(true);
+
 	return (
 		<MainLayout title="Notifications">
 			<div className="Notifications-header">
@@ -19,7 +30,64 @@ export default function Notifications() {
 					<Card className="Notifications-settingsCard">
 						<CardHeader title="Notification Settings" />
 						<div className="Card-body">
-							<p>Settings coming soon...</p>
+							<div className="Notifications-checkboxGroup">
+								<p className="Notifications-checkboxLabel">Notify on:</p>
+								<label className="Notifications-checkbox">
+									<input
+										type="checkbox"
+										checked={completedUploads}
+										onChange={() =>
+											setCompletedUploads(!completedUploads)
+										}
+									/>
+									Completed uploads
+								</label>
+								<label className="Notifications-checkbox">
+									<input
+										type="checkbox"
+										checked={failedUploads}
+										onChange={() => setFailedUploads(!failedUploads)}
+									/>
+									Failed uploads / import attempts
+								</label>
+								<label className="Notifications-checkbox">
+									<input
+										type="checkbox"
+										checked={aiProcessing}
+										onChange={() => setAiProcessing(!aiProcessing)}
+									/>
+									AI processing complete
+								</label>
+								<label className="Notifications-checkbox">
+									<input
+										type="checkbox"
+										checked={versionChanges}
+										onChange={() =>
+											setVersionChanges(!versionChanges)
+										}
+									/>
+									Version changes / updates
+								</label>
+								<label className="Notifications-checkbox">
+									<input
+										type="checkbox"
+										checked={newUsers}
+										onChange={() => setNewUsers(!newUsers)}
+									/>
+									New user registrations
+								</label>
+							</div>
+							<Button
+								variant="primary"
+								onClick={() =>
+									showToast(
+										'Notification settings saved',
+										'success',
+									)
+								}
+							>
+								Save Settings
+							</Button>
 						</div>
 					</Card>
 

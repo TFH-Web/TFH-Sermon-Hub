@@ -27,3 +27,22 @@
 .Notifications-settingsCard {
 	margin-bottom: 16px;
 }
+
+.Notifications-checkboxLabel {
+	margin-bottom: 10px;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.Notifications-checkboxGroup {
+	margin-bottom: 18px;
+}
+
+.Notifications-checkbox {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	margin-bottom: 8px;
+	font-size: 13px;
+	cursor: pointer;
+}
