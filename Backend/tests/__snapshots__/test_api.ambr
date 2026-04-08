@@ -1,0 +1,24 @@
+# serializer version: 1
+# name: test_series
+  list([
+    Series(id=1, title='Live Your Best Life'),
+    Series(id=2, title='Hope Rising'),
+    Series(id=3, title='Fearless'),
+    Series(id=4, title='Together'),
+  ])
+# ---
+# name: test_sermons
+  list([
+    Sermon(id=1, title='Under Grace', video_link='https://youtu.be/asdfasdf', duration=2538, date='Mon, 23 Feb 2026 00:00:00 GMT', description="Exploring the transformative power of grace and how it shapes our everyday decisions, relationships, and connection to God's purpose for our lives.", tags=[{'name': 'faith', 'source': 'ai'}, {'name': 'grace', 'source': 'ai'}], transcript='Good morning everyone. I\'m so glad you\'re here today. We\'re continuing our series "Live Your Best Life" and today we\'re talking about something that is at the foundation of everything — grace. A lot of people misunderstand what grace really means. It\'s not just a theological concept. Grace is the operating system of the Kingdom of God. Let me read from Ephesians 2:8-9. "For it is by grace you have been saved, through faith — and this is not from yourselves, it is the gift of God." Three things about living under grace: grace is not earned, grace changes your identity, and grace empowers your purpose...', summary='Pastor Dave Patterson explores grace as the foundation of Christian living. The sermon covers three main points: grace cannot be earned, grace transforms identity, and grace empowers believers to fulfill their purpose. Drawing from Ephesians 2:8-9, Patterson emphasizes that understanding grace should change how we relate to God and each other.', speaker_id=1, speaker={'first_name': 'Dave', 'id': 1, 'last_name': 'Patterson'}, series_id=1, series={'id': 1, 'title': 'Live Your Best Life'}, status='published'),
+    Sermon(id=2, title='Walking in Freedom', video_link='https://youtu.be/asdfasdf', duration=2304, date='Mon, 16 Feb 2026 00:00:00 GMT', description='Lorem ipsum dolor sit amet', tags=[{'name': 'faith', 'source': 'ai'}, {'name': 'healing', 'source': 'ai'}], transcript=None, summary=None, speaker_id=1, speaker={'first_name': 'Dave', 'id': 1, 'last_name': 'Patterson'}, series_id=1, series={'id': 1, 'title': 'Live Your Best Life'}, status='published'),
+    Sermon(id=3, title='Anchored in Hope', video_link='https://youtu.be/asdfasdf', duration=2650, date='Mon, 09 Feb 2026 00:00:00 GMT', description='Lorem ipsum dolor sit amet', tags=[{'name': 'healing', 'source': 'ai'}, {'name': 'hope', 'source': 'ai'}], transcript=None, summary=None, speaker_id=1, speaker={'first_name': 'Dave', 'id': 1, 'last_name': 'Patterson'}, series_id=None, series=None, status='processing'),
+    Sermon(id=4, title='Power of Community', video_link='https://youtu.be/asdfasdf', duration=2152, date='Mon, 02 Feb 2026 00:00:00 GMT', description='Lorem ipsum dolor sit amet', tags=[{'name': 'faith', 'source': 'ai'}], transcript=None, summary=None, speaker_id=1, speaker={'first_name': 'Dave', 'id': 1, 'last_name': 'Patterson'}, series_id=4, series={'id': 4, 'title': 'Together'}, status='draft'),
+    Sermon(id=5, title='Worship as a Lifestyle', video_link='https://youtu.be/asdfasdf', duration=2493, date='Mon, 26 Jan 2026 00:00:00 GMT', description='Lorem ipsum dolor sit amet', tags=[{'name': 'grace', 'source': 'ai'}, {'name': 'hope', 'source': 'ai'}], transcript=None, summary=None, speaker_id=1, speaker={'first_name': 'Dave', 'id': 1, 'last_name': 'Patterson'}, series_id=3, series={'id': 3, 'title': 'Fearless'}, status='draft'),
+    Sermon(id=6, title='Bold Faith', video_link='https://youtu.be/asdfasdf', duration=2561, date='Mon, 19 Jan 2026 00:00:00 GMT', description='Lorem ipsum dolor sit amet', tags=[{'name': 'anxiety', 'source': 'manual'}, {'name': 'faith', 'source': 'ai'}, {'name': 'grace', 'source': 'ai'}], transcript=None, summary=None, speaker_id=1, speaker={'first_name': 'Dave', 'id': 1, 'last_name': 'Patterson'}, series_id=2, series={'id': 2, 'title': 'Hope Rising'}, status='failed'),
+  ])
+# ---
+# name: test_speakers
+  list([
+    Speaker(id=1, first_name='Dave', last_name='Patterson'),
+  ])
+# ---
