@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import MainLayout from '$/components/MainLayout';
-
+import NewSeriesModal from '$/modals/NewSeriesModal';
 import './Series.css';
+
 
 // Mock data for sermon series, each series will have a unique gradient color for the banner
 const series = [
@@ -36,14 +38,20 @@ const series = [
 
 // Component to display the list of sermon series
 export default function Series() {
+	const [newSeriesOpen, setNewSeriesOpen] = useState(false);
+
 	return (
 		<MainLayout title="Series">
 			{/* Top Right New Series Button */}
 			<div className="series-header">
 				{/* Title for page */}
 				<p className="series-section-title">Sermon Series</p>
-				{/* TODO: wire up the NewSeriesModal once TFH-299 is merged to dev */}
-				<button type="button" className="new-series-button">
+				{/* Wired up NewSeriesModal from TFH-299 */}
+				<button
+					type="button"
+					className="new-series-button"
+					onClick={() => setNewSeriesOpen(true)}
+				>
 					+ New Series
 				</button>
 			</div>
@@ -67,6 +75,12 @@ export default function Series() {
 					</div>
 				))}
 			</div>
+
+			{/* New Series Modal, opens when the New Series button is clicked */}
+			<NewSeriesModal
+				isOpen={newSeriesOpen}
+				onClose={() => setNewSeriesOpen(false)}
+			/>
 		</MainLayout>
 	);
 }
