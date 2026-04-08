@@ -1,0 +1,29 @@
+.Notifications-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 0;
+}
+
+.Notifications-heading {
+	font-size: 20px;
+	font-weight: 700;
+	letter-spacing: -0.5px;
+}
+
+.Notifications-subtitle {
+	margin-top: -5px;
+	margin-bottom: 16px;
+	font-size: 13px;
+	color: var(--cl-on-surface-muted);
+}
+
+.Notifications-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 16px;
+}
+
+.Notifications-settingsCard {
+	margin-bottom: 16px;
+}
