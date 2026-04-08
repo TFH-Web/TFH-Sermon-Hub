@@ -46,3 +46,47 @@
 	font-size: 13px;
 	cursor: pointer;
 }
+
+/* Notification feed items */
+.Notifications-item {
+	display: flex;
+	gap: 12px;
+	padding: 12px 0;
+	border-bottom: 1px solid var(--cl-outline);
+}
+
+.Notifications-item:last-child {
+	border-bottom: none;
+}
+
+.Notifications-dot {
+	flex-shrink: 0;
+	width: 8px;
+	height: 8px;
+	margin-top: 5px;
+	border-radius: 50%;
+}
+
+.Notifications-dot--success {
+	background: var(--cl-accent);
+}
+
+.Notifications-dot--error {
+	background: var(--cl-error);
+}
+
+.Notifications-dot--warning {
+	background: var(--cl-warning);
+}
+
+.Notifications-text {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.Notifications-time {
+	margin-top: 2px;
+	font-size: 11px;
+	color: var(--cl-on-surface-muted);
+}

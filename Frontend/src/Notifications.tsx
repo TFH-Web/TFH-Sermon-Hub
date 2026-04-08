@@ -5,6 +5,33 @@ import { Card, CardHeader } from '$/components/Card';
 import Button from '$/components/Button';
 import { useToast } from '$/components/ToastContext';
 
+const notifications = [
+	{
+		id: '1',
+		status: 'success' as const,
+		title: 'Upload Complete',
+		description: '"Under Grace" successfully imported',
+		recipient: 'samip@tfh.org',
+		time: '2 hours ago',
+	},
+	{
+		id: '2',
+		status: 'error' as const,
+		title: 'Import Failed',
+		description: '"Bold Faith" transcription error',
+		recipient: 'samip@tfh.org',
+		time: '5 hours ago',
+	},
+	{
+		id: '3',
+		status: 'warning' as const,
+		title: 'Bulk Import Update',
+		description: '107/148 videos processed',
+		recipient: 'all admins',
+		time: '6 hours ago',
+	},
+];
+
 export default function Notifications() {
 	const { showToast } = useToast();
 
@@ -94,7 +121,21 @@ export default function Notifications() {
 					<Card>
 						<CardHeader title="Recent Notifications Sent" />
 						<div className="Card-body">
-							<p>Notifications coming soon...</p>
+							{notifications.map(n => (
+								<div key={n.id} className="Notifications-item">
+									<span
+										className={`Notifications-dot Notifications-dot--${n.status}`}
+									/>
+									<div>
+										<p className="Notifications-text">
+											<strong>{n.title}</strong> — {n.description}
+										</p>
+										<div className="Notifications-time">
+											Sent to {n.recipient} &bull; {n.time}
+										</div>
+									</div>
+								</div>
+							))}
 						</div>
 					</Card>
 				</div>
