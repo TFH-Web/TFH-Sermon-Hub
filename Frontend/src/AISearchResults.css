@@ -1,7 +1,7 @@
 .AISearchResults {
 	min-height: 100vh;
-	background: #f3f3f1;
 	padding: 48px 24px;
+	background: #f3f3f1;
 }
 
 .AISearchResults-container {
@@ -19,9 +19,9 @@
 
 .AISearchResults-meta {
 	margin: 0 0 24px 0;
-	color: #666;
 	font-size: 14px;
 	line-height: 1.5;
+	color: #666;
 }
 
 .AISearchResults-list {
@@ -30,16 +30,16 @@
 }
 
 .AISearchResults-stateCard {
+	padding: 20px;
 	background: #fff;
 	border: 1px solid #ddd;
 	border-radius: 12px;
-	padding: 20px;
 }
 
 .AISearchResults-stateText {
 	margin: 0;
-	color: #444;
 	font-size: 14px;
+	color: #444;
 }
 
 .AISearchResults-stateText--error {

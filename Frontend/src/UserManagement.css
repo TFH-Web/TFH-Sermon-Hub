@@ -7,12 +7,12 @@
 .UserManagement-addButton {
 	height: 40px;
 	padding: 0 16px;
+	font-weight: 600;
+	color: #ffffff;
+	cursor: pointer;
+	background: #5e6f55;
 	border: 1px solid #d8d8d8;
 	border-radius: 8px;
-	background: #5e6f55;
-	color: #ffffff;
-	font-weight: 600;
-	cursor: pointer;
 }
 
 .UserManagement-addButton:hover {
@@ -83,11 +83,11 @@
 		margin: 0;
 	}
 
-	tbody>tr:where(:hover, :focus-visible)>* {
+	tbody > tr:where(:hover, :focus-visible) > * {
 		background-color: oklch(from var(--cl-container) calc(l * 0.95) c h);
 	}
 
-	tr>* {
+	tr > * {
 		transition: background-color 50ms ease;
 	}
 }

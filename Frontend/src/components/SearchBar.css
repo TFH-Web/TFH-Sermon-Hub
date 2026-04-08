@@ -10,26 +10,26 @@
 	flex: 1;
 	height: 56px;
 	padding: 0 18px;
+	font-size: 1rem;
+	color: #2b2b2b;
+	outline: none;
+	background: #ffffff;
 	border: 1px solid #d8d8d8;
 	border-right: none;
 	border-top-left-radius: 12px;
 	border-bottom-left-radius: 12px;
-	background: #ffffff;
-	color: #2b2b2b;
-	font-size: 1rem;
-	outline: none;
 }
 
 .SearchBar-button {
 	width: 120px;
 	height: 56px;
-	background: #7a9166;
+	font-weight: 700;
 	color: #ffffff;
+	cursor: pointer;
+	background: #7a9166;
 	border: 1px solid #7a9166;
 	border-top-right-radius: 12px;
 	border-bottom-right-radius: 12px;
-	font-weight: 700;
-	cursor: pointer;
 }
 
 .SearchBar-button:hover {
