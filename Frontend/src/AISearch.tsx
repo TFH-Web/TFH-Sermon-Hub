@@ -1,15 +1,9 @@
-<<<<<<< HEAD
 import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "$/components/MainLayout";
 import SearchBar from "$/components/SearchBar";
 import SearchFilters from "$/components/SearchFilters";
 import "./AISearch.css";
-=======
-import { type SubmitEvent, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import MainLayout from '$/components/MainLayout';
->>>>>>> origin/dev
 
 type ContentType = "all" | "sermon" | "transcript" | "note";
 
@@ -49,7 +43,6 @@ export default function AISearch() {
           Natural language search across transcripts, tags, speakers, and topics
         </p>
 
-<<<<<<< HEAD
         <form onSubmit={handleSubmit} className="AISearch-form">
           <SearchBar query={query} onQueryChange={setQuery} />
 
@@ -66,126 +59,4 @@ export default function AISearch() {
       </section>
     </MainLayout>
   );
-=======
-				<form onSubmit={handleSubmit}>
-					<div
-						style={{
-							display: 'flex',
-							justifyContent: 'center',
-							width: '100%',
-							maxWidth: '820px',
-							margin: '0 auto 18px',
-						}}
-					>
-						<input
-							type="text"
-							placeholder="e.g. What has Dave said about overcoming anxiety?"
-							value={query}
-							onChange={e => setQuery(e.target.value)}
-							style={{
-								flex: 1,
-								height: '56px',
-								padding: '0 18px',
-								border: '1px solid #d8d8d8',
-								borderRight: 'none',
-								borderTopLeftRadius: '12px',
-								borderBottomLeftRadius: '12px',
-								background: '#ffffff',
-								color: '#2b2b2b',
-								fontSize: '1rem',
-								outline: 'none',
-							}}
-						/>
-						<button
-							type="submit"
-							style={{
-								width: '120px',
-								height: '56px',
-								background: '#7a9166',
-								color: '#ffffff',
-								border: '1px solid #7a9166',
-								borderTopRightRadius: '12px',
-								borderBottomRightRadius: '12px',
-								fontWeight: 700,
-								cursor: 'pointer',
-							}}
-						>
-							Search
-						</button>
-					</div>
-
-					<div
-						style={{
-							display: 'flex',
-							justifyContent: 'center',
-							alignItems: 'center',
-							gap: '10px',
-							flexWrap: 'wrap',
-						}}
-					>
-						{contentOptions.map(option => (
-							<button
-								key={option.value}
-								type="button"
-								onClick={() => setType(option.value)}
-								style={{
-									height: '40px',
-									padding: '0 16px',
-									borderRadius: '999px',
-									border: '1px solid #d8d8d8',
-									background: type === option.value ? '#7a9166' : '#ffffff',
-									color: type === option.value ? '#ffffff' : '#363636',
-									fontWeight: 600,
-									cursor: 'pointer',
-								}}
-							>
-								{option.label}
-							</button>
-						))}
-
-						<select
-							value={speaker}
-							onChange={e => setSpeaker(e.target.value)}
-							style={{
-								height: '40px',
-								padding: '0 12px',
-								borderRadius: '8px',
-								border: '1px solid #d8d8d8',
-								background: '#ffffff',
-								color: '#363636',
-								minWidth: '130px',
-								outline: 'none',
-							}}
-						>
-							<option value="any">Any Speaker</option>
-							<option value="Dave">Dave</option>
-							<option value="Michael">Michael</option>
-							<option value="Tim">Tim</option>
-						</select>
-
-						<select
-							value={date}
-							onChange={e => setDate(e.target.value)}
-							style={{
-								height: '40px',
-								padding: '0 12px',
-								borderRadius: '8px',
-								border: '1px solid #d8d8d8',
-								background: '#ffffff',
-								color: '#363636',
-								minWidth: '115px',
-								outline: 'none',
-							}}
-						>
-							<option value="any">Any Date</option>
-							<option value="2024">2024</option>
-							<option value="2023">2023</option>
-							<option value="2022">2022</option>
-						</select>
-					</div>
-				</form>
-			</section>
-		</MainLayout>
-	);
->>>>>>> origin/dev
 }
