@@ -1,0 +1,28 @@
+.AISearch {
+	width: 100%;
+	max-width: 980px;
+	padding: 48px 24px 40px;
+	margin: 0 auto;
+	text-align: center;
+}
+
+.AISearch-title {
+	margin: 0 0 10px 0;
+	font-size: 3.3rem;
+	font-weight: 700;
+	line-height: 1.05;
+	color: #1f1f1f;
+	letter-spacing: -0.03em;
+}
+
+.AISearch-subtitle {
+	margin: 0 0 34px 0;
+	font-size: 1.02rem;
+	color: #7c7c7c;
+}
+
+.AISearch-form {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}

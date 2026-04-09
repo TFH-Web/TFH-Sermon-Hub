@@ -1,0 +1,20 @@
+.Series-header {
+	display: flex;
+	justify-content: flex-end;
+	margin-bottom: 16px;
+}
+
+.Series-newButton {
+	height: 40px;
+	padding: 0 16px;
+	font-weight: 600;
+	color: #ffffff;
+	cursor: pointer;
+	background: #5e6f55;
+	border: 1px solid #d8d8d8;
+	border-radius: 8px;
+}
+
+.Series-newButton:hover {
+	filter: brightness(0.95);
+}

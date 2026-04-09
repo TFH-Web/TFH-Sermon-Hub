@@ -1,0 +1,47 @@
+.AISearchResults {
+	min-height: 100vh;
+	padding: 48px 24px;
+	background: #f3f3f1;
+}
+
+.AISearchResults-container {
+	max-width: 900px;
+	margin: 0 auto;
+}
+
+.AISearchResults-title {
+	margin: 0 0 8px 0;
+	font-size: 32px;
+	font-weight: 700;
+	color: #1f1f1f;
+	letter-spacing: -0.02em;
+}
+
+.AISearchResults-meta {
+	margin: 0 0 24px 0;
+	font-size: 14px;
+	line-height: 1.5;
+	color: #666;
+}
+
+.AISearchResults-list {
+	display: grid;
+	gap: 16px;
+}
+
+.AISearchResults-stateCard {
+	padding: 20px;
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 12px;
+}
+
+.AISearchResults-stateText {
+	margin: 0;
+	font-size: 14px;
+	color: #444;
+}
+
+.AISearchResults-stateText--error {
+	color: #c0392b;
+}

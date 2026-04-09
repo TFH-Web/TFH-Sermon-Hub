@@ -1,5 +1,7 @@
 import { Icon } from '@iconify-icon/react';
+import { useState } from 'react';
 import MainLayout from '$/components/MainLayout';
+import AddUserModal from '$/modals/AddUserModal';
 import './UserManagement.css';
 import { testUsers } from '$/data/users';
 import {
@@ -12,6 +14,7 @@ import {
 } from '$/types/user';
 
 export default function UserManagement() {
+	const [addUserOpen, setAddUserOpen] = useState(false);
 	const currentUser = getUser();
 
 	return (
@@ -22,7 +25,11 @@ export default function UserManagement() {
 					sign in with their organizational Microsoft account.
 				</p>
 
-				<button type="button" className="Header-addUser u-button">
+				<button
+					type="button"
+					className="Header-addUser u-button"
+					onClick={() => setAddUserOpen(true)}
+				>
 					<Icon icon="lucide:plus" />
 					Add User
 				</button>
@@ -77,6 +84,11 @@ export default function UserManagement() {
 					))}
 				</tbody>
 			</table>
+
+			<AddUserModal
+				isOpen={addUserOpen}
+				onClose={() => setAddUserOpen(false)}
+			/>
 		</MainLayout>
 	);
 }
