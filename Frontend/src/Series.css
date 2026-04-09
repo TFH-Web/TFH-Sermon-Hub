@@ -52,6 +52,7 @@
 	transition:
 		transform 0.2s,
 		box-shadow 0.2s;
+	aspect-ratio: 4/3;
 }
 
 /* Colored gradient banners for the backgrounds of the cards */
@@ -59,7 +60,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	height: 200px;
+	height: 70%;
 }
 
 /* Lifts the cards on hover and adds a shadow for visual feedback */
@@ -83,6 +84,7 @@
 .series-info {
 	padding: 10px 14px 14px 14px;
 	background: #ffffff;
+	height: 30%;
 }
 
 /* Series title styling */
