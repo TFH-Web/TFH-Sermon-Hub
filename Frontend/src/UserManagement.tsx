@@ -1,5 +1,5 @@
 import { Icon } from '@iconify-icon/react';
-import { type CSSProperties, useState } from 'react';
+import { useState } from 'react';
 import MainLayout from '$/components/MainLayout';
 import AddUserModal from '$/modals/AddUserModal';
 import './UserManagement.css';
