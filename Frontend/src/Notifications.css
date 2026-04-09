@@ -47,6 +47,11 @@
 	cursor: pointer;
 }
 
+.Notifications-feed {
+	max-height: 300px;
+	overflow-y: auto;
+}
+
 /* Notification feed items */
 .Notifications-item {
 	display: flex;

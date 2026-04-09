@@ -30,6 +30,46 @@ const notifications = [
 		recipient: 'all admins',
 		time: '6 hours ago',
 	},
+	{
+		id: '4',
+		status: 'success' as const,
+		title: 'AI Processing Complete',
+		description: 'Transcript generated for "Walking in Freedom"',
+		recipient: 'samip@tfh.org',
+		time: '8 hours ago',
+	},
+	{
+		id: '5',
+		status: 'success' as const,
+		title: 'Upload Complete',
+		description: '"Power of Community" successfully imported',
+		recipient: 'samip@tfh.org',
+		time: 'Yesterday',
+	},
+	{
+		id: '6',
+		status: 'error' as const,
+		title: 'Transcription Failed',
+		description: '"Sunday Worship 2019" audio quality too low',
+		recipient: 'all admins',
+		time: 'Yesterday',
+	},
+	{
+		id: '7',
+		status: 'success' as const,
+		title: 'New User Registered',
+		description: 'Nicole Espinoza joined via Microsoft Entra SSO',
+		recipient: 'samip@tfh.org',
+		time: '2 days ago',
+	},
+	{
+		id: '8',
+		status: 'warning' as const,
+		title: 'Storage Warning',
+		description: 'Storage usage at 80% capacity',
+		recipient: 'all admins',
+		time: '3 days ago',
+	},
 ];
 
 export default function Notifications() {
@@ -121,6 +161,7 @@ export default function Notifications() {
 					<Card>
 						<CardHeader title="Recent Notifications Sent" />
 						<div className="Card-body">
+							<div className="Notifications-feed">
 							{notifications.map(n => (
 								<div key={n.id} className="Notifications-item">
 									<span
@@ -136,6 +177,7 @@ export default function Notifications() {
 									</div>
 								</div>
 							))}
+							</div>
 						</div>
 					</Card>
 				</div>
