@@ -1,20 +1,100 @@
-.Series-header {
-	display: flex;
-	justify-content: flex-end;
-	margin-bottom: 16px;
+/* Section label on the top left */
+.series-section-title {
+	font-size: 24px;
+	font-weight: 1000;
+	color: #1a1a1a;
 }
 
-.Series-newButton {
-	height: 40px;
-	padding: 0 16px;
-	font-weight: 600;
+/* Pushes New Series button to the right and adds some spacing */
+.series-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 12px;
+}
+
+/* Makes Green button in the same styling as the active filters in Sermons.css */
+.new-series-button {
+	display: inline-block;
+	padding: 8px 16px;
+	font-size: 0.9rem;
 	color: #ffffff;
+	text-align: center;
+	text-decoration: none;
 	cursor: pointer;
-	background: #5e6f55;
-	border: 1px solid #d8d8d8;
+	background: #48662d;
+	border: none;
 	border-radius: 8px;
 }
 
-.Series-newButton:hover {
-	filter: brightness(0.95);
+.new-series-button:hover {
+	background: #3a5223;
+}
+
+/* 3 column grid as done in the mockup, auto rows to make the cards the same height */
+.series-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 24px;
+	overflow-y: auto;
+}
+
+/* Card styling, mirroring the SermonCard styling in Sermons.css */
+.series-card {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	cursor: pointer;
+	background: #ffffff;
+	border: 1px solid #e0e0e0;
+	border-radius: 8px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	transition:
+		transform 0.2s,
+		box-shadow 0.2s;
+}
+
+/* Colored gradient banners for the backgrounds of the cards */
+.series-banner {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 200px;
+}
+
+/* Lifts the cards on hover and adds a shadow for visual feedback */
+/* Creative liberty, not in the mockup but adds a nice touch to the UI */
+.series-card:hover {
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.13);
+	transform: translateY(-3px);
+}
+
+/* Bold title centered onto the banner */
+.series-banner-title {
+	padding: 0 20px;
+	font-size: 22px;
+	font-weight: 700;
+	color: #ffffff;
+	text-align: center;
+	text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Container for the series details below the banner */
+.series-info {
+	padding: 10px 14px 14px 14px;
+	background: #ffffff;
+}
+
+/* Series title styling */
+.series-name {
+	margin-bottom: 4px;
+	font-size: 17px;
+	font-weight: 700;
+	color: #1a1a1a;
+}
+
+/* The muted text for the description portion of the cards */
+.series-meta-data {
+	font-size: 14px;
+	color: #666;
 }
