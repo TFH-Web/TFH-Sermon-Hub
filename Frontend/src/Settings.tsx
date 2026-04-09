@@ -334,8 +334,8 @@ export default function Settings() {
               </FormField>
               <FormField label="Language">
                 <select value={language} onChange={e => setLanguage(e.target.value)}>
-                  <option Value="en-US">English (US)</option>
-                  <option Value="en-UK">English (UK)</option>
+                  <option value="en-US">English (US)</option>
+                  <option value="en-UK">English (UK)</option>
                 </select>
               </FormField>
               <Button
