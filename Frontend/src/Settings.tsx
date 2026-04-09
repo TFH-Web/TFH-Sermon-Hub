@@ -7,6 +7,7 @@ import Button from '$/components/Button';
 import { Card, CardHeader } from '$/components/Card';
 import { FormField } from '$/components/FormField';
 import { InfoBanner } from '$/components/InfoBanner';
+import ProgressBar from '$/components/ProgressBar';
 import Tag from '$/components/Tag';
 import { useToast } from '$/components/ToastContext';
 
@@ -21,6 +22,30 @@ const tabs = [
 export default function Settings() {
 	const [activeTab, setActiveTab] = useState('General');
 	const { showToast } = useToast();
+
+	// General Tab State
+	const [orgName, setOrgName] = useState("The Father's House");
+	const [portalName, setPortalName] = useState('TFH Sermon Hub');
+	const [adminEmail, setAdminEmail] = useState('admin@tfh.org');
+	const [timezone, setTimezone] = useState('PT');
+	const [dateFormat, setDateFormat] = useState('MDY');
+	const [language, setLanguage] = useState('en-US');
+
+	// Backup Tab
+	const [automatedBackups, setAutomatedBackups] = useState(true);
+	const [backupTime, setBackupTime] = useState('03:00');
+	const [retentionDays, setRetentionDays] = useState('30');
+	const [lastBackup] = useState('Today at 3:00 AM - Sucessful');
+
+	// This is a TODO: replace with useQuery(()=> fetchHostingInfo()) when backend is ready
+	const hostingInfo = {
+		provider: 'DigitalOcean',
+		region: 'SFO3 (SanFrancisco)',
+		status: 'Healthy' as const,
+		ssl: 'HTTPS Active' as const,
+		storageUsedGB: 24.6,
+		storageTotalGB: 100,
+	};
 
 	return (
 		<MainLayout title="Settings">
@@ -263,6 +288,178 @@ export default function Settings() {
 									</>
 								}
 							/>
+						</div>
+					</Card>
+				</div>
+			)}
+			{/* --- General Tab ---*/}
+			{activeTab === 'General' && (
+				<div className="Settings-grid">
+					<Card>
+						<CardHeader title="Organization" />
+						<div className="Card-body">
+							<FormField label="Church Name">
+								<input
+									type="text"
+									value={orgName}
+									onChange={e => setOrgName(e.target.value)}
+								/>
+							</FormField>
+							<FormField label="Portal Display Name">
+								<input
+									type="text"
+									value={portalName}
+									onChange={e => setPortalName(e.target.value)}
+								/>
+							</FormField>
+							<FormField label="Admin Contact Email">
+								<input
+									type="email"
+									value={adminEmail}
+									onChange={e => setAdminEmail(e.target.value)}
+								/>
+							</FormField>
+							<Button
+								variant="primary"
+								onClick={() => showToast('General settings saved')}
+							>
+								Save Changes
+							</Button>
+						</div>
+					</Card>
+					<Card>
+						<CardHeader title="Regional Settings" />
+						<div className="Card-body">
+							<FormField label="Timezone">
+								<select
+									value={timezone}
+									onChange={e => setTimezone(e.target.value)}
+								>
+									<option value="PT">Pacific Time (PT) - UTC-8</option>
+									<option value="ET">Eastern Time (EST) - UTC-5</option>
+									<option value="CT">Central Time (CT) - UTC-6</option>
+								</select>
+							</FormField>
+							<FormField label="Date Format">
+								<select
+									value={dateFormat}
+									onChange={e => setDateFormat(e.target.value)}
+								>
+									<option value="MDY">MM/DD/YYYY</option>
+									<option value="DMY">DD/MM/YYYY</option>
+									<option value="ISO">YYYY-MM-DD</option>
+								</select>
+							</FormField>
+							<FormField label="Language">
+								<select
+									value={language}
+									onChange={e => setLanguage(e.target.value)}
+								>
+									<option value="en-US">English (US)</option>
+									<option value="en-UK">English (UK)</option>
+								</select>
+							</FormField>
+							<Button
+								variant="primary"
+								onClick={() => showToast('Regional settings saved')}
+							>
+								Save Changes
+							</Button>
+						</div>
+					</Card>
+				</div>
+			)}
+			{/* ---Backup TAB--- */}
+			{activeTab === 'Backup' && (
+				<div className="Settings-grid">
+					<Card>
+						<CardHeader title="Hosting & Infrastructure" />
+						<div className="Card-body">
+							<div className="Settings-infoRow">
+								<span className="Settings-infoLabel">Provider</span>
+								<span>{hostingInfo.provider}</span>
+							</div>
+							<div className="Settings-infoRow">
+								<span className="Settings-infoLabel">Region</span>
+								<span>{hostingInfo.region}</span>
+							</div>
+							<div className="Settings-infoRow">
+								<span className="Settings-infoLabel">Status</span>
+								<Tag variant="green">{hostingInfo.status}</Tag>
+							</div>
+							<div className="Settings-infoRow">
+								<span className="Settings-infoLabel">SSL</span>
+								<Tag variant="green">{hostingInfo.ssl}</Tag>
+							</div>
+							<div className="Settings-storageSection">
+								<p className="Settings-storageText">
+									{hostingInfo.storageUsedGB} GB / {hostingInfo.storageTotalGB}{' '}
+									GB
+								</p>
+								<ProgressBar
+									percent={Math.round(
+										(hostingInfo.storageUsedGB / hostingInfo.storageTotalGB) *
+											100,
+									)}
+								/>
+								<p className="Settings-storageLabel">
+									{hostingInfo.storageUsedGB} GB of {hostingInfo.storageTotalGB}{' '}
+									GB used (
+									{Math.round(
+										(hostingInfo.storageUsedGB / hostingInfo.storageTotalGB) *
+											100,
+									)}
+									%)
+								</p>
+							</div>
+						</div>
+					</Card>
+					<Card>
+						<CardHeader title="Backup Schedule" />
+						<div className="Card-body">
+							<label className="Settings-checkbox">
+								<input
+									type="checkbox"
+									checked={automatedBackups}
+									onChange={e => setAutomatedBackups(e.target.checked)}
+								/>
+								Automated daily backups
+							</label>
+							<FormField label="Backup Time (server local)">
+								<input
+									type="time"
+									value={backupTime}
+									onChange={e => setBackupTime(e.target.value)}
+								/>
+							</FormField>
+							<FormField label="Retention Perios">
+								<select
+									value={retentionDays}
+									onChange={e => setRetentionDays(e.target.value)}
+								>
+									<option value="30">30 days</option>
+									<option value="60">60 days</option>
+									<option value="90">90 days</option>
+									<option value="365">1 yeaer</option>
+								</select>
+							</FormField>
+							<FormField label="Last Backup">
+								<input type="text" value={lastBackup} readOnly />
+							</FormField>
+							<div className="Settings-backupActions">
+								<Button
+									variant="primary"
+									onClick={() => showToast('Backup Settings saved')}
+								>
+									Save Settings
+								</Button>
+								<Button
+									variant="secondary"
+									onClick={() => showToast('Manual backup started', 'info')}
+								>
+									Run Now
+								</Button>
+							</div>
 						</div>
 					</Card>
 				</div>
