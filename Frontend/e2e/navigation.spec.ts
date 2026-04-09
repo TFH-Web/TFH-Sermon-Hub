@@ -18,7 +18,9 @@ test('navigation works', async ({ page }) => {
 	]) {
 		await test.step(`Navigate to ${pageName}`, async () => {
 			await page.getByRole('link', { name: pageName }).click();
-			await expect(page.getByRole('heading', { name: pageName })).toBeVisible();
+			await expect(
+				page.getByRole('heading', { name: pageName, exact: true }),
+			).toBeVisible();
 		});
 	}
 });
