@@ -10,90 +10,105 @@ const speakers = [
 		role: 'Lead Pastor',
 		sermoncount: '1847',
 		color: 'green',
+		id: '0'
 	},
 	{
 		name: 'Guest Speakers',
 		role: 'Various',
 		sermoncount: '342',
 		color: 'blue',
+		id: '0'
 	},
 	{
 		name:'Worship Team',
 		role: 'Team',
 		sermoncount: '248',
 		color: 'orange ',
+		id: '0'
 	},
 
 	// {	name: 'Dave Patterson',
 	// 	role: 'Lead Pastor',
 	// 	sermoncount: '1847',
 	// 	color: 'green',
+	// 	id: '0'
 	// },
 	// {
 	// 	name: 'Guest Speakers',
 	// 	role: 'Various',
 	// 	sermoncount: '342',
 	// 	color: 'blue',
+	// 	id: '0'
 	// },
 	// {
 	// 	name:'Worship Team',
 	// 	role: 'Team',
 	// 	sermoncount: '248',
 	// 	color: 'orange ',
+	// 	id: '0'
 	// },
 	// {
 	// 	name: 'Dave Patterson',
 	// 	role: 'Lead Pastor',
 	// 	sermoncount: '1847',
 	// 	color: 'green',
+	// 	id: '0'
 	// },
 	// {
 	// 	name: 'Guest Speakers',
 	// 	role: 'Various',
 	// 	sermoncount: '342',
 	// 	color: 'blue',
+	// 	id: '0'
 	// },
 	// {
 	// 	name:'Worship Team',
 	// 	role: 'Team',
 	// 	sermoncount: '248',
 	// 	color: 'orange ',
+	// 	id: '0'
 	// },
 	// {
 	// 	name: 'Dave Patterson',
 	// 	role: 'Lead Pastor',
 	// 	sermoncount: '1847',
 	// 	color: 'green',
+	// 	id: '0'
 	// },
 	// {
 	// 	name: 'Guest Speakers',
 	// 	role: 'Various',
 	// 	sermoncount: '342',
 	// 	color: 'blue',
+	// 	id: '0'
 	// },
 	// {
 	// 	name:'Worship Team',
 	// 	role: 'Team',
 	// 	sermoncount: '248',
 	// 	color: 'orange ',
+	// 	id: '0'
 	// },
 	// {
 	// 	name: 'Dave Patterson',
 	// 	role: 'Lead Pastor',
 	// 	sermoncount: '1847',
 	// 	color: 'green',
+	// 	id: '0'
 	// },
 	// {
 	// 	name: 'Guest Speakers',
 	// 	role: 'Various',
 	// 	sermoncount: '342',
 	// 	color: 'blue',
+	// 	id: '0'
 	// },
 	// {
 	// 	name:'Worship Team',
 	// 	role: 'Team',
 	// 	sermoncount: '248',
 	// 	color: 'orange ',
+	// 	id: '0'
 	// },
 ]
 

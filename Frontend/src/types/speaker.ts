@@ -2,6 +2,7 @@
 export interface Speaker {
 	name: string;
 	role: string;
+	id: string;
 	sermoncount: string;
 	color: string;
 }
