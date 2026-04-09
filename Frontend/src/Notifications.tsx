@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import './Notifications.css';
-import MainLayout from '$/components/MainLayout';
-import { Card, CardHeader } from '$/components/Card';
 import Button from '$/components/Button';
+import { Card, CardHeader } from '$/components/Card';
+import MainLayout from '$/components/MainLayout';
 import { useToast } from '$/components/ToastContext';
 
 const notifications = [
@@ -87,8 +87,8 @@ export default function Notifications() {
 				<h2 className="Notifications-heading">Email Notifications</h2>
 			</div>
 			<p className="Notifications-subtitle">
-				Admin notifications for upload completions, failures, and system
-				events. Emails are sent only to admin accounts.
+				Admin notifications for upload completions, failures, and system events.
+				Emails are sent only to admin accounts.
 			</p>
 
 			<div className="Notifications-grid">
@@ -103,9 +103,7 @@ export default function Notifications() {
 									<input
 										type="checkbox"
 										checked={completedUploads}
-										onChange={() =>
-											setCompletedUploads(!completedUploads)
-										}
+										onChange={() => setCompletedUploads(!completedUploads)}
 									/>
 									Completed uploads
 								</label>
@@ -129,9 +127,7 @@ export default function Notifications() {
 									<input
 										type="checkbox"
 										checked={versionChanges}
-										onChange={() =>
-											setVersionChanges(!versionChanges)
-										}
+										onChange={() => setVersionChanges(!versionChanges)}
 									/>
 									Version changes / updates
 								</label>
@@ -147,10 +143,7 @@ export default function Notifications() {
 							<Button
 								variant="primary"
 								onClick={() =>
-									showToast(
-										'Notification settings saved',
-										'success',
-									)
+									showToast('Notification settings saved', 'success')
 								}
 							>
 								Save Settings
@@ -162,21 +155,21 @@ export default function Notifications() {
 						<CardHeader title="Recent Notifications Sent" />
 						<div className="Card-body">
 							<div className="Notifications-feed">
-							{notifications.map(n => (
-								<div key={n.id} className="Notifications-item">
-									<span
-										className={`Notifications-dot Notifications-dot--${n.status}`}
-									/>
-									<div>
-										<p className="Notifications-text">
-											<strong>{n.title}</strong> — {n.description}
-										</p>
-										<div className="Notifications-time">
-											Sent to {n.recipient} &bull; {n.time}
+								{notifications.map(n => (
+									<div key={n.id} className="Notifications-item">
+										<span
+											className={`Notifications-dot Notifications-dot--${n.status}`}
+										/>
+										<div>
+											<p className="Notifications-text">
+												<strong>{n.title}</strong> — {n.description}
+											</p>
+											<div className="Notifications-time">
+												Sent to {n.recipient} &bull; {n.time}
+											</div>
 										</div>
 									</div>
-								</div>
-							))}
+								))}
 							</div>
 						</div>
 					</Card>
@@ -192,8 +185,7 @@ export default function Notifications() {
 									<p>
 										From:{' '}
 										<strong>
-											TFH Sermon Hub
-											&lt;noreply@sermonhub.tfh.org&gt;
+											TFH Sermon Hub &lt;noreply@sermonhub.tfh.org&gt;
 										</strong>
 									</p>
 									<p>
@@ -201,9 +193,7 @@ export default function Notifications() {
 									</p>
 									<p>
 										Subject:{' '}
-										<strong>
-											Upload Complete — &ldquo;Under Grace&rdquo;
-										</strong>
+										<strong>Upload Complete — &ldquo;Under Grace&rdquo;</strong>
 									</p>
 								</div>
 								<div className="Notifications-emailBody">
@@ -214,8 +204,8 @@ export default function Notifications() {
 									<p>Hi Samip,</p>
 									<br />
 									<p>
-										The following content has been successfully
-										imported and processed:
+										The following content has been successfully imported and
+										processed:
 									</p>
 									<br />
 									<p>
@@ -223,8 +213,7 @@ export default function Notifications() {
 										<br />
 										<strong>Speaker:</strong> Dave Patterson
 										<br />
-										<strong>Series:</strong> Live Your Best Life (#4
-										of 6)
+										<strong>Series:</strong> Live Your Best Life (#4 of 6)
 										<br />
 										<strong>Date:</strong> February 23, 2026
 									</p>
@@ -236,8 +225,8 @@ export default function Notifications() {
 										<br />
 										Summary generated
 										<br />
-										Tags generated (5 tags: grace, faith,
-										transformation, purpose, relationships)
+										Tags generated (5 tags: grace, faith, transformation,
+										purpose, relationships)
 									</p>
 									<br />
 									<p>— TFH Sermon Hub</p>
