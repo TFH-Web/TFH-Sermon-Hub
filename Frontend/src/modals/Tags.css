@@ -4,102 +4,7 @@
   --green: #16a34a;
   --blue: #2563eb;
   --gray: #6b7280;
-  --light: #f9fafb;
   --border: #e5e7eb;
-  --red: #dc2626;
-}
-
-/* ===== Modal Overlay ===== */
-.mo {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.45);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.mo.active {
-  display: flex;
-}
-
-/* ===== Modal Box ===== */
-.modal {
-  background: #fff;
-  border-radius: 10px;
-  width: 100%;
-  max-width: 420px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-  animation: fadeIn 0.2s ease;
-}
-
-/* ===== Modal Header ===== */
-.mo-h {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 18px;
-  border-bottom: 1px solid var(--border);
-}
-
-.mo-h h2 {
-  font-size: 18px;
-  margin: 0;
-}
-
-.mo-x {
-  background: none;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-}
-
-/* ===== Modal Body ===== */
-.mo-body {
-  padding: 16px 18px;
-}
-
-.mo-body p {
-  margin: 0;
-  color: var(--gray);
-}
-
-/* ===== Modal Footer ===== */
-.mo-foot {
-  padding: 14px 18px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-/* ===== Form ===== */
-.fg {
-  margin-bottom: 14px;
-}
-
-.fl {
-  display: block;
-  font-size: 13px;
-  margin-bottom: 5px;
-  color: var(--gray);
-}
-
-.fi {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.fi:focus {
-  outline: none;
-  border-color: var(--primary);
 }
 
 /* ===== Buttons ===== */
@@ -130,13 +35,24 @@
   color: var(--gray);
 }
 
-/* ===== Table Tags ===== */
+/* ===== Table ===== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+/* ===== Tags ===== */
 .tag {
   display: inline-block;
   padding: 4px 8px;
   font-size: 12px;
   border-radius: 999px;
-  background: #eef2ff;
 }
 
 .tg {
@@ -168,26 +84,16 @@
   transition: width 0.3s ease;
 }
 
-/* ===== Table Styling ===== */
-table {
+/* ===== Form Fields (minimal) ===== */
+.fi {
   width: 100%;
-  border-collapse: collapse;
-}
-
-td {
-  padding: 10px;
-  border-bottom: 1px solid var(--border);
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
   font-size: 14px;
 }
 
-/* ===== Animations ===== */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.fi:focus {
+  outline: none;
+  border-color: var(--primary);
 }
