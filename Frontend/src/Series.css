@@ -43,6 +43,7 @@
 .series-card {
 	display: flex;
 	flex-direction: column;
+	aspect-ratio: 4 / 3;
 	overflow: hidden;
 	cursor: pointer;
 	background: #ffffff;
@@ -52,7 +53,6 @@
 	transition:
 		transform 0.2s,
 		box-shadow 0.2s;
-	aspect-ratio: 4/3;
 }
 
 /* Colored gradient banners for the backgrounds of the cards */
@@ -82,9 +82,9 @@
 
 /* Container for the series details below the banner */
 .series-info {
+	height: 30%;
 	padding: 10px 14px 14px 14px;
 	background: #ffffff;
-	height: 30%;
 }
 
 /* Series title styling */
