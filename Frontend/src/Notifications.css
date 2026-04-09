@@ -1,0 +1,126 @@
+.Notifications-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 0;
+}
+
+.Notifications-heading {
+	font-size: 20px;
+	font-weight: 700;
+	letter-spacing: -0.5px;
+}
+
+.Notifications-subtitle {
+	margin-top: -5px;
+	margin-bottom: 16px;
+	font-size: 13px;
+	color: var(--cl-on-surface-muted);
+}
+
+.Notifications-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 16px;
+}
+
+.Notifications-settingsCard {
+	margin-bottom: 16px;
+}
+
+.Notifications-checkboxLabel {
+	margin-bottom: 10px;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.Notifications-checkboxGroup {
+	margin-bottom: 18px;
+}
+
+.Notifications-checkbox {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	margin-bottom: 8px;
+	font-size: 13px;
+	cursor: pointer;
+}
+
+.Notifications-feed {
+	max-height: 300px;
+	overflow-y: auto;
+}
+
+/* Notification feed items */
+.Notifications-item {
+	display: flex;
+	gap: 12px;
+	padding: 12px 0;
+	border-bottom: 1px solid var(--cl-outline);
+}
+
+.Notifications-item:last-child {
+	border-bottom: none;
+}
+
+.Notifications-dot {
+	flex-shrink: 0;
+	width: 8px;
+	height: 8px;
+	margin-top: 5px;
+	border-radius: 50%;
+}
+
+.Notifications-dot--success {
+	background: var(--cl-accent);
+}
+
+.Notifications-dot--error {
+	background: var(--cl-error);
+}
+
+.Notifications-dot--warning {
+	background: var(--cl-warning);
+}
+
+.Notifications-text {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.Notifications-time {
+	margin-top: 2px;
+	font-size: 11px;
+	color: var(--cl-on-surface-muted);
+}
+
+/* Email preview */
+.Notifications-emailPreview {
+	padding: 20px;
+	font-size: 13px;
+	background: var(--cl-surface-dim);
+	border: 1px solid var(--cl-outline);
+	border-radius: var(--radius-md);
+}
+
+.Notifications-emailHeader {
+	padding-bottom: 12px;
+	margin-bottom: 12px;
+	border-bottom: 1px solid var(--cl-outline);
+}
+
+.Notifications-emailHeader p {
+	margin: 0 0 4px;
+	color: var(--cl-on-surface-muted);
+}
+
+.Notifications-emailBody {
+	line-height: 1.7;
+	color: var(--cl-on-surface-muted);
+}
+
+.Notifications-emailBody p {
+	margin: 0;
+}

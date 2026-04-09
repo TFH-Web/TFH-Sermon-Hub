@@ -3,7 +3,7 @@ import { type CSSProperties, useState } from 'react';
 import MainLayout from '$/components/MainLayout';
 import AddUserModal from '$/modals/AddUserModal';
 import './UserManagement.css';
-import { testUsers } from '$/data/users.ts';
+import { testUsers } from '$/data/users';
 import {
 	canRemove,
 	dateRelative,
@@ -11,7 +11,7 @@ import {
 	getInitials,
 	getUser,
 	userHue,
-} from '$/types/user.ts';
+} from '$/types/user';
 
 export default function UserManagement() {
 	const [addUserOpen, setAddUserOpen] = useState(false);
@@ -51,7 +51,7 @@ export default function UserManagement() {
 							<td className="Users-name">
 								<p
 									className="Users-initials"
-									style={{ '--h': userHue(user) } as CSSProperties}
+									style={{ '--h': userHue(user) } as React.CSSProperties}
 								>
 									{getInitials(user)}
 								</p>

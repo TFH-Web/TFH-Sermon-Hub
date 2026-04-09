@@ -75,25 +75,3 @@
 	font-weight: 600;
 	color: #111;
 }
-
-.RecentSermonsCard-badge {
-	padding: 4px 10px;
-	font-size: 12px;
-	font-weight: 650;
-	border-radius: 20px;
-}
-
-.RecentSermonsCard-badge--published {
-	color: #5d6f54;
-	background-color: #eef2ec;
-}
-
-.RecentSermonsCard-badge--processing {
-	color: #c47c00;
-	background-color: #fff3e0;
-}
-
-.RecentSermonsCard-badge--failed {
-	color: #c0392b;
-	background-color: #fdecea;
-}
