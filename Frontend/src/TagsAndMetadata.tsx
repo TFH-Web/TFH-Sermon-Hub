@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import MainLayout from '$/components/MainLayout';
 import AddTagModal from '$/modals/AddTagModal';
+import TagManager from '$/modals/Tags';
 
 export default function TagsAndMetadata() {
 	const [addTagOpen, setAddTagOpen] = useState(false);
@@ -38,7 +39,7 @@ export default function TagsAndMetadata() {
 					+ Add Tag
 				</button>
 			</div>
-
+			<TagManager/>
 			<AddTagModal
 				isOpen={addTagOpen}
 				onClose={() => setAddTagOpen(false)}
