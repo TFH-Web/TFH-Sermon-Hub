@@ -145,7 +145,62 @@ export default function Notifications() {
 					<Card>
 						<CardHeader title="Email Preview" />
 						<div className="Card-body">
-							<p>Email preview coming soon...</p>
+							<div className="Notifications-emailPreview">
+								<div className="Notifications-emailHeader">
+									<p>
+										From:{' '}
+										<strong>
+											TFH Sermon Hub
+											&lt;noreply@sermonhub.tfh.org&gt;
+										</strong>
+									</p>
+									<p>
+										To: <strong>samip@tfh.org</strong>
+									</p>
+									<p>
+										Subject:{' '}
+										<strong>
+											Upload Complete — &ldquo;Under Grace&rdquo;
+										</strong>
+									</p>
+								</div>
+								<div className="Notifications-emailBody">
+									<p>
+										<strong>Sermon Hub — Upload Report</strong>
+									</p>
+									<br />
+									<p>Hi Samip,</p>
+									<br />
+									<p>
+										The following content has been successfully
+										imported and processed:
+									</p>
+									<br />
+									<p>
+										<strong>Sermon:</strong> Under Grace
+										<br />
+										<strong>Speaker:</strong> Dave Patterson
+										<br />
+										<strong>Series:</strong> Live Your Best Life (#4
+										of 6)
+										<br />
+										<strong>Date:</strong> February 23, 2026
+									</p>
+									<br />
+									<p>
+										<strong>AI Processing:</strong>
+										<br />
+										Transcript generated (4,218 words)
+										<br />
+										Summary generated
+										<br />
+										Tags generated (5 tags: grace, faith,
+										transformation, purpose, relationships)
+									</p>
+									<br />
+									<p>— TFH Sermon Hub</p>
+								</div>
+							</div>
 						</div>
 					</Card>
 				</div>

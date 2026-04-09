@@ -90,3 +90,32 @@
 	font-size: 11px;
 	color: var(--cl-on-surface-muted);
 }
+
+/* Email preview */
+.Notifications-emailPreview {
+	padding: 20px;
+	font-size: 13px;
+	background: var(--cl-surface-dim);
+	border: 1px solid var(--cl-outline);
+	border-radius: var(--radius-md);
+}
+
+.Notifications-emailHeader {
+	padding-bottom: 12px;
+	margin-bottom: 12px;
+	border-bottom: 1px solid var(--cl-outline);
+}
+
+.Notifications-emailHeader p {
+	margin: 0 0 4px;
+	color: var(--cl-on-surface-muted);
+}
+
+.Notifications-emailBody {
+	line-height: 1.7;
+	color: var(--cl-on-surface-muted);
+}
+
+.Notifications-emailBody p {
+	margin: 0;
+}
