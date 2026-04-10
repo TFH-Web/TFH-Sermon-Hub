@@ -43,6 +43,7 @@
 .series-card {
 	display: flex;
 	flex-direction: column;
+	aspect-ratio: 4 / 3;
 	overflow: hidden;
 	cursor: pointer;
 	background: #ffffff;
@@ -59,7 +60,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	height: 200px;
+	height: 70%;
 }
 
 /* Lifts the cards on hover and adds a shadow for visual feedback */
@@ -81,6 +82,7 @@
 
 /* Container for the series details below the banner */
 .series-info {
+	height: 30%;
 	padding: 10px 14px 14px 14px;
 	background: #ffffff;
 }

@@ -47,6 +47,59 @@ export default function Settings() {
 		storageTotalGB: 100,
 	};
 
+	// Authentication Tab
+	const [tenantId, setTenantId] = useState('tfh-org-tenant-abc123');
+	const [clientId, setClientId] = useState(
+		'1234abcd-56ef-78gh-90ij-klmnopqrstuv',
+	);
+	const [redirectUri, setRedirectUri] = useState(
+		'https://sermonhub.tfh.org/auth/callback',
+	);
+	// This is a TODO: replace with real SSO status from backend when ready
+	const ssoStatus = 'Connected & Active';
+
+	const [sessionTimeout, setSessionTimeout] = useState('8 hours');
+	const [idleTimeout, setIdleTimeout] = useState('30 minutes');
+	const [requireReauth, setRequireReauth] = useState(true);
+	const [logoutOnPasswordChange, setLogoutOnPasswordChange] = useState(true);
+
+	// Security Tab
+	const [requireLogin, setRequireLogin] = useState(true);
+	const [httpsOnly, setHttpsOnly] = useState(true);
+	const [secureCookies, setSecureCookies] = useState(true);
+	const [allowPublicApi, setAllowPublicApi] = useState(false);
+	const [enableAuditLogging, setEnableAuditLogging] = useState(false);
+
+	// Roles & Privacy Levels
+	// (This is informational only - managed in User Management tab)
+	const adminRole = {
+		name: 'Admin',
+		description: 'Full access, manage users, upload, edit, delete',
+		level: 3,
+	};
+	const internalUserRole = {
+		name: 'Internal User',
+		description: 'View, search, read transcripts',
+		level: 2,
+	};
+	const publicRole = {
+		name: 'Public (Future)',
+		description: 'Basic search, read only',
+		level: 1,
+	};
+
+	// AI Configuration Tab
+	const [aiProvider, setAiProvider] = useState('Local LLM (Development)');
+	const [apiKey, setApiKey] = useState('1234abcd-56ef-78gh-90ij-klmnopqrstuv');
+	const [aiModel, setAiModel] = useState('claude-opus-4 (Best quality)');
+	const [processingMode, setProcessingMode] = useState(
+		'Process at Import Time (one-time cost)',
+	);
+	const [transcriptLanguage, setTranscriptLanguage] = useState('Auto-detect');
+	const [autoGenerateTranscripts, setAutoGenerateTranscripts] = useState(true);
+	const [autoGenerateSummaries, setAutoGenerateSummaries] = useState(true);
+	const [autoGenerateTags, setAutoGenerateTags] = useState(true);
+
 	return (
 		<MainLayout title="Settings">
 			{/* Tab bar */}
@@ -61,22 +114,28 @@ export default function Settings() {
 						<div className="Card-body">
 							<InfoBanner message="All authentication is handled through Microsoft Entra SSO. Users must log in with their organizational account." />
 							<FormField label="Tenant ID">
-								<input type="text" placeholder="tfh-org-tenant-abc123" />
+								<input
+									type="text"
+									value={tenantId}
+									onChange={e => setTenantId(e.target.value)}
+								/>
 							</FormField>
 							<FormField label="Client ID">
 								<input
-									type="text"
-									placeholder="••••••••-••••-••••-••••-••••••••"
+									type="password"
+									value={clientId}
+									onChange={e => setClientId(e.target.value)}
 								/>
 							</FormField>
 							<FormField label="Redirect URI">
 								<input
 									type="text"
-									placeholder="https://sermonhub.tfh.org/auth/callback"
+									value={redirectUri}
+									onChange={e => setRedirectUri(e.target.value)}
 								/>
 							</FormField>
 							<FormField label="SSO Status">
-								<Tag variant="green">Connected & Active</Tag>
+								<Tag variant="green">{ssoStatus}</Tag>
 							</FormField>
 							<Button
 								variant="secondary"
@@ -94,7 +153,10 @@ export default function Settings() {
 						<CardHeader title="Session Settings" />
 						<div className="Card-body">
 							<FormField label="Session Timeout">
-								<select>
+								<select
+									value={sessionTimeout}
+									onChange={e => setSessionTimeout(e.target.value)}
+								>
 									<option>8 hours</option>
 									<option>4 hours</option>
 									<option>24 hours</option>
@@ -102,7 +164,10 @@ export default function Settings() {
 								</select>
 							</FormField>
 							<FormField label="Idle Timeout">
-								<select>
+								<select
+									value={idleTimeout}
+									onChange={e => setIdleTimeout(e.target.value)}
+								>
 									<option>30 minutes</option>
 									<option>15 minutes</option>
 									<option>1 hour</option>
@@ -111,11 +176,19 @@ export default function Settings() {
 							</FormField>
 							<div className="Settings-checkboxGroup">
 								<label className="Settings-checkbox">
-									<input type="checkbox" defaultChecked />
+									<input
+										type="checkbox"
+										checked={requireReauth}
+										onChange={e => setRequireReauth(e.target.checked)}
+									/>
 									Require re-authentication after session expiry
 								</label>
 								<label className="Settings-checkbox">
-									<input type="checkbox" defaultChecked />
+									<input
+										type="checkbox"
+										checked={logoutOnPasswordChange}
+										onChange={e => setLogoutOnPasswordChange(e.target.checked)}
+									/>
 									Log out all sessions on password change
 								</label>
 							</div>
@@ -140,7 +213,10 @@ export default function Settings() {
 						<CardHeader title="AI Provider Settings" />
 						<div className="Card-body">
 							<FormField label="Provider">
-								<select>
+								<select
+									value={aiProvider}
+									onChange={e => setAiProvider(e.target.value)}
+								>
 									<option>Local LLM (Development)</option>
 									<option>Claude API</option>
 									<option>ChatGPT API</option>
@@ -151,10 +227,17 @@ export default function Settings() {
 								variant="gray"
 							/>
 							<FormField label="API Key">
-								<input type="text" placeholder="sk-•••••••••••••" />
+								<input
+									type="password"
+									value={apiKey}
+									onChange={e => setApiKey(e.target.value)}
+								/>
 							</FormField>
 							<FormField label="Model">
-								<select>
+								<select
+									value={aiModel}
+									onChange={e => setAiModel(e.target.value)}
+								>
 									<option>claude-opus-4 (Best quality)</option>
 									<option>claude-sonnet-4 (Balanced)</option>
 									<option>gpt-4o</option>
@@ -175,13 +258,19 @@ export default function Settings() {
 						<CardHeader title="Processing Options" />
 						<div className="Card-body">
 							<FormField label="Processing Mode">
-								<select>
+								<select
+									value={processingMode}
+									onChange={e => setProcessingMode(e.target.value)}
+								>
 									<option>Process at Import Time (one-time cost)</option>
 									<option>Process on Demand</option>
 								</select>
 							</FormField>
 							<FormField label="Transcript Language">
-								<select>
+								<select
+									value={transcriptLanguage}
+									onChange={e => setTranscriptLanguage(e.target.value)}
+								>
 									<option>Auto-detect</option>
 									<option>English</option>
 									<option>Spanish</option>
@@ -190,15 +279,29 @@ export default function Settings() {
 							<FormField label="Auto-generate on Import">
 								<div className="Settings-checkboxGroup">
 									<label className="Settings-checkbox">
-										<input type="checkbox" defaultChecked />
+										<input
+											type="checkbox"
+											checked={autoGenerateTranscripts}
+											onChange={e =>
+												setAutoGenerateTranscripts(e.target.checked)
+											}
+										/>
 										Transcripts
 									</label>
 									<label className="Settings-checkbox">
-										<input type="checkbox" defaultChecked />
+										<input
+											type="checkbox"
+											checked={autoGenerateSummaries}
+											onChange={e => setAutoGenerateSummaries(e.target.checked)}
+										/>
 										Summaries
 									</label>
 									<label className="Settings-checkbox">
-										<input type="checkbox" defaultChecked />
+										<input
+											type="checkbox"
+											checked={autoGenerateTags}
+											onChange={e => setAutoGenerateTags(e.target.checked)}
+										/>
 										Tags (weighted by relevance)
 									</label>
 								</div>
@@ -223,23 +326,43 @@ export default function Settings() {
 						<div className="Card-body">
 							<div className="Settings-checkboxGroup">
 								<label className="Settings-checkbox">
-									<input type="checkbox" />
+									<input
+										type="checkbox"
+										checked={requireLogin}
+										onChange={e => setRequireLogin(e.target.checked)}
+									/>
 									Require login for all access
 								</label>
 								<label className="Settings-checkbox">
-									<input type="checkbox" defaultChecked />
+									<input
+										type="checkbox"
+										checked={httpsOnly}
+										onChange={e => setHttpsOnly(e.target.checked)}
+									/>
 									HTTPS only
 								</label>
 								<label className="Settings-checkbox">
-									<input type="checkbox" defaultChecked />
+									<input
+										type="checkbox"
+										checked={secureCookies}
+										onChange={e => setSecureCookies(e.target.checked)}
+									/>
 									Secure session cookies (HttpOnly, SameSite, Max-Age)
 								</label>
 								<label className="Settings-checkbox">
-									<input type="checkbox" />
+									<input
+										type="checkbox"
+										checked={allowPublicApi}
+										onChange={e => setAllowPublicApi(e.target.checked)}
+									/>
 									Allow public read-only API access
 								</label>
 								<label className="Settings-checkbox">
-									<input type="checkbox" />
+									<input
+										type="checkbox"
+										checked={enableAuditLogging}
+										onChange={e => setEnableAuditLogging(e.target.checked)}
+									/>
 									Enable audit logging
 								</label>
 							</div>
@@ -261,23 +384,23 @@ export default function Settings() {
 							<div className="Settings-roles-body">
 								<p className="Settings-roles-text">
 									<span>
-										<strong>Admin - </strong> Full access, manage users, upload,
-										edit, delete
+										<strong>{adminRole.name} - </strong> {adminRole.description}
 									</span>
-									<Tag variant="admin">Level 3</Tag>
+									<Tag variant="admin">Level {adminRole.level}</Tag>
 								</p>
 								<p className="Settings-roles-text">
 									<span>
-										<strong>Internal User - </strong> View, search, read
-										transcripts
+										<strong>{internalUserRole.name} - </strong>{' '}
+										{internalUserRole.description}
 									</span>
-									<Tag variant="blue">Level 2</Tag>
+									<Tag variant="blue">Level {internalUserRole.level}</Tag>
 								</p>
 								<p className="Settings-roles-text">
 									<span>
-										<strong>Public (Future) - </strong> Basic search, read only
+										<strong>{publicRole.name} - </strong>{' '}
+										{publicRole.description}
 									</span>
-									<Tag variant="outline">Level 1</Tag>
+									<Tag variant="outline">Level {publicRole.level}</Tag>
 								</p>
 							</div>
 							<InfoBanner

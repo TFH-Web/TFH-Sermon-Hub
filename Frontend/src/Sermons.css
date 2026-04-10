@@ -125,7 +125,8 @@
 /* Sermon thumbnail */
 .sermon-thumbnail {
 	position: relative;
-	height: 240px;
+	height: auto;
+	aspect-ratio: 16 / 9;
 	background: #a3a8a0;
 }
 
