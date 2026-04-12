@@ -1,0 +1,69 @@
+.tag-card {
+  padding: 16px;
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-outline);
+  border-radius: 10px;
+}
+
+.tag-header {
+  margin-bottom: 16px;
+}
+
+.tag-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.tag-header p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--cl-on-surface-muted);
+}
+
+/* Table */
+.tag-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tag-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cl-on-surface-muted);
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--cl-outline);
+}
+
+.tag-table td {
+  padding: 12px 8px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--cl-outline);
+  vertical-align: middle;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.actions button {
+  font-size: 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--cl-outline);
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.actions button:hover {
+  border-color: var(--cl-accent);
+  color: var(--cl-accent);
+}
+
+.actions .danger {
+  border-color: #f87171;
+  color: #f87171;
+}
