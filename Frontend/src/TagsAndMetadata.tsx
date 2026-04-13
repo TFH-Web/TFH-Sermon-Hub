@@ -8,10 +8,12 @@ export default function TagsAndMetadata() {
 
 	return (
 		<MainLayout title="Tags & Metadata">
+			<div>
 			<div
 				style={{
 					display: 'flex',
-					justifyContent: 'left',
+					justifyContent: 'flex-end',
+					width: '100%',
 				}}
 			>
 				<button
@@ -20,7 +22,6 @@ export default function TagsAndMetadata() {
 					type="button"
 					onClick={() => setAddTagOpen(true)}
 					style={{
-						position: 'absolute',
 						right: 0,
 						height: '40px',
 						padding: '0 16px',
@@ -44,6 +45,7 @@ export default function TagsAndMetadata() {
 				isOpen={addTagOpen}
 				onClose={() => setAddTagOpen(false)}
 			></AddTagModal>
+			</div>
 		</MainLayout>
 	);
 }

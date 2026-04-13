@@ -1,24 +1,25 @@
 .tag-card {
   padding: 16px;
-  background: var(--cl-surface);
-  border: 1px solid var(--cl-outline);
-  border-radius: 10px;
 }
 
 .tag-header {
   margin-bottom: 16px;
 }
 
-.tag-header h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-
 .tag-header p {
   margin: 4px 0 0;
   font-size: 13px;
   color: var(--cl-on-surface-muted);
+}
+
+.tag-header-info {
+  padding: 0.75em 1.25em;
+	margin: 0;
+	font-size: 0.9rem;
+	color: var(--cl-on-info);
+	background-color: var(--cl-info-container);
+	border: 1px solid var(--cl-info-outline);
+	border-radius: 0.5rem;
 }
 
 /* Table */
