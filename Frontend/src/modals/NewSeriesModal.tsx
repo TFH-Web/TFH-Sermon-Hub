@@ -21,7 +21,12 @@ export default function NewSeriesModal({
 	const [primarySpeaker, setPrimarySpeaker] = useState('');
 
 	const handleCreateSeries = () => {
-		if (!seriesName.trim()) {
+		if (
+			!seriesName.trim() ||
+			!description.trim() ||
+			!startDate ||
+			!primarySpeaker
+		) {
 			showToast('Please fill in all required fields', 'error');
 			return;
 		}
