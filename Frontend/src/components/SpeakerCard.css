@@ -1,0 +1,39 @@
+@import "../index.css";
+
+.speaker-card {
+	padding: 20px 20px;
+	text-align: center;
+	background-color: var(--cl-surface);
+	border-radius: 15px;
+}
+
+.speaker-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	width: 60px;
+	height: 60px;
+	margin: 8px auto 8px;
+	font-size: 20px;
+	color: white;
+	background-color: red;
+	border-radius: 50%;
+}
+
+.speaker-name {
+	/* display: flex;
+    justify-content: center;
+    align-items:center; */
+	margin-top: 0px;
+	margin-bottom: 0px;
+
+	font-size: 18px;
+	font-weight: 700;
+}
+
+.speaker-info {
+	margin-top: 0px;
+	margin-bottom: 0px;
+	color: gray;
+}

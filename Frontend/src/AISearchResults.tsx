@@ -2,8 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useSearchParams } from 'react-router-dom';
 import MainLayout from '$/components/MainLayout';
+import SearchResultCard from '$/components/SearchResultCard';
+import './AISearchResults.css';
 
-type SearchResult = {
+export type SearchResult = {
 	id: number;
 	title: string;
 	type: string;
@@ -40,65 +42,40 @@ export default function AISearchResults() {
 
 	return (
 		<MainLayout title="AI Search Results">
-			<main
-				style={{
-					minHeight: '100vh',
-					background: '#f3f3f1',
-					padding: '48px 24px',
-					fontFamily: 'sans-serif',
-				}}
-			>
-				<div style={{ maxWidth: '900px', margin: '0 auto' }}>
-					<h1 style={{ marginBottom: '8px' }}>AI Search Results</h1>
-					<p style={{ color: '#666', marginBottom: '24px' }}>
+			<main className="AISearchResults">
+				<div className="AISearchResults-container">
+					<h1 className="AISearchResults-title">AI Search Results</h1>
+
+					<p className="AISearchResults-meta">
 						Query: <strong>{q || '(empty query)'}</strong> | Type:{' '}
 						<strong>{type}</strong> | Speaker: <strong>{speaker}</strong> |
 						Date: <strong>{date}</strong>
 					</p>
 
-					{isLoading && <p>Loading results...</p>}
-					{isError && <p>Could not load results.</p>}
-					{data && data.length === 0 && <p>No results found.</p>}
+					{isLoading && (
+						<div className="AISearchResults-stateCard">
+							<p className="AISearchResults-stateText">Loading results...</p>
+						</div>
+					)}
+
+					{isError && (
+						<div className="AISearchResults-stateCard">
+							<p className="AISearchResults-stateText AISearchResults-stateText--error">
+								Could not load results.
+							</p>
+						</div>
+					)}
+
+					{data && data.length === 0 && (
+						<div className="AISearchResults-stateCard">
+							<p className="AISearchResults-stateText">No results found.</p>
+						</div>
+					)}
 
 					{data && data.length > 0 && (
-						<div style={{ display: 'grid', gap: '16px' }}>
+						<div className="AISearchResults-list">
 							{data.map(item => (
-								<article
-									key={item.id}
-									style={{
-										background: 'white',
-										borderRadius: '12px',
-										padding: '20px',
-										border: '1px solid #ddd',
-									}}
-								>
-									<div
-										style={{
-											display: 'flex',
-											justifyContent: 'space-between',
-											gap: '16px',
-											alignItems: 'start',
-										}}
-									>
-										<div>
-											<h2 style={{ margin: '0 0 8px 0' }}>{item.title}</h2>
-											<p style={{ margin: '0 0 8px 0', color: '#666' }}>
-												{item.type} • {item.speaker} • {item.date}
-											</p>
-											<p style={{ margin: 0, color: '#444' }}>{item.summary}</p>
-										</div>
-										<div
-											style={{
-												minWidth: '120px',
-												textAlign: 'right',
-												color: '#6f865f',
-												fontWeight: 700,
-											}}
-										>
-											AI Score: {item.ai_score.toFixed(2)}
-										</div>
-									</div>
-								</article>
+								<SearchResultCard key={item.id} result={item} />
 							))}
 						</div>
 					)}

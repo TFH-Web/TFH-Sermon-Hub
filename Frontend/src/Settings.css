@@ -1,0 +1,80 @@
+.Settings-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 16px;
+}
+
+.Settings-heading {
+	font-size: 20px;
+	font-weight: 700;
+	letter-spacing: -0.5px;
+}
+
+.Settings-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 16px;
+}
+
+.Settings-checkboxGroup {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.Settings-checkbox {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	font-size: 13px;
+	cursor: pointer;
+}
+
+.Settings-roles-body {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+}
+
+.Settings-roles-text {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	font-size: 13px;
+	color: #111;
+}
+
+.Settings-infoRow {
+	display: flex;
+	align-items: center;
+	padding: 10px 0;
+	font-size: 13px;
+	border-bottom: 1px solid #f0f0f0;
+}
+
+.Settings-infoLabel {
+	flex-shrink: 0;
+	width: 110px;
+	color: #999;
+}
+
+/* Storage bar section */
+.Settings-storageText {
+	margin: 0 0 8px 0;
+	font-size: 13px;
+	font-weight: 600;
+	color: #333;
+}
+
+.Settings-storageLabel {
+	margin: 6px 0 0 0;
+	font-size: 12px;
+	color: #999;
+}
+
+.Settings-backupActions {
+	display: flex;
+	gap: 16px;
+	margin-top: 16px;
+}
