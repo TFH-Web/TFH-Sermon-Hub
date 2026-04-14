@@ -1,0 +1,70 @@
+.tag-card {
+	padding: 16px;
+}
+
+.tag-header {
+	margin-bottom: 16px;
+}
+
+.tag-header p {
+	margin: 4px 0 0;
+	font-size: 13px;
+	color: var(--cl-on-surface-muted);
+}
+
+.tag-header-info {
+	padding: 0.75em 1.25em;
+	margin: 0;
+	font-size: 0.9rem;
+	color: var(--cl-on-info);
+	background-color: var(--cl-info-container);
+	border: 1px solid var(--cl-info-outline);
+	border-radius: 0.5rem;
+}
+
+/* Table */
+.tag-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.tag-table th {
+	padding: 10px 8px;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--cl-on-surface-muted);
+	text-align: left;
+	border-bottom: 1px solid var(--cl-outline);
+}
+
+.tag-table td {
+	padding: 12px 8px;
+	font-size: 13px;
+	vertical-align: middle;
+	border-bottom: 1px solid var(--cl-outline);
+}
+
+/* Actions */
+.actions {
+	display: flex;
+	gap: 8px;
+}
+
+.actions button {
+	padding: 6px 10px;
+	font-size: 12px;
+	cursor: pointer;
+	background: transparent;
+	border: 1px solid var(--cl-outline);
+	border-radius: 6px;
+}
+
+.actions button:hover {
+	color: var(--cl-accent);
+	border-color: var(--cl-accent);
+}
+
+.actions .danger {
+	color: #f87171;
+	border-color: #f87171;
+}
