@@ -1,0 +1,14 @@
+.upload-button {
+  display: inline-block;
+  width: auto;
+  padding: 5px 16px;
+  margin: 8px 0;
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.or-text {
+  color: #9ca3af;
+  font-size: 13px;
+  padding: 0 8px;
+}

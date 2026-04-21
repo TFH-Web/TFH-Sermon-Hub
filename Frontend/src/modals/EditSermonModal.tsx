@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import './EditSermonModal.css';
 import Button from '$/components/Button';
 import { FormField, FormRow } from '$/components/FormField';
 import Modal from '$/components/Modal';
@@ -16,7 +17,7 @@ export default function EditSermonModal({
 	onClose,
 	sermon,
 }: EditSermonModalProps) {
-		const { showToast } = useToast();
+	const { showToast } = useToast();
 
 	const [title, setTitle] = useState('');
 	const [titleError, setTitleError] = useState('');
@@ -28,6 +29,7 @@ export default function EditSermonModal({
 	const [videoLink, setVideoLink] = useState('');
 	const [tags, setTags] = useState('');
 	const [notes, setNotes] = useState('');
+	const [transcript, setTranscript] = useState('');
 
 	useEffect(() => {
 		if (sermon) {
@@ -39,6 +41,7 @@ export default function EditSermonModal({
 			setDate('');
 			setVideoLink('');
 			setNotes('');
+			setTranscript('');
 			setTitleError('');
 			setSpeakerError('');
 		}
@@ -62,7 +65,21 @@ export default function EditSermonModal({
 		showToast('Sermon updated', 'success');
 	};
 
-    return(
+	// For transcript file upload - hidden file input triggered by "Upload Transcript" button
+	const fileInputRef = useRef<HTMLInputElement>(null);
+	const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (file) {
+			// Read the file and populate the transcript text area
+			const reader = new FileReader();
+			reader.onload = (event) => {
+				setTranscript(event.target?.result as string);
+			};
+			reader.readAsText(file);
+		}
+	};
+
+	return (
 		<Modal
 			isOpen={isOpen}
 			onClose={onClose}
@@ -160,7 +177,44 @@ export default function EditSermonModal({
 					onChange={e => setNotes(e.target.value)}
 				/>
 			</FormField>
-		</Modal>
-    );
 
+			<hr
+				style={{
+					border: 'none',
+					borderTop: '1px solid var(--cl-outline)',
+					margin: '20px 0',
+				}}
+			/>
+
+			<FormField label="Transcript">
+				{/* Hidden file input */}
+				<input
+					ref={fileInputRef}
+					type="file"
+					accept=".txt"
+					onChange={handleFileSelect}
+					style={{ display: 'none' }}
+				/>
+
+				{/* Upload button */}
+                <span>
+                    <Button
+					variant = "secondary"
+					onClick={() => fileInputRef.current?.click()}
+                    className='upload-button'
+				>
+					Upload Transcript File
+				    </Button>
+                </span>
+                <span className="or-text">or paste below</span>
+
+				{/* Textarea for pasting or displaying uploaded content */}
+				<textarea
+					placeholder="Paste transcript text here..."
+					value={transcript}
+					onChange={e => setTranscript(e.target.value)}
+				/>
+			</FormField>
+		</Modal>
+	);
 }
