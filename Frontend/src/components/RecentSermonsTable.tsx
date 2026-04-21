@@ -11,9 +11,11 @@ const statusVariant: Record<Sermon['status'], TagProps['variant']> = {
 
 export interface RecentSermonsTableProps {
 	sermons: Sermon[];
-};
+}
 
-export default function RecentSermonsTable({ sermons }: RecentSermonsTableProps) {
+export default function RecentSermonsTable({
+	sermons,
+}: RecentSermonsTableProps) {
 	return (
 		<div className="RecentSermonsCard">
 			<div className="RecentSermonsCard-header">
@@ -51,7 +53,9 @@ export default function RecentSermonsTable({ sermons }: RecentSermonsTableProps)
 							</td>
 							<td className="RecentSermonsCard-cell">{s.speaker}</td>
 							<td className="RecentSermonsCard-cell">{s.series}</td>
-							<td className="RecentSermonsCard-cell">{formatDate(s.date, { month: 'short', day: 'numeric' })}</td>
+							<td className="RecentSermonsCard-cell">
+								{formatDate(s.date, { month: 'short', day: 'numeric' })}
+							</td>
 							<td className="RecentSermonsCard-cell">
 								<span>
 									<Tag variant={statusVariant[s.status]}>{s.status}</Tag>

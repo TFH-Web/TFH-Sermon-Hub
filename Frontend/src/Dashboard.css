@@ -1,8 +1,9 @@
 .Dashboard-stats {
 	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 16px;
-	margin-bottom: 16px;
+	grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr));
+	grid-auto-rows: auto auto auto;
+	gap: 0.5rem 1rem;
+	margin-block-end: 1rem;
 }
 
 /* Two-column layout: main content on left, sidebar on right */
