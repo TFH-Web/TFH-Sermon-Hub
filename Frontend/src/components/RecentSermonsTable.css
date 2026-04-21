@@ -1,36 +1,36 @@
-.RecentSermonsCard {
+.RecentSermonsTable {
 	padding: 24px 28px;
 	background-color: #fff;
 	border: 1px solid #eee;
 	border-radius: 12px;
 }
 
-.RecentSermonsCard-header {
+.RecentSermonsTable-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	margin-bottom: 20px;
 }
 
-.RecentSermonsCard-title {
+.RecentSermonsTable-title {
 	font-size: 16px;
 	font-weight: 700;
 	color: #111;
 }
 
-.RecentSermonsCard-viewAll {
+.RecentSermonsTable-viewAll {
 	font-size: 13px;
 	color: #888;
 	text-decoration: none;
 }
 
-.RecentSermonsCard-table {
+.RecentSermonsTable-table {
 	width: 100%;
 	font-size: 14px;
 	border-collapse: collapse;
 }
 
-.RecentSermonsCard-colHeader {
+.RecentSermonsTable-colHeader {
 	padding-bottom: 10px;
 	font-size: 11px;
 	font-weight: 600;
@@ -40,38 +40,38 @@
 	border-bottom: 1px solid #eee;
 }
 
-.RecentSermonsCard-colSermon {
+.RecentSermonsTable-colSermon {
 	width: 28%;
 }
-.RecentSermonsCard-colSpeaker {
+.RecentSermonsTable-colSpeaker {
 	width: 22%;
 }
-.RecentSermonsCard-colSeries {
+.RecentSermonsTable-colSeries {
 	width: 24%;
 }
-.RecentSermonsCard-colDate {
+.RecentSermonsTable-colDate {
 	width: 13%;
 }
-.RecentSermonsCard-colStatus {
+.RecentSermonsTable-colStatus {
 	width: 13%;
 }
 
-.RecentSermonsCard-row {
+.RecentSermonsTable-row {
 	cursor: pointer;
 	border-bottom: 1px solid #f0f0f0;
 }
 
-.RecentSermonsCard-row:hover {
+.RecentSermonsTable-row:hover {
 	background-color: #f9f9f9;
 }
 
-.RecentSermonsCard-cell {
+.RecentSermonsTable-cell {
 	padding: 14px 0;
 	color: #000;
 	text-align: left;
 }
 
-.RecentSermonsCard-cell--title {
+.RecentSermonsTable-cell--title {
 	font-weight: 600;
 	color: #111;
 }
