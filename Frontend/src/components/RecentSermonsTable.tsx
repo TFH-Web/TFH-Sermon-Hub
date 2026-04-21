@@ -18,30 +18,30 @@ export default function RecentSermonsTable({
 }: RecentSermonsTableProps) {
 	return (
 		<div className="RecentSermonsTable">
-			<div className="RecentSermonsTable-header">
-				<span className="RecentSermonsTable-title">Recent Sermons</span>
-				<a href="./sermons" className="RecentSermonsTable-viewAll">
+			<header className="RecentSermonsTable-header">
+				<h2 className="RecentSermonsTable-title">Recent Sermons</h2>
+				<a href="/sermons" className="RecentSermonsTable-viewAll">
 					View All →
 				</a>
-			</div>
+			</header>
 
 			<table className="RecentSermonsTable-table">
 				<thead>
 					<tr>
 						<th className="RecentSermonsTable-colHeader RecentSermonsTable-colSermon">
-							SERMON
+							Sermon
 						</th>
 						<th className="RecentSermonsTable-colHeader RecentSermonsTable-colSpeaker">
-							SPEAKER
+							Speaker
 						</th>
 						<th className="RecentSermonsTable-colHeader RecentSermonsTable-colSeries">
-							SERIES
+							Series
 						</th>
 						<th className="RecentSermonsTable-colHeader RecentSermonsTable-colDate">
-							DATE
+							Date
 						</th>
 						<th className="RecentSermonsTable-colHeader RecentSermonsTable-colStatus">
-							STATUS
+							Status
 						</th>
 					</tr>
 				</thead>

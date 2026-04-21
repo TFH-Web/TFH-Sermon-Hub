@@ -13,15 +13,39 @@
 }
 
 .RecentSermonsTable-title {
-	font-size: 16px;
+	margin-block: 0;
+	font-size: 1.2rem;
 	font-weight: 700;
 	color: #111;
 }
 
 .RecentSermonsTable-viewAll {
+	position: relative;
 	font-size: 13px;
-	color: #888;
+	color: var(--cl-foreground);
 	text-decoration: none;
+	opacity: 0.6;
+	transition: all 150ms ease;
+
+	&::after {
+		position: absolute;
+		inset-block-end: 0;
+		inset-inline: 0;
+		height: 1px;
+		content: "";
+		background-color: var(--cl-accent);
+		opacity: 0;
+		transition: opacity 150ms ease;
+	}
+
+	&:hover {
+		color: var(--cl-accent);
+		opacity: 1;
+
+		&::after {
+			opacity: 1;
+		}
+	}
 }
 
 .RecentSermonsTable-table {
@@ -32,10 +56,10 @@
 
 .RecentSermonsTable-colHeader {
 	padding-bottom: 10px;
-	font-size: 11px;
 	font-weight: 600;
 	color: #aaa;
 	text-align: left;
+	text-transform: uppercase;
 	letter-spacing: 0.08em;
 	border-bottom: 1px solid #eee;
 }
@@ -43,15 +67,19 @@
 .RecentSermonsTable-colSermon {
 	width: 28%;
 }
+
 .RecentSermonsTable-colSpeaker {
 	width: 22%;
 }
+
 .RecentSermonsTable-colSeries {
 	width: 24%;
 }
+
 .RecentSermonsTable-colDate {
 	width: 13%;
 }
+
 .RecentSermonsTable-colStatus {
 	width: 13%;
 }
