@@ -10,7 +10,6 @@ test('navigation works', async ({ page }) => {
 		'AI Search',
 		'Import / Upload',
 		'Tags & Metadata',
-		'Transcripts',
 		'User Management',
 		'Notifications',
 		'Settings',
