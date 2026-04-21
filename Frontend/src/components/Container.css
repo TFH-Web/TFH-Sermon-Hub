@@ -1,0 +1,5 @@
+.Container {
+	background-color: var(--cl-surface);
+	border-radius: 0.5rem;
+	box-shadow: 0 2px 8px -4px rgb(0 0 0 / 50%);
+}
