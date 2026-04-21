@@ -12,7 +12,7 @@ export default function Header({
 	className,
 	children,
 }: React.PropsWithChildren<HeaderProps>) {
-	const {show, set} = useSidebar();
+	const { show, set } = useSidebar();
 
 	return (
 		<header className={clsx('Header', className)}>

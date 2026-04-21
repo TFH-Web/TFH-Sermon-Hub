@@ -15,7 +15,7 @@ export const useSidebar = create<SidebarState>(set => ({
 	set: newState => set(() => ({ show: newState })),
 	onNavigate: newPath =>
 		set(state => ({
-		show: state.show && newPath === state.path,
-		path: newPath,
-	})),
+			show: state.show && newPath === state.path,
+			path: newPath,
+		})),
 }));

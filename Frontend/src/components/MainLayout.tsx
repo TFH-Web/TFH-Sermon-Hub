@@ -3,11 +3,11 @@ import '@fontsource/dm-sans/600';
 import './MainLayout.css';
 
 import type React from 'react';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router';
+import { useSidebar } from '$/lib/sidebar';
 import Header from './Header';
 import Sidebar from './Sidebar';
-import { useLocation } from 'react-router';
-import { useEffect } from 'react';
-import { useSidebar } from '$/lib/sidebar';
 
 export interface MainLayoutProps {
 	title: string;
