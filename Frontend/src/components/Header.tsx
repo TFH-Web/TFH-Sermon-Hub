@@ -16,7 +16,11 @@ export default function Header({
 
 	return (
 		<header className={clsx('Header', className)}>
-			<label className="Header-sidebarToggle">
+			<label
+				className="Header-sidebarToggle"
+				data-testid="sidebar-toggle-label"
+			>
+				<p className="SidebarToggle-text">Toggle sidebar</p>
 				<Icon className="SidebarToggle-icon" icon="lucide:menu" />
 				<input
 					className="SidebarToggle-show"
