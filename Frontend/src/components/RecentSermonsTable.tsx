@@ -1,22 +1,19 @@
 import './RecentSermonsTable.css';
+import { formatDate } from '$/lib/date';
+import type { Sermon } from '$/types/sermon';
 import Tag, { type TagProps } from './Tag';
 
-export type Sermon = {
-	id: string;
-	title: string;
-	speaker: string;
-	series: string;
-	date: string;
-	status: 'Published' | 'Processing' | 'Failed';
+const statusVariant: Record<Sermon['status'], TagProps['variant']> = {
+	Published: 'green',
+	Processing: 'amber',
+	Failed: 'red',
 };
 
-const statusClass: Record<Sermon['status'], Pick<TagProps, 'variant'>> = {
-	Published: { variant: 'green' },
-	Processing: { variant: 'amber' },
-	Failed: { variant: 'red' },
+export interface RecentSermonsTableProps {
+	sermons: Sermon[];
 };
 
-function RecentSermonsCard({ sermons }: { sermons: Sermon[] }) {
+export default function RecentSermonsTable({ sermons }: RecentSermonsTableProps) {
 	return (
 		<div className="RecentSermonsCard">
 			<div className="RecentSermonsCard-header">
@@ -54,10 +51,10 @@ function RecentSermonsCard({ sermons }: { sermons: Sermon[] }) {
 							</td>
 							<td className="RecentSermonsCard-cell">{s.speaker}</td>
 							<td className="RecentSermonsCard-cell">{s.series}</td>
-							<td className="RecentSermonsCard-cell">{s.date}</td>
+							<td className="RecentSermonsCard-cell">{formatDate(s.date, { month: 'short', day: 'numeric' })}</td>
 							<td className="RecentSermonsCard-cell">
 								<span>
-									<Tag {...statusClass[s.status]}>{s.status}</Tag>
+									<Tag variant={statusVariant[s.status]}>{s.status}</Tag>
 								</span>
 							</td>
 						</tr>
@@ -67,5 +64,3 @@ function RecentSermonsCard({ sermons }: { sermons: Sermon[] }) {
 		</div>
 	);
 }
-
-export default RecentSermonsCard;
