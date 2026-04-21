@@ -31,9 +31,6 @@ export default function Navbar() {
 				<NavbarItem icon="lucide:tag" to="/tags">
 					Tags &amp; Metadata
 				</NavbarItem>
-				<NavbarItem icon="lucide:file-text" to="/transcripts">
-					Transcripts
-				</NavbarItem>
 			</ul>
 
 			<h2 className="Navbar-header">Admin</h2>

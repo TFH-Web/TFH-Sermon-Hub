@@ -17,7 +17,6 @@ import Sermons from './Sermons.tsx';
 import Settings from './Settings.tsx';
 import Speakers from './Speakers.tsx';
 import TagsAndMetadata from './TagsAndMetadata.tsx';
-import Transcripts from './Transcripts.tsx';
 import UserManagement from './UserManagement.tsx';
 
 const queryClient = new QueryClient();
@@ -37,7 +36,6 @@ createRoot(document.getElementById('root')!).render(
 						<Route path="/ai-search/results" element={<AISearchResults />} />
 						<Route path="/upload" element={<ImportUpload />} />
 						<Route path="/tags" element={<TagsAndMetadata />} />
-						<Route path="/transcripts" element={<Transcripts />} />
 						<Route path="/user-management" element={<UserManagement />} />
 						<Route path="/notifications" element={<Notifications />} />
 						<Route path="/settings" element={<Settings />} />
