@@ -21,13 +21,13 @@ export default function Dashboard() {
 			{/* Bottom: main content + right sidebar */}
 			<div className="Dashboard-body">
 				{/* Left: recent sermons table + import activity */}
-				<div>
+				<div className="DashboardBody-main">
 					<RecentSermonsTable sermons={sampleSermons} />
 					<ImportActivity />
 				</div>
 
 				{/* Right: recent activity feed + popular tags */}
-				<div>
+				<div className="DashboardBody-side">
 					<RecentActivity />
 					<PopularTags />
 				</div>

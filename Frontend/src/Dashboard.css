@@ -8,8 +8,15 @@
 
 /* Two-column layout: main content on left, sidebar on right */
 .Dashboard-body {
-	display: grid;
-	grid-template-columns: 1fr 320px;
-	gap: 16px;
-	align-items: start;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+}
+
+.DashboardBody-main {
+	flex: auto;
+}
+
+.DashboardBody-side {
+	flex: 6rem;
 }
