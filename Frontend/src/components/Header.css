@@ -5,6 +5,19 @@
 	box-shadow: 0 -4px 8px 6px rgb(0 0 0 / 0.2);
 }
 
+.Header-sidebarToggle {
+	cursor: pointer;
+}
+
+.SidebarToggle-icon {
+	font-size: 1.5rem;
+	vertical-align: middle;
+
+	@container (width > 800px) {
+		display: none;
+	}
+}
+
 .Header-title {
 	flex: 9;
 	margin: 0;

@@ -1,10 +1,15 @@
 .Layout {
+	container-type: inline-size;
 	position: fixed;
 	inset: 0;
 	display: grid;
 	grid-template:
 		"sidebar header" 4rem
 		"sidebar main" 1fr / minmax(auto, 15rem) 1fr;
+
+	@media (width <= 800px) {
+		grid-template-columns: 0 1fr;
+	}
 }
 
 .Layout-header {
@@ -20,4 +25,8 @@
 
 .Layout-sidebar {
 	grid-area: sidebar;
+
+	@container (width <= 800px) {
+		grid-column: 2;
+	}
 }

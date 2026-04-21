@@ -5,6 +5,9 @@ import './MainLayout.css';
 import type React from 'react';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import { useLocation } from 'react-router';
+import { useEffect } from 'react';
+import { useSidebar } from '$/lib/sidebar';
 
 export interface MainLayoutProps {
 	title: string;
@@ -14,6 +17,13 @@ export default function MainLayout({
 	title,
 	children,
 }: React.PropsWithChildren<MainLayoutProps>) {
+	const onNavigate = useSidebar(state => state.onNavigate);
+	const location = useLocation();
+
+	useEffect(() => {
+		onNavigate(location.pathname);
+	}, [onNavigate, location]);
+
 	return (
 		<div className="Layout">
 			<Header className="Layout-header">{title}</Header>

@@ -7,6 +7,7 @@
 	color: var(--cl-foreground);
 	color-scheme: only dark;
 	background-color: var(--cl-background);
+	z-index: var(--z-sidebar);
 
 	> * ~ * {
 		border-block-start: 1px solid var(--cl-outline);
@@ -40,4 +41,53 @@
 .Sidebar-header {
 	flex: auto;
 	font-size: 1.25rem;
+}
+
+.Sidebar-close {
+	display: none;
+	cursor: pointer;
+}
+
+.Sidebar-closeIcon {
+	font-size: 1.5rem;
+	vertical-align: middle;
+	transition: color 100ms ease-out;
+
+	&:hover {
+		color: var(--cl-accent);
+	}
+}
+
+.Sidebar-backdrop {
+	position: absolute;
+	inset: 0;
+	z-index: var(--z-sidebar-backdrop);
+	background-color: black;
+	opacity: 0;
+	transition: opacity 250ms cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+@container (width <= 800px) {
+	.Sidebar {
+		max-width: 18rem;
+		transition: translate 250ms cubic-bezier(0.215, 0.61, 0.355, 1);
+	}
+
+	.Sidebar-close {
+		display: initial;
+	}
+
+	.Header:has(.SidebarToggle-show:not(:checked)) {
+		&~.Sidebar {
+			translate: -100% 0;
+		}
+
+		&~.Sidebar-backdrop {
+			pointer-events: none;
+		}
+	}
+
+	.Header:has(.SidebarToggle-show:checked) ~ .Sidebar-backdrop {
+		opacity: 0.5;
+	}
 }
