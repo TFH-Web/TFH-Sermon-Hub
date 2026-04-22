@@ -70,7 +70,11 @@ export default function ImportUpload() {
 											action={
 												imp.progress != null ? (
 													<div style={{ textAlign: 'right' }}>
-														<progress max={100} value={imp.progress} style={{width: '100px'}} />
+														<progress
+															max={100}
+															value={imp.progress}
+															style={{ width: '100px' }}
+														/>
 														<small className="ImportUpload-progressLabel">
 															{imp.progress}%
 														</small>
@@ -140,7 +144,11 @@ export default function ImportUpload() {
 									action={
 										imp.progress != null ? (
 											<div style={{ textAlign: 'right' }}>
-												<progress max={100} value={imp.progress} style={{width: '100px'}} />
+												<progress
+													max={100}
+													value={imp.progress}
+													style={{ width: '100px' }}
+												/>
 												<small className="ImportUpload-progressLabel">
 													{imp.progress}%
 												</small>
