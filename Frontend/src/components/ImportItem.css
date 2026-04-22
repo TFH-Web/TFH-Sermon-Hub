@@ -41,3 +41,34 @@
 .ImportItem-action {
 	flex-shrink: 0;
 }
+
+.ImportItem-iconFailed {
+	color: var(--cl-error);
+}
+
+.ImportItem-pct {
+	font-size: 13px;
+	font-weight: 600;
+	color: #555;
+	white-space: nowrap;
+}
+
+/* Status badges for complete and failed */
+.ImportItem-badge {
+	padding: 4px 12px;
+	font-size: 12px;
+	font-weight: 600;
+	white-space: nowrap;
+	border-radius: 20px;
+}
+
+.ImportItem-badge--complete {
+	color: #555;
+	background: #f0f0f0;
+}
+
+.ImportItem-badge--failed {
+	font-weight: 700;
+	color: #c0392b;
+	background: transparent;
+}

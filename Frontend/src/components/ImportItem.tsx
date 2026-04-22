@@ -19,16 +19,16 @@ export interface ImportItemProps {
 
 export default function ImportItem({ job, className }: ImportItemProps) {
 	// Show warning triangle for failed items, otherwise use icon map
-	const iconName =
-		job.status === 'failed'
-			? 'lucide:alert-triangle'
-			: (iconMap[job.icon] ?? 'lucide:file');
+	const iconName = getIconName(job);
 
 	const icon = (
 		<Icon
 			icon={iconName}
 			width={20}
-			className={job.status === 'failed' ? 'ImportActivity-iconFailed' : ''}
+			className={clsx(
+				'ImportItem-icon',
+				job.status === 'failed' && 'ImportItem-icon--failed',
+			)}
 		/>
 	);
 
@@ -46,6 +46,14 @@ export default function ImportItem({ job, className }: ImportItemProps) {
 	);
 }
 
+function getIconName(job: ImportJob): string {
+	if (job.status === 'failed') {
+		return 'lucide:alert-triangle';
+	} else {
+		return iconMap[job.icon] ?? 'lucide:file';
+	}
+}
+
 function Action({
 	status,
 	progress,
@@ -53,14 +61,14 @@ function Action({
 }: ImportJob): React.ReactNode | null {
 	if (status === 'active' && progress != null) {
 		return (
-			<div className="ImportActivity-progressWrap">
+			<div className="ImportItem-progressWrap">
 				<progress max={100} value={progress} style={{ width: '100px' }} />
-				<span className="ImportActivity-pct">{progress}%</span>
+				<span className="ImportItem-pct">{progress}%</span>
 			</div>
 		);
 	} else if (status === 'complete') {
 		return (
-			<span className="ImportActivity-badge ImportActivity-badge--complete">
+			<span className="ImportItem-badge ImportItem-badge--complete">
 				Complete
 			</span>
 		);
@@ -69,7 +77,7 @@ function Action({
 		const match = subtitle.match(/\d+/);
 		const count = match ? match[0] : '';
 		return (
-			<span className="ImportActivity-badge ImportActivity-badge--failed">
+			<span className="ImportItem-badge ImportItem-badge--failed">
 				{count} Errors
 			</span>
 		);
