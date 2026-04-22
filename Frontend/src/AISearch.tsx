@@ -1,37 +1,32 @@
-import { type SubmitEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '$/components/MainLayout';
 import SearchBar from '$/components/SearchBar';
 import SearchFilters from '$/components/SearchFilters';
+import AISearchPreviewCard from '$/components/AISearchPreviewCard';
+import type { AISearchResultPreview } from '$/types/aiSearch';
+import useAISearch from '$/hooks/useAISearch';
 import './AISearch.css';
-
-type ContentType = 'all' | 'sermon' | 'transcript' | 'note';
-
-const contentOptions: { label: string; value: ContentType }[] = [
-	{ label: 'All', value: 'all' },
-	{ label: 'Sermons', value: 'sermon' },
-	{ label: 'Transcripts', value: 'transcript' },
-	{ label: 'Notes', value: 'note' },
-];
 
 export default function AISearch() {
 	const navigate = useNavigate();
-	const [query, setQuery] = useState('');
-	const [type, setType] = useState<ContentType>('all');
-	const [speaker, setSpeaker] = useState('any');
-	const [date, setDate] = useState('any');
 
-	function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
-		e.preventDefault();
+	const {
+		query,
+		setQuery,
+		type,
+		setType,
+		speaker,
+		setSpeaker,
+		date,
+		setDate,
+		showResults,
+		visibleResults,
+		handleSubmit,
+		contentOptions,
+	} = useAISearch();
 
-		const params = new URLSearchParams();
-
-		if (query.trim()) params.set('q', query.trim());
-		if (type !== 'all') params.set('type', type);
-		if (speaker !== 'any') params.set('speaker', speaker);
-		if (date !== 'any') params.set('date', date);
-
-		navigate(`/ai-search/results?${params.toString()}`);
+	function handleCardClick(item: AISearchResultPreview) {
+		navigate(item.redirectTo);
 	}
 
 	return (
@@ -56,6 +51,25 @@ export default function AISearch() {
 						onDateChange={setDate}
 					/>
 				</form>
+
+				{showResults && (
+					<section className="AISearch-results" aria-live="polite">
+						<p className="AISearch-resultsMeta">
+							Found <strong>{visibleResults.length} results</strong> for "
+							{query}" — ranked by relevance
+						</p>
+
+						<div className="AISearch-resultsList">
+							{visibleResults.map(item => (
+								<AISearchPreviewCard
+									key={item.id}
+									result={item}
+									onOpen={handleCardClick}
+								/>
+							))}
+						</div>
+					</section>
+				)}
 			</section>
 		</MainLayout>
 	);

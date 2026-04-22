@@ -1,28 +1,50 @@
 .AISearch {
 	width: 100%;
-	max-width: 980px;
-	padding: 48px 24px 40px;
+	max-width: 920px;
+	padding: 44px 24px 40px;
 	margin: 0 auto;
 	text-align: center;
 }
 
 .AISearch-title {
-	margin: 0 0 10px 0;
-	font-size: 3.3rem;
+	margin: 0 0 8px 0;
+	font-size: 2.1rem;
 	font-weight: 700;
-	line-height: 1.05;
+	line-height: 1.1;
 	color: #1f1f1f;
-	letter-spacing: -0.03em;
+	letter-spacing: -0.02em;
 }
 
 .AISearch-subtitle {
-	margin: 0 0 34px 0;
-	font-size: 1.02rem;
-	color: #7c7c7c;
+	margin: 0 0 24px 0;
+	font-size: 0.95rem;
+	font-weight: 400;
+	line-height: 1.4;
+	color: #8a8a8a;
 }
 
 .AISearch-form {
 	display: flex;
 	flex-direction: column;
-	gap: 18px;
+	gap: 16px;
+}
+
+.AISearch-results {
+	width: 100%;
+	max-width: 640px;
+	margin: 18px auto 0;
+	text-align: left;
+}
+
+.AISearch-resultsMeta {
+	margin: 0 0 14px 0;
+	font-size: 13px;
+	font-weight: 400;
+	color: #9a9a9a;
+}
+
+.AISearch-resultsList {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
 }
