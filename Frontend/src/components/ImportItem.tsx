@@ -4,6 +4,7 @@ import { Icon } from '@iconify-icon/react';
 import clsx from 'clsx';
 import './ImportActivity.css';
 import type { ImportJob } from '$/types/import';
+import Tag from './Tag';
 
 // Maps icon string from data to an iconify icon name
 const iconMap: Record<string, string> = {
@@ -62,14 +63,14 @@ function Action({
 		);
 	} else if (status === 'complete') {
 		return (
-			<span className="Action-badge Action-badge--complete">Complete</span>
+			<Tag variant="green" className="Action-badge Action-badge--complete">Complete</Tag>
 		);
 	} else if (status === 'failed') {
 		// Extract leading number from subtitle (e.g. "12 videos failed")
 		const match = subtitle.match(/\d+/);
 		const count = match ? match[0] : '';
 		return (
-			<span className="Action-badge Action-badge--failed">{count} Errors</span>
+			<Tag variant="red" className="Action-badge Action-badge--failed">{count} Errors</Tag>
 		);
 	} else {
 		return null;
