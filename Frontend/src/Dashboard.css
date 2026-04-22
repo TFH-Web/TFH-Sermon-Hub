@@ -19,6 +19,7 @@
 	flex: 30rem;
 	flex-direction: column;
 	gap: 1rem;
+	padding: 0.2rem;
 	overflow-inline: auto;
 }
 
@@ -27,4 +28,5 @@
 	flex: 6rem;
 	flex-direction: column;
 	gap: 1rem;
+	padding: 0.2rem;
 }
