@@ -1,4 +1,4 @@
-.Tag {
+:where(.Tag) {
 	display: inline-flex;
 	align-items: center;
 	padding: 4px 10px;
@@ -36,4 +36,10 @@
 .Tag--admin {
 	color: var(--cl-admin);
 	background: var(--cl-admin-container);
+}
+
+.Tag--solid {
+	font-weight: normal;
+	background: var(--cl-container);
+	border: 1px solid var(--cl-outline);
 }

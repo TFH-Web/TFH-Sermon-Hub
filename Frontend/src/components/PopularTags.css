@@ -8,15 +8,10 @@
 	gap: 0.5rem;
 }
 
-.PopularTags-pill {
+.PopularTags-tag {
 	--hover-brightness: 1.075;
-	padding: 0.35em 0.8em;
 	font-size: 0.8rem;
 	color: inherit;
-
 	text-decoration: none;
-	background: var(--cl-container);
-	border: 1px solid var(--cl-outline);
-	border-radius: 1.25rem;
 	box-shadow: 0 2px 4px -4px rgb(0 0 0 / 0.5);
 }
