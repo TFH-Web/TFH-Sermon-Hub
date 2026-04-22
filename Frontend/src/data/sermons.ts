@@ -1,4 +1,4 @@
-import type { Sermon } from "$/types/sermon";
+import type { Sermon } from '$/types/sermon';
 
 export const sermons: Sermon[] = [
 	{
