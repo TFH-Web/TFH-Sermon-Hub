@@ -14,9 +14,15 @@
 }
 
 .DashboardBody-main {
+	display: flex;
 	flex: 30rem;
+	flex-direction: column;
+	gap: 1rem;
 }
 
 .DashboardBody-side {
+	display: flex;
 	flex: 6rem;
+	flex-direction: column;
+	gap: 1rem;
 }
