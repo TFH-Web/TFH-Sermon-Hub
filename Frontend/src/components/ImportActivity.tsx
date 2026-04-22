@@ -1,6 +1,6 @@
 import { Icon } from '@iconify-icon/react';
 import type React from 'react';
-import { dashboardImports } from '../data/imports';
+import { dashboardImports } from '$/data/imports';
 import ImportItem from './ImportItem';
 import ProgressBar from './ProgressBar';
 import './ImportActivity.css';

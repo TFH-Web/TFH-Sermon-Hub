@@ -5,7 +5,7 @@ import PopularTags from '$/components/PopularTags';
 import RecentActivity from '$/components/RecentActivity';
 import RecentSermonsTable from '$/components/RecentSermonsTable';
 import StatCard from '$/components/StatCard';
-import { sampleSermons } from '$/types/sermon';
+import { sermons } from '$/data/sermons';
 
 export default function Dashboard() {
 	return (
@@ -22,7 +22,7 @@ export default function Dashboard() {
 			<div className="Dashboard-body">
 				{/* Left: recent sermons table + import activity */}
 				<div className="DashboardBody-main">
-					<RecentSermonsTable sermons={sampleSermons} />
+					<RecentSermonsTable sermons={sermons} />
 					<ImportActivity />
 				</div>
 
