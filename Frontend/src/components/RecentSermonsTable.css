@@ -1,5 +1,4 @@
 .RecentSermonsTable {
-	padding: 1.5rem;
 	overflow-inline: auto;
 	overscroll-behavior-inline: contain;
 	background-color: var(--cl-surface);
