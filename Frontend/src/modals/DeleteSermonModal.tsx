@@ -43,9 +43,7 @@ export default function DeleteSermonModal({
 				<div className="DeleteSermonModal-icon">
 					<Icon icon="mdi:trash-can-outline" width={24} height={24} />
 				</div>
-				<h2 className="DeleteSermonModal-title">
-					Delete "{sermon?.title}"?
-				</h2>
+				<h2 className="DeleteSermonModal-title">Delete "{sermon?.title}"?</h2>
 				<p className="DeleteSermonModal-message">
 					This will permanently remove the sermon, transcript, tags, and all
 					associated metadata. This action cannot be undone.

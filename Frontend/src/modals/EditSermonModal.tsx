@@ -72,7 +72,7 @@ export default function EditSermonModal({
 		if (file) {
 			// Read the file and populate the transcript text area
 			const reader = new FileReader();
-			reader.onload = (event) => {
+			reader.onload = event => {
 				setTranscript(event.target?.result as string);
 			};
 			reader.readAsText(file);
@@ -197,16 +197,16 @@ export default function EditSermonModal({
 				/>
 
 				{/* Upload button */}
-                <span>
-                    <Button
-					variant = "secondary"
-					onClick={() => fileInputRef.current?.click()}
-                    className='upload-button'
-				>
-					Upload Transcript File
-				    </Button>
-                </span>
-                <span className="or-text">or paste below</span>
+				<span>
+					<Button
+						variant="secondary"
+						onClick={() => fileInputRef.current?.click()}
+						className="upload-button"
+					>
+						Upload Transcript File
+					</Button>
+				</span>
+				<span className="or-text">or paste below</span>
 
 				{/* Textarea for pasting or displaying uploaded content */}
 				<textarea
