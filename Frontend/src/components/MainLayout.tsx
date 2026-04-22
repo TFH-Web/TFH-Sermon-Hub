@@ -27,7 +27,10 @@ export default function MainLayout({
 	return (
 		<div className="Layout">
 			<Header className="Layout-header">{title}</Header>
-			<main className="Layout-main">{children}</main>
+			<main className="Layout-main">
+				<h2 className="Layout-title">{title}</h2>
+				{children}
+			</main>
 			<Sidebar className="Layout-sidebar" />
 		</div>
 	);

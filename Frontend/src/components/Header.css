@@ -26,8 +26,12 @@
 .Header-title {
 	flex: 9;
 	margin: 0;
+	font-size: clamp(1.1rem, 9vw - 0.9rem, 1.5rem);
 	white-space: nowrap;
-	transition: all 150ms ease allow-discrete;
+	transition-property: display, opacity;
+	transition-timing-function: ease;
+	transition-behavior: allow-discrete;
+	transition-duration: 150ms;
 }
 
 .Header-controls {
@@ -83,7 +87,7 @@
 	opacity: 0;
 	transition: opacity 50ms ease;
 
-	.Header-searchLabel:has(.Header-searchInput:not(:placeholder-shown)) ~ & {
+	.Header-searchLabel:has(.Header-searchInput:not(:placeholder-shown))~& {
 		pointer-events: initial;
 		opacity: 1;
 	}
@@ -102,11 +106,8 @@
 	margin-block: 0;
 }
 
-@container (width <= 550px) {
-	.Header-title:has(
-			~ .Header-controls
-				.Header-searchInput:where(:focus-visible, :not(:placeholder-shown))
-		) {
+@container (width <=550px) {
+	.Header-title:has(~ .Header-controls .Header-searchInput:where(:focus-visible, :not(:placeholder-shown))) {
 		display: none;
 		opacity: 0;
 	}
