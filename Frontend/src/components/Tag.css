@@ -8,8 +8,8 @@
 }
 
 .Tag--green {
-	color: var(--cl-accent);
-	background: var(--cl-accent-container);
+	color: var(--cl-success);
+	background: var(--cl-success-container);
 }
 
 .Tag--outline {

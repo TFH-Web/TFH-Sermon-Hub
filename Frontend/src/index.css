@@ -22,6 +22,12 @@
 	);
 	--cl-on-accent-container: oklch(from var(--cl-accent) 100% 0.02 h);
 
+	--cl-success: oklch(52% 0.05 135deg);
+	--cl-success-container: light-dark(
+		oklch(from var(--cl-success) 96% 0.02 h),
+		oklch(from var(--cl-success) 25% 0.05 h)
+	);
+
 	--cl-error: oklch(48% 0.15 25deg);
 	--cl-error-container: light-dark(
 		oklch(from var(--cl-error) 96% 0.02 h),
