@@ -84,7 +84,7 @@
 	}
 
 	.Header:has(.SidebarToggle-show:not(:checked)) {
-		& ~ .Sidebar {
+		~ .Sidebar {
 			translate: -100% 0;
 		}
 	}
