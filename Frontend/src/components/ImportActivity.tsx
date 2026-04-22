@@ -4,6 +4,7 @@ import { dashboardImports } from '$/data/imports';
 import ImportItem from './ImportItem';
 import ProgressBar from './ProgressBar';
 import './ImportActivity.css';
+import type { ImportJob } from '$/types/import';
 
 // Maps icon string from data to an iconify icon name
 const iconMap: Record<string, string> = {
@@ -35,31 +36,7 @@ export default function ImportActivity() {
 				);
 
 				// Action slot changes based on import status
-				let action: React.ReactNode = null;
-
-				if (job.status === 'active' && job.progress != null) {
-					action = (
-						<div className="ImportActivity-progressWrap">
-							<ProgressBar percent={job.progress} width="100px" />
-							<span className="ImportActivity-pct">{job.progress}%</span>
-						</div>
-					);
-				} else if (job.status === 'complete') {
-					action = (
-						<span className="ImportActivity-badge ImportActivity-badge--complete">
-							Complete
-						</span>
-					);
-				} else if (job.status === 'failed') {
-					// Extract leading number from subtitle (e.g. "12 videos failed")
-					const match = job.subtitle.match(/\d+/);
-					const count = match ? match[0] : '';
-					action = (
-						<span className="ImportActivity-badge ImportActivity-badge--failed">
-							{count} Errors
-						</span>
-					);
-				}
+				const action = createAction(job);
 
 				return (
 					<ImportItem
@@ -73,4 +50,32 @@ export default function ImportActivity() {
 			})}
 		</div>
 	);
+}
+
+function createAction({ status, progress, subtitle }: ImportJob): React.ReactNode | null {
+	if (status === 'active' && progress != null) {
+		return (
+			<div className="ImportActivity-progressWrap">
+				<ProgressBar percent={progress} width="100px" />
+				<span className="ImportActivity-pct">{progress}%</span>
+			</div>
+		);
+	} else if (status === 'complete') {
+		return (
+			<span className="ImportActivity-badge ImportActivity-badge--complete">
+				Complete
+			</span>
+		);
+	} else if (status === 'failed') {
+		// Extract leading number from subtitle (e.g. "12 videos failed")
+		const match = subtitle.match(/\d+/);
+		const count = match ? match[0] : '';
+		return (
+			<span className="ImportActivity-badge ImportActivity-badge--failed">
+				{count} Errors
+			</span>
+		);
+	} else {
+		return null;
+	}
 }
