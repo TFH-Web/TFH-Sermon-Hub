@@ -80,6 +80,7 @@
 
 	--z-sidebar: 1000;
 	--z-sidebar-backdrop: 500;
+	--z-header: 500;
 
 	accent-color: var(--cl-accent);
 	cursor: auto;
