@@ -3,10 +3,11 @@ export interface Sermon {
 	id: number;
 	title: string;
 	speaker: string;
-	series: string;
+	series: string | null;
 	date: Date;
 	tags: string[];
 	status: 'Published' | 'Processing' | 'Failed';
+	duration: number;
 }
 
 export function linkTo(sermon: Sermon): string {

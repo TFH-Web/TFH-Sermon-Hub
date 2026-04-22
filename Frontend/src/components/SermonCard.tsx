@@ -17,7 +17,7 @@ export default function SermonCard({ sermon }: SermonCardProps) {
 			<div className="sermon-info">
 				<h3>{sermon.title}</h3>
 				<p>
-					{sermon.speaker} • {sermon.date}{' '}
+					{sermon.speaker} • {formatDate(sermon.date)}{' '}
 				</p>
 			</div>
 			<div className="sermon-tags">
@@ -29,4 +29,9 @@ export default function SermonCard({ sermon }: SermonCardProps) {
 			</div>
 		</div>
 	);
+}
+
+function formatDate(date: Date): string {
+	const formatter = Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+	return formatter.format(date);
 }
