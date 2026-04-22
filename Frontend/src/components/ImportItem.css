@@ -1,74 +1,105 @@
 .ImportItem {
-	display: flex;
-	gap: 14px;
-	align-items: center;
-	padding: 14px 16px;
-	margin-bottom: 10px;
-	background: var(--cl-surface);
+	display: grid;
+	padding: 1rem;
 	border: 1px solid var(--cl-outline);
 	border-radius: var(--radius-md);
+	box-shadow: 0 4px 10px -8px rgb(0 0 0 / 0.3);
+	grid-template:
+		"icon title action" auto
+		"icon subtitle action" auto / auto 1fr auto;
+	align-items: center;
+	column-gap: 1rem;
 }
 
 .ImportItem-icon {
-	display: flex;
-	flex-shrink: 0;
-	align-items: center;
-	justify-content: center;
-	width: 40px;
-	height: 40px;
+	grid-area: icon;
+	display: grid;
+	place-items: center;
+	width: 2.5rem;
+	aspect-ratio: 1;
 	background: var(--cl-surface-dim);
-	border-radius: 8px;
+	border-radius: 0.5rem;
 }
 
-.ImportItem-info {
-	flex: 1;
-	min-width: 0;
-}
-
-.ImportItem-title {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	font-size: 13px;
-	font-weight: 600;
-	white-space: nowrap;
-}
-
-.ImportItem-subtitle {
-	font-size: 11px;
-	color: var(--cl-on-surface-muted);
-}
-
-.ImportItem-action {
-	flex-shrink: 0;
-}
-
-.ImportItem-iconFailed {
+.ImportItem-icon--failed {
 	color: var(--cl-error);
 }
 
-.ImportItem-pct {
-	font-size: 13px;
-	font-weight: 600;
-	color: #555;
-	white-space: nowrap;
+.ImportItem-title {
+	grid-area: title;
+	align-self: end;
+	margin: 0;
+	font-size: 0.8rem;
+}
+
+.ImportItem-subtitle {
+	align-self: start;
+	grid-area: subtitle;
+	font-size: 0.7rem;
+	margin: 0;
+	opacity: 0.6;
+}
+
+.ImportItem-action {
+	grid-area: action;
+}
+
+.Action-iconFailed {
+	color: var(--cl-error);
+}
+
+.Action-progressLabel {
+	display: flex;
+	gap: 0.75em;
+	align-items: center;
+}
+
+.Action-progress {
+	flex: 1;
+	height: 0.8ex;
+}
+
+.Action-progressValue {
+	font-size: 0.75rem;
+	font-weight: bold;
+	opacity: 0.6;
 }
 
 /* Status badges for complete and failed */
-.ImportItem-badge {
-	padding: 4px 12px;
-	font-size: 12px;
-	font-weight: 600;
-	white-space: nowrap;
-	border-radius: 20px;
+.Action-badge {
+	padding: 0.5em 1em;
+	font-size: 0.75rem;
+	font-weight: bold;
+	border-radius: 1.25rem;
 }
 
-.ImportItem-badge--complete {
-	color: #555;
-	background: #f0f0f0;
+.Action-badge--complete {
+	color: var(--cl-accent);
+	background: var(--cl-accent-container);
 }
 
-.ImportItem-badge--failed {
-	font-weight: 700;
-	color: #c0392b;
-	background: transparent;
+.Action-badge--failed {
+	color: var(--cl-error);
+	background: var(--cl-error-container);
+}
+
+@container (width <=600px) {
+	.ImportItem {
+		grid-template:
+			"icon action" auto
+			"title title" auto
+			"subtitle subtitle" auto / auto 1fr;
+	}
+
+	.ImportItem-title {
+		margin-block-start: 0.5em;
+	}
+
+	.ImportItem-action:not(:has(progress)) {
+		justify-self: end;
+	}
+
+	.Action-progress {
+		width: auto;
+	}
 }

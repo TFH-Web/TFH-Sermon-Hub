@@ -4,7 +4,7 @@ export const dashboardImports: ImportJob[] = [
 	{
 		id: 'import-dash-1',
 		title: 'Batch Import YouTube Library',
-		subtitle: '148 videos started 2 hrs ago',
+		subtitle: '148 videos, started 2 hrs ago',
 		icon: 'youtube',
 		status: 'active',
 		progress: 72,

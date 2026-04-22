@@ -21,26 +21,20 @@ export default function ImportItem({ job, className }: ImportItemProps) {
 	// Show warning triangle for failed items, otherwise use icon map
 	const iconName = getIconName(job);
 
-	const icon = (
-		<Icon
-			icon={iconName}
-			width={20}
-			className={clsx(
-				'ImportItem-icon',
-				job.status === 'failed' && 'ImportItem-icon--failed',
-			)}
-		/>
-	);
-
 	const action = <Action {...job} />;
 
 	return (
 		<div className={clsx('ImportItem', className)}>
-			<div className="ImportItem-icon">{icon}</div>
-			<div className="ImportItem-info">
-				<div className="ImportItem-title">{job.title}</div>
-				<div className="ImportItem-subtitle">{job.subtitle}</div>
-			</div>
+			<h4 className="ImportItem-title">{job.title}</h4>
+			<p className="ImportItem-subtitle">{job.subtitle}</p>
+			<Icon
+				icon={iconName}
+				width={20}
+				className={clsx(
+					'ImportItem-icon',
+					job.status === 'failed' && 'ImportItem-icon--failed',
+				)}
+			/>
 			{action && <div className="ImportItem-action">{action}</div>}
 		</div>
 	);
@@ -61,25 +55,21 @@ function Action({
 }: ImportJob): React.ReactNode | null {
 	if (status === 'active' && progress != null) {
 		return (
-			<div className="ImportItem-progressWrap">
-				<progress max={100} value={progress} style={{ width: '100px' }} />
-				<span className="ImportItem-pct">{progress}%</span>
-			</div>
+			<label className="Action-progressLabel">
+				<progress className="Action-progress" max={100} value={progress} />
+				<span className="Action-progressValue">{progress}%</span>
+			</label>
 		);
 	} else if (status === 'complete') {
 		return (
-			<span className="ImportItem-badge ImportItem-badge--complete">
-				Complete
-			</span>
+			<span className="Action-badge Action-badge--complete">Complete</span>
 		);
 	} else if (status === 'failed') {
 		// Extract leading number from subtitle (e.g. "12 videos failed")
 		const match = subtitle.match(/\d+/);
 		const count = match ? match[0] : '';
 		return (
-			<span className="ImportItem-badge ImportItem-badge--failed">
-				{count} Errors
-			</span>
+			<span className="Action-badge Action-badge--failed">{count} Errors</span>
 		);
 	} else {
 		return null;

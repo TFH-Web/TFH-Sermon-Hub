@@ -5,3 +5,9 @@
 .ImportActivity-title {
 	margin-block: 0 1em;
 }
+
+.ImportActivity-imports {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}

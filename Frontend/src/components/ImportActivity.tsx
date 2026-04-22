@@ -8,9 +8,11 @@ export default function ImportActivity() {
 		<Container className="ImportActivity">
 			<h3 className="ImportActivity-title">Import Activity</h3>
 
-			{dashboardImports.map(job => (
-				<ImportItem key={job.id} job={job} />
-			))}
+			<section className="ImportActivity-imports">
+				{dashboardImports.map(job => (
+					<ImportItem key={job.id} job={job} />
+				))}
+			</section>
 		</Container>
 	);
 }
