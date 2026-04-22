@@ -14,7 +14,7 @@
 }
 
 .DashboardBody-main {
-	flex: auto;
+	flex: 30rem;
 }
 
 .DashboardBody-side {

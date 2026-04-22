@@ -1,6 +1,7 @@
 import './RecentSermonsTable.css';
 import { formatDate } from '$/lib/date';
 import type { Sermon } from '$/types/sermon';
+import Container from './Container';
 import Tag, { type TagProps } from './Tag';
 
 const statusVariant: Record<Sermon['status'], TagProps['variant']> = {
@@ -17,9 +18,9 @@ export default function RecentSermonsTable({
 	sermons,
 }: RecentSermonsTableProps) {
 	return (
-		<div className="RecentSermonsTable">
+		<Container className="RecentSermonsTable">
 			<header className="RecentSermonsTable-header">
-				<h2 className="RecentSermonsTable-title">Recent Sermons</h2>
+				<h3 className="RecentSermonsTable-title">Recent Sermons</h3>
 				<a href="/sermons" className="RecentSermonsTable-viewAll">
 					View All →
 				</a>
@@ -28,35 +29,31 @@ export default function RecentSermonsTable({
 			<table className="RecentSermonsTable-table">
 				<thead>
 					<tr>
-						<th className="RecentSermonsTable-colHeader RecentSermonsTable-colSermon">
+						<th scope="column" className="RecentSermonsTable-colSermon">
 							Sermon
 						</th>
-						<th className="RecentSermonsTable-colHeader RecentSermonsTable-colSpeaker">
+						<th scope="column" className="RecentSermonsTable-colSpeaker">
 							Speaker
 						</th>
-						<th className="RecentSermonsTable-colHeader RecentSermonsTable-colSeries">
+						<th scope="column" className="RecentSermonsTable-colSeries">
 							Series
 						</th>
-						<th className="RecentSermonsTable-colHeader RecentSermonsTable-colDate">
+						<th scope="column" className="RecentSermonsTable-colDate">
 							Date
 						</th>
-						<th className="RecentSermonsTable-colHeader RecentSermonsTable-colStatus">
+						<th scope="column" className="RecentSermonsTable-colStatus">
 							Status
 						</th>
 					</tr>
 				</thead>
 				<tbody>
 					{sermons.map(s => (
-						<tr key={s.id} className="RecentSermonsTable-row">
-							<td className="RecentSermonsTable-cell RecentSermonsTable-cell--title">
-								{s.title}
-							</td>
-							<td className="RecentSermonsTable-cell">{s.speaker}</td>
-							<td className="RecentSermonsTable-cell">{s.series}</td>
-							<td className="RecentSermonsTable-cell">
-								{formatDate(s.date, { month: 'short', day: 'numeric' })}
-							</td>
-							<td className="RecentSermonsTable-cell">
+						<tr key={s.id}>
+							<th scope="row">{s.title}</th>
+							<td>{s.speaker}</td>
+							<td>{s.series}</td>
+							<td>{formatDate(s.date, { month: 'short', day: 'numeric' })}</td>
+							<td>
 								<span>
 									<Tag variant={statusVariant[s.status]}>{s.status}</Tag>
 								</span>
@@ -65,6 +62,6 @@ export default function RecentSermonsTable({
 					))}
 				</tbody>
 			</table>
-		</div>
+		</Container>
 	);
 }

@@ -1,22 +1,21 @@
 .RecentSermonsTable {
-	padding: 24px 28px;
-	background-color: #fff;
-	border: 1px solid #eee;
-	border-radius: 12px;
+	padding: 1.5rem;
+	overflow-inline: auto;
+	overscroll-behavior-inline: contain;
+	background-color: var(--cl-surface);
 }
 
 .RecentSermonsTable-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin-bottom: 20px;
+	margin-block-end: 1.5rem;
 }
 
 .RecentSermonsTable-title {
 	margin-block: 0;
 	font-size: 1.2rem;
-	font-weight: 700;
-	color: #111;
+	font-weight: bold;
 }
 
 .RecentSermonsTable-viewAll {
@@ -49,19 +48,37 @@
 }
 
 .RecentSermonsTable-table {
-	width: 100%;
-	font-size: 14px;
-	border-collapse: collapse;
-}
-
-.RecentSermonsTable-colHeader {
-	padding-bottom: 10px;
-	font-weight: 600;
-	color: #aaa;
+	width: min(50rem, 100%);
+	text-overflow: ellipsis;
+	font-size: 0.9rem;
 	text-align: left;
-	text-transform: uppercase;
-	letter-spacing: 0.08em;
-	border-bottom: 1px solid #eee;
+	table-layout: fixed;
+	border-collapse: collapse;
+
+	tr {
+		border-block-end: 1px solid var(--cl-outline);
+	}
+
+	th,
+	td {
+		vertical-align: top;
+	}
+
+	thead th {
+		padding-block-end: 0.625em;
+		font-size: 0.8rem;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		opacity: 0.6;
+	}
+
+	tbody tr {
+		cursor: pointer;
+	}
+
+	tbody :where(th, td) {
+		padding-block: 0.875em;
+	}
 }
 
 .RecentSermonsTable-colSermon {
@@ -84,22 +101,6 @@
 	width: 13%;
 }
 
-.RecentSermonsTable-row {
-	cursor: pointer;
-	border-bottom: 1px solid #f0f0f0;
-}
-
 .RecentSermonsTable-row:hover {
 	background-color: #f9f9f9;
-}
-
-.RecentSermonsTable-cell {
-	padding: 14px 0;
-	color: #000;
-	text-align: left;
-}
-
-.RecentSermonsTable-cell--title {
-	font-weight: 600;
-	color: #111;
 }

@@ -14,10 +14,7 @@
 		oklch(from var(--cl-background) calc(l * 1.03) c h),
 		oklch(from var(--cl-background) calc(l * 1.7) c h)
 	);
-	--cl-outline: light-dark(
-		oklch(from var(--cl-accent) calc(l * 1.7) calc(c * 0.05) h),
-		oklch(from var(--cl-accent) calc(l * 0.5) calc(c * 0.05) h)
-	);
+	--cl-outline: oklch(from var(--cl-foreground) l c h / 0.1);
 
 	--cl-accent-container: light-dark(
 		oklch(from var(--cl-accent) calc(l * 1.2) c h),
