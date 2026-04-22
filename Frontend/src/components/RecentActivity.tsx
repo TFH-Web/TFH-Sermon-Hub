@@ -1,10 +1,11 @@
 import './RecentActivity.css';
 import { activities } from '$/data/activity';
+import Container from './Container';
 
 export default function RecentActivity() {
 	return (
-		<div className="RecentActivity">
-			<h2 className="RecentActivity-title">Recent Activity</h2>
+		<Container className="RecentActivity">
+			<h3 className="RecentActivity-title">Recent Activity</h3>
 			<ul className="RecentActivity-list">
 				{activities.map(item => {
 					// Split text into bold part and the rest
@@ -14,17 +15,17 @@ export default function RecentActivity() {
 							<span
 								className={`RecentActivity-dot RecentActivity-dot--${item.type}`}
 							/>
-							<div className="RecentActivity-body">
-								<p className="RecentActivity-text">
-									<strong>{item.boldPart}</strong>
-									{rest}
-								</p>
-								<span className="RecentActivity-time">{item.time}</span>
-							</div>
+							<p className="RecentActivity-text">
+								<strong>{item.boldPart}</strong>
+								{rest}
+							</p>
+							<time className="RecentActivity-time" dateTime={item.time}>
+								{item.time}
+							</time>
 						</li>
 					);
 				})}
 			</ul>
-		</div>
+		</Container>
 	);
 }
