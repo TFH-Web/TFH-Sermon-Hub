@@ -4,15 +4,19 @@ import Container from './Container';
 
 export default function PopularTags() {
 	return (
-		<div className="PopularTags">
-			<h2 className="PopularTags-title">Popular Tags</h2>
+		<Container className="PopularTags">
+			<h3 className="PopularTags-title">Popular Tags</h3>
 			<div className="PopularTags-list">
 				{tags.map(tag => (
-					<span key={tag.name} className="PopularTags-pill">
+					<a
+						key={tag.name}
+						href={`/tags?tag=${tag.name}`}
+						className="PopularTags-pill u-button"
+					>
 						{tag.name} ({tag.count})
-					</span>
+					</a>
 				))}
 			</div>
-		</div>
+		</Container>
 	);
 }
