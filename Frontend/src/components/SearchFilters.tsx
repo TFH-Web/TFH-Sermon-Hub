@@ -1,3 +1,4 @@
+import SearchDateDropdown from './SearchDateDropdown';
 import './SearchFilters.css';
 
 type ContentType = 'all' | 'sermon' | 'transcript' | 'note';
@@ -26,6 +27,8 @@ export default function SearchFilters({
 	date,
 	onDateChange,
 }: SearchFiltersProps) {
+	const selectedSpeakerLabel = speaker === 'any' ? 'Any Speaker' : speaker;
+	const speakerWidth = `${Math.max(selectedSpeakerLabel.length - 0.3, 7)}ch`;
 	return (
 		<div className="SearchFilters">
 			<div className="SearchFilters-pills">
@@ -43,27 +46,31 @@ export default function SearchFilters({
 				))}
 			</div>
 
-			<select
-				value={speaker}
-				onChange={e => onSpeakerChange(e.target.value)}
-				className="SearchFilters-select"
+			<div
+				className="SearchFilters-selectWrap"
+				style={{ width: speakerWidth }}
 			>
-				<option value="any">Any Speaker</option>
-				<option value="Dave">Dave</option>
-				<option value="Michael">Michael</option>
-				<option value="Tim">Tim</option>
-			</select>
+				<select
+					value={speaker}
+					onChange={e => onSpeakerChange(e.target.value)}
+					className="SearchFilters-select"
+				>
+					<option value="any">Any Speaker</option>
+					<option value="Dave Patterson">Dave Patterson</option>
+					<option value="Jon Laurenzo">Jon Laurenzo</option>
+					<option value="Hilary Harris">Hilary Harris</option>
+					<option value="Tosha Zwanziger">Tosha Zwanziger</option>
+					<option value="Rich Harris">Rich Harris</option>
+					<option value="Joseph Zwanziger">Joseph Zwanziger</option>
+					<option value="Jake Taylor">Jake Taylor</option>
+				</select>
 
-			<select
-				value={date}
-				onChange={e => onDateChange(e.target.value)}
-				className="SearchFilters-select"
-			>
-				<option value="any">Any Date</option>
-				<option value="2024">2024</option>
-				<option value="2023">2023</option>
-				<option value="2022">2022</option>
-			</select>
+				<span className="SearchFilters-selectArrow" aria-hidden="true">
+					▼
+				</span>
+			</div>
+
+			<SearchDateDropdown value={date} onChange={onDateChange} />
 		</div>
 	);
 }
