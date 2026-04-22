@@ -1,4 +1,4 @@
-import type { ActivityItem } from "$/types/activity";
+import type { ActivityItem } from '$/types/activity';
 
 export const activities: ActivityItem[] = [
 	{
@@ -37,4 +37,3 @@ export const activities: ActivityItem[] = [
 		time: 'Yesterday',
 	},
 ];
-

@@ -63,14 +63,18 @@ function Action({
 		);
 	} else if (status === 'complete') {
 		return (
-			<Tag variant="green" className="Action-badge Action-badge--complete">Complete</Tag>
+			<Tag variant="green" className="Action-badge Action-badge--complete">
+				Complete
+			</Tag>
 		);
 	} else if (status === 'failed') {
 		// Extract leading number from subtitle (e.g. "12 videos failed")
 		const match = subtitle.match(/\d+/);
 		const count = match ? match[0] : '';
 		return (
-			<Tag variant="red" className="Action-badge Action-badge--failed">{count} Errors</Tag>
+			<Tag variant="red" className="Action-badge Action-badge--failed">
+				{count} Errors
+			</Tag>
 		);
 	} else {
 		return null;
