@@ -81,6 +81,7 @@
 
 	accent-color: var(--cl-accent);
 	cursor: auto;
+	interpolate-size: allow-keywords;
 }
 
 body {
@@ -100,6 +101,16 @@ button {
 	background-color: var(--cl-accent);
 	border: none;
 	border-radius: 0.25rem;
+}
+
+:where(input[type="text"]) {
+	font-family: inherit;
+	border: 1px solid var(--cl-outline);
+	border-radius: 0.5rem;
+
+	&:focus-visible {
+		outline-color: var(--cl-accent);
+	}
 }
 
 .u-button {
@@ -122,15 +133,5 @@ button {
 		filter: brightness(
 			var(--active-brightness, var(--active-brightness-default))
 		);
-	}
-}
-
-input[type="text"] {
-	font-family: inherit;
-	border: 1px solid var(--cl-outline);
-	border-radius: 0.5rem;
-
-	&:focus-visible {
-		outline-color: var(--cl-accent);
 	}
 }

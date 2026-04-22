@@ -81,7 +81,7 @@
 		}
 	}
 
-	tbody :where(th, td)>a {
+	tbody :where(th, td) > a {
 		display: block;
 		padding-block: 0.875em;
 		color: inherit;

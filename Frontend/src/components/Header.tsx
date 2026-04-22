@@ -31,16 +31,33 @@ export default function Header({
 					onChange={e => set(e.target.checked)}
 				/>
 			</label>
+
 			<h2 className="Header-title">{children}</h2>
-			<input
-				type="text"
-				className="Header-search"
-				placeholder="Search sermons, speakers, tags..."
-			/>
-			<button type="button" className="Header-upload u-button">
-				<Icon icon="lucide:plus" />
-				Upload
-			</button>
+
+			<div className="Header-controls">
+				<form className="Header-search" action="/ai-search" method="get">
+					<label className="Header-searchLabel">
+						<Icon className="Header-searchIcon" icon="lucide:search" />
+						<input
+							name="query"
+							type="text"
+							className="Header-searchInput"
+							placeholder="Search sermons, speakers, tags..."
+						/>
+					</label>
+					<button type="submit" className="Header-searchConfirm">
+						<Icon
+							className="Header-searchConfirmIcon"
+							icon="lucide:arrow-right"
+						></Icon>
+					</button>
+				</form>
+
+				<button type="button" className="Header-upload u-button">
+					<Icon icon="lucide:plus" />
+					<p className="Header-uploadText">Upload</p>
+				</button>
+			</div>
 		</header>
 	);
 }
