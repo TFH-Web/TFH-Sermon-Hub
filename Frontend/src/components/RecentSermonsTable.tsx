@@ -1,6 +1,6 @@
 import './RecentSermonsTable.css';
 import { formatDate } from '$/lib/date';
-import type { Sermon } from '$/types/sermon';
+import { linkTo, type Sermon } from '$/types/sermon';
 import Container from './Container';
 import Tag, { type TagProps } from './Tag';
 
@@ -49,14 +49,24 @@ export default function RecentSermonsTable({
 				<tbody>
 					{sermons.map(s => (
 						<tr key={s.id}>
-							<th scope="row">{s.title}</th>
-							<td>{s.speaker}</td>
-							<td>{s.series}</td>
-							<td>{formatDate(s.date, { month: 'short', day: 'numeric' })}</td>
+							<th scope="row">
+								<a href={linkTo(s)}>{s.title}</a>
+							</th>
 							<td>
-								<span>
+								<a href={linkTo(s)}>{s.speaker}</a>
+							</td>
+							<td>
+								<a href={linkTo(s)}>{s.series}</a>
+							</td>
+							<td>
+								<a href={linkTo(s)}>
+									{formatDate(s.date, { month: 'short', day: 'numeric' })}
+								</a>
+							</td>
+							<td>
+								<a href={linkTo(s)}>
 									<Tag variant={statusVariant[s.status]}>{s.status}</Tag>
-								</span>
+								</a>
 							</td>
 						</tr>
 					))}

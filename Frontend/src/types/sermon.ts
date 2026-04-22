@@ -9,6 +9,10 @@ export interface Sermon {
 	status: 'Published' | 'Processing' | 'Failed';
 }
 
+export function linkTo(sermon: Sermon): string {
+	return `/sermons/#${sermon.id}`;
+}
+
 export const sampleSermons: Sermon[] = [
 	{
 		id: 1,
