@@ -2,7 +2,6 @@ import type React from 'react';
 import './ImportItem.css';
 import { Icon } from '@iconify-icon/react';
 import clsx from 'clsx';
-import ProgressBar from './ProgressBar';
 import './ImportActivity.css';
 import type { ImportJob } from '$/types/import';
 
@@ -55,7 +54,7 @@ function Action({
 	if (status === 'active' && progress != null) {
 		return (
 			<div className="ImportActivity-progressWrap">
-				<ProgressBar percent={progress} width="100px" />
+				<progress max={100} value={progress} style={{ width: '100px' }} />
 				<span className="ImportActivity-pct">{progress}%</span>
 			</div>
 		);

@@ -135,3 +135,25 @@ button {
 		);
 	}
 }
+
+progress {
+	color: var(--cl-accent);
+	background: var(--cl-outline);
+	border-radius: 0.2rem;
+}
+
+progress::-webkit-progress-value {
+	background: var(--cl-accent);
+	border-radius: 0.2rem;
+}
+
+progress::-webkit-progress-bar {
+	background: var(--cl-outline);
+	border-radius: 0.2rem;
+}
+
+progress::-moz-progress-bar {
+	background: var(--cl-accent);
+	border-radius: 0.2rem;
+}
+
