@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import './EditSermonModal.css';
 import Button from '$/components/Button';
+import FileUploadButton from '$/components/FileUploadButton';
 import { FormField, FormRow } from '$/components/FormField';
 import Modal from '$/components/Modal';
 import { useToast } from '$/components/ToastContext';
@@ -62,21 +63,7 @@ export default function EditSermonModal({
 			return;
 		}
 		onClose();
-		showToast('Sermon updated', 'success');
-	};
-
-	// For transcript file upload - hidden file input triggered by "Upload Transcript" button
-	const fileInputRef = useRef<HTMLInputElement>(null);
-	const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0];
-		if (file) {
-			// Read the file and populate the transcript text area
-			const reader = new FileReader();
-			reader.onload = event => {
-				setTranscript(event.target?.result as string);
-			};
-			reader.readAsText(file);
-		}
+		showToast('Sermon updated successfully', 'success');
 	};
 
 	return (
@@ -187,24 +174,14 @@ export default function EditSermonModal({
 			/>
 
 			<FormField label="Transcript">
-				{/* Hidden file input */}
-				<input
-					ref={fileInputRef}
-					type="file"
-					accept=".txt"
-					onChange={handleFileSelect}
-					style={{ display: 'none' }}
-				/>
-
 				{/* Upload button */}
 				<span>
-					<Button
-						variant="secondary"
-						onClick={() => fileInputRef.current?.click()}
+					<FileUploadButton
+						onFileRead={setTranscript}
 						className="upload-button"
 					>
 						Upload Transcript File
-					</Button>
+					</FileUploadButton>
 				</span>
 				<span className="or-text">or paste below</span>
 
