@@ -107,8 +107,8 @@
 .Sermons-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(min(12rem, 100%), auto));
-	grid-auto-rows: 8rem auto auto auto;
-	gap: 24px;
+	grid-auto-rows: 10rem auto auto auto;
+	gap: 1rem;
 	margin-top: 10px;
 }
 
