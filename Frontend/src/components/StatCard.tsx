@@ -1,18 +1,19 @@
+import Container from './Container';
 import './StatCard.css';
 
 type StatCardProps = {
 	label: string;
-	value: string;
+	value: number;
 	trend?: string;
 };
 
 function StatCard({ label, value, trend }: StatCardProps) {
 	return (
-		<div className="StatCard">
-			<p className="StatCard-label">{label}</p>
-			<h2 className="StatCard-value">{value}</h2>
+		<Container className="StatCard">
+			<h2 className="StatCard-label">{label}</h2>
+			<p className="StatCard-value">{value.toLocaleString('en-US')}</p>
 			{trend && <p className="StatCard-trend">↑ {trend}</p>}
-		</div>
+		</Container>
 	);
 }
 

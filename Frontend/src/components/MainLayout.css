@@ -23,10 +23,25 @@
 	overflow-y: auto;
 }
 
+.Layout-title {
+	display: none;
+	margin-block: 0.75em;
+}
+
 .Layout-sidebar {
 	grid-area: sidebar;
 
 	@container (width <= 800px) {
 		grid-column: 2;
+	}
+}
+
+@container (width <= 350px) {
+	.Header-title {
+		display: none;
+	}
+
+	.Layout-title {
+		display: block;
 	}
 }

@@ -1,4 +1,5 @@
 .Header {
+	z-index: var(--z-header);
 	display: flex;
 	gap: 1rem;
 	align-items: center;
@@ -25,12 +26,71 @@
 .Header-title {
 	flex: 9;
 	margin: 0;
+	font-size: clamp(1.1rem, 9vw - 0.9rem, 1.5rem);
+	white-space: nowrap;
+	transition-property: display, opacity;
+	transition-timing-function: ease;
+	transition-behavior: allow-discrete;
+	transition-duration: 150ms;
+}
+
+.Header-controls {
+	display: flex;
+	flex: 8;
+	gap: 1rem;
 }
 
 .Header-search {
-	flex: 8;
+	position: relative;
+	display: flex;
+	flex: auto;
+	align-items: center;
 	min-height: 5ex;
-	padding-inline: 1em;
+	padding-inline: 0.5em;
+	overflow: clip;
+	background-color: var(--cl-surface);
+	border: 1px solid var(--cl-outline);
+	border-radius: 0.5rem;
+	box-shadow: 0 4px 8px -8px rgb(0 0 0 / 0.5);
+}
+
+.Header-searchLabel {
+	display: flex;
+	flex: auto;
+	gap: 0.5em;
+}
+
+.Header-searchIcon {
+	font-size: 1.25rem;
+	vertical-align: middle;
+}
+
+.Header-searchInput {
+	flex: auto;
+	min-width: 0;
+	outline: none;
+	background-color: transparent;
+	border: none;
+}
+
+.Header-searchConfirm {
+	position: absolute;
+	inset-inline-end: 0.5em;
+	display: grid;
+	place-items: center;
+	padding: 0.25em;
+	font-size: 1rem;
+	color: var(--cl-on-accent);
+	pointer-events: none;
+	background-color: var(--cl-accent);
+	border-radius: 0.5rem;
+	opacity: 0;
+	transition: opacity 50ms ease;
+
+	.Header-searchLabel:has(.Header-searchInput:not(:placeholder-shown)) ~ & {
+		pointer-events: initial;
+		opacity: 1;
+	}
 }
 
 .Header-upload {
@@ -40,4 +100,52 @@
 	min-height: 5ex;
 	padding: 0.5em 1em;
 	border-radius: 0.5rem;
+}
+
+.Header-uploadText {
+	margin-block: 0;
+}
+
+@container (width <= 550px) {
+	.Header-title:has(
+			~ .Header-controls
+				.Header-searchInput:where(:focus-visible, :not(:placeholder-shown))
+		) {
+		display: none;
+		opacity: 0;
+	}
+
+	.Header-controls {
+		flex: 100;
+		justify-content: end;
+	}
+
+	.Header-search {
+		flex: initial;
+		grid-template-columns: auto;
+		transition: flex 300ms ease;
+
+		&:has(.Header-searchInput:where(:focus-visible, :not(:placeholder-shown))) {
+			flex: auto;
+		}
+	}
+
+	.Header-searchInput {
+		position: absolute;
+		inset-inline: 2.5em 0;
+		pointer-events: none;
+		opacity: 0;
+
+		&:where(:focus-visible, :not(:placeholder-shown)) {
+			opacity: 1;
+		}
+	}
+
+	.Header-upload {
+		padding-inline: 0.75em;
+	}
+
+	.Header-uploadText {
+		display: none;
+	}
 }

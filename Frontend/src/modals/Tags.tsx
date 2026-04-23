@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import Button from '$/components/Button';
 import Modal from '$/components/Modal';
-import ProgressBar from '$/components/ProgressBar';
 import Tag from '$/components/Tag';
 import { useToast } from '$/components/ToastContext';
 import './Tags.css';
@@ -88,7 +87,7 @@ export default function Table() {
 							<td>{tag.sermons}</td>
 
 							<td>
-								<ProgressBar percent={tag.weight} />
+								<progress max={100} value={tag.weight} />
 							</td>
 
 							<td>
