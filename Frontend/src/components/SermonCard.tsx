@@ -1,4 +1,5 @@
 import './SermonCard.css';
+import { Icon } from '@iconify-icon/react';
 import clsx from 'clsx';
 import {
 	durationToDateTime,
@@ -43,6 +44,12 @@ export default function SermonCard({ className, sermon }: SermonCardProps) {
 				>
 					{durationToString(sermon.duration)}
 				</time>
+				<div className="SermonCard-failure" hidden={sermon.status !== 'Failed'}>
+					<Tag variant="red" className="SermonCard-failureTag">
+						<Icon icon="lucide:alert-triangle" />
+						Transcription Failed
+					</Tag>
+				</div>
 			</div>
 
 			<div className="SermonCard-tags">

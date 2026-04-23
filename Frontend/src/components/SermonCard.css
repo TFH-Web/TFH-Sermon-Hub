@@ -55,6 +55,21 @@
 	border-start-end-radius: var(--border-radius);
 }
 
+.SermonCard-failure:not([hidden]) {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	background-color: oklch(from var(--cl-surface) l c h / 0.6);
+
+	.SermonCard-failureTag {
+		display: flex;
+		gap: 0.5em;
+		font-size: 0.8rem;
+		white-space: nowrap;
+	}
+}
+
 .SermonCard-duration {
 	position: absolute;
 	inset-block-end: 0.5rem;
