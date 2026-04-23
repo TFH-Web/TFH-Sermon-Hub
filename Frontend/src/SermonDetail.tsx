@@ -7,18 +7,10 @@ import FileUploadButton from './components/FileUploadButton.tsx';
 import Tag from './components/Tag.tsx';
 import { useToast } from './components/ToastContext.tsx';
 import type { Sermon } from './types/sermon';
+import { sermons } from './data/sermons.ts';
+import { useParams } from 'react-router';
 
-const mockSermon: Sermon = {
-	id: 0,
-	title: 'The Foundation of Grace',
-	speaker: 'Dave Patterson',
-	series: 'Live Your Best Life',
-	date: new Date('2026-04-13'),
-	tags: ['grace', 'faith', 'purpose'],
-	status: 'Published',
-	duration: 0,
-};
-
+// TODO: add transcript to sermon type when we're integrating w/ backend
 const mockTranscript = [
 	"Good morning everyone. I'm so glad you're here today. We're continuing our series \"Live Your Best Life\" and today we're talking about something that is at the foundation of everything — grace.",
 	"A lot of people misunderstand what grace really means. It's not just a theological concept. Grace is the operating system of the Kingdom of God.",
@@ -52,9 +44,15 @@ function highlightKeywords(text: string, keywords: string[]) {
 export default function SermonDetail() {
 	const { showToast } = useToast();
 	const [_transcript, setTranscript] = useState('');
+	const { id } = useParams();
+	const sermon = sermons.find(s => s.id.toString() === id);
+
+	if (!sermon) {
+		throw new Error('Not found');
+	}
 
 	return (
-		<MainLayout title="Sermon Detail">
+		<MainLayout title={sermon.title}>
 			<div className="SermonDetail-grid">
 				<Card className="SermonDetail-transcriptCard">
 					<div className="SermonDetail-transcript-header">
@@ -92,7 +90,7 @@ export default function SermonDetail() {
 					<div className="SermonDetail-transcript-container">
 						{mockTranscript.map(paragraph => (
 							<p key={paragraph} className="SermonDetail-transcript-paragraph">
-								{highlightKeywords(paragraph, mockSermon.tags)}
+								{highlightKeywords(paragraph, sermon.tags)}
 							</p>
 						))}
 					</div>

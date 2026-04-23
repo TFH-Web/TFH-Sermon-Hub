@@ -18,6 +18,7 @@ import Settings from './Settings.tsx';
 import Speakers from './Speakers.tsx';
 import TagsAndMetadata from './TagsAndMetadata.tsx';
 import UserManagement from './UserManagement.tsx';
+import SermonDetail from './SermonDetail.tsx';
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ createRoot(document.getElementById('root')!).render(
 					<Routes>
 						<Route index element={<Dashboard />} />
 						<Route path="/sermons" element={<Sermons />} />
+						<Route path="/sermons/:id" element={<SermonDetail />} />
 						<Route path="/series" element={<Series />} />
 						<Route path="/speakers" element={<Speakers />} />
 						<Route path="/ai-search" element={<AISearch />} />
