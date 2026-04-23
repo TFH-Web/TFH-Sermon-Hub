@@ -16,6 +16,7 @@ export default function SermonCard({ sermon }: SermonCardProps) {
 			{/* Sermon card container with thumbnail, information, and tags */}
 			{/* Placeholder for sermon thumbnail, could be an <img> tag with sermon.thumbnailUrl in the future */}
 			<div className="SermonCard-thumbnail">
+				<img className="SermonCard-thumbnailImage" src={`https://unsplash.it/seed/${sermon.title}/1280/720`} alt={`${sermon.title} thumbnail`} />
 				<time
 					className="SermonCard-duration"
 					dateTime={durationToDateTime(sermon.duration)}
