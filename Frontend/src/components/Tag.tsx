@@ -1,12 +1,12 @@
 import type React from 'react';
 import './Tag.css';
 import clsx from 'clsx';
+import type { Polymorphic } from '$/lib/polymorphic';
 
-export type TagProps<Component extends React.ElementType> =  {
+export interface TagProps {
 	variant?: 'green' | 'outline' | 'red' | 'amber' | 'blue' | 'admin' | 'solid';
 	className?: string;
-	as?: Component;
-} & React.ComponentPropsWithoutRef<Component>;
+};
 
 export default function Tag<Component extends React.ElementType = "span">({
 	variant = 'green',
@@ -14,7 +14,7 @@ export default function Tag<Component extends React.ElementType = "span">({
 	className,
 	as,
 	...props
-}: React.PropsWithChildren<TagProps<Component>>) {
+}: Polymorphic<Component, TagProps>) {
 	const Component = as ?? 'span';
 	return (
 		<Component className={clsx('Tag', `Tag--${variant}`, className)} {...props}>
