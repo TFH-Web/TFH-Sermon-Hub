@@ -1,12 +1,13 @@
 import './RecentSermonsTable.css';
 import { formatDate } from '$/lib/date';
-import { linkTo, type Sermon } from '$/types/sermon';
+import { linkTo, type Sermon, type Status } from '$/types/sermon';
 import Container from './Container';
-import Tag, { type TagProps } from './Tag';
+import Tag, { type TagVariant } from './Tag';
 
-const statusVariant: Record<Sermon['status'], TagProps['variant']> = {
+const statusVariant: Record<Status, TagVariant> = {
 	Published: 'green',
-	Processing: 'amber',
+	Processing: 'blue',
+	Draft: 'amber',
 	Failed: 'red',
 };
 
