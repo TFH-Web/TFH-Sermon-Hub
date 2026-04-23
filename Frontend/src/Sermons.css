@@ -6,10 +6,15 @@
 	}
 }
 
+.Sermons-scrollContainer {
+	padding-block-end: 0.25rem;
+	margin-block: 1rem 2rem;
+	overflow-inline: auto;
+}
+
 /* Sermons.css, transparent background by default when not selected. !important was to override global styles */
 .Sermons-statuses {
 	display: flex;
-	margin-block: 1rem 2rem;
 }
 
 .Sermons-status {
@@ -40,10 +45,21 @@
 	}
 }
 
+.Sermons-controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	align-items: center;
+	justify-content: space-between;
+	min-width: 0;
+	margin-block-end: 2rem;
+}
+
 .Sermons-topics {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.5rem;
+	min-width: 0;
 }
 
 .Sermons-topic {
@@ -67,6 +83,21 @@
 		color: var(--cl-on-accent);
 		background-color: var(--cl-accent);
 	}
+}
+
+.Sermons-dropdowns {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	min-width: 0;
+}
+
+.Sermons-dropdown {
+	padding: 0.25em 0.5em;
+	font: inherit;
+	cursor: pointer;
+	border: 2px solid var(--cl-outline);
+	border-radius: 0.25rem;
 }
 
 .Sermons-grid {
