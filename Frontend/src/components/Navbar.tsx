@@ -6,7 +6,7 @@ export default function Navbar() {
 		<nav className="Navbar">
 			<h2 className="Navbar-header">Main</h2>
 			<ul className="Navbar-list">
-				<NavbarItem icon="lucide:square-terminal" to="/">
+				<NavbarItem icon="lucide:square-terminal" to="/dashboard">
 					Dashboard
 				</NavbarItem>
 				<NavbarItem icon="lucide:video" to="/sermons">

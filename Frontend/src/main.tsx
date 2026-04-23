@@ -18,6 +18,7 @@ import Settings from './Settings.tsx';
 import Speakers from './Speakers.tsx';
 import TagsAndMetadata from './TagsAndMetadata.tsx';
 import UserManagement from './UserManagement.tsx';
+import LoginPage from './LoginPage.tsx'
 
 const queryClient = new QueryClient();
 
@@ -28,7 +29,8 @@ createRoot(document.getElementById('root')!).render(
 			<ToastProvider>
 				<BrowserRouter>
 					<Routes>
-						<Route index element={<Dashboard />} />
+						<Route index element={<LoginPage />} />
+						<Route path="/dashboard" element={<Dashboard />} />
 						<Route path="/sermons" element={<Sermons />} />
 						<Route path="/series" element={<Series />} />
 						<Route path="/speakers" element={<Speakers />} />

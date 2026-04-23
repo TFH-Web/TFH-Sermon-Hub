@@ -1,6 +1,7 @@
 // Login Page, shows a microsoft sign-in card and demo
 import { useState } from 'react';
 import './LoginPage.css';
+import { useNavigate } from 'react-router-dom';
 
 // Scenariios Listed
 type DemoScenario =
@@ -174,12 +175,15 @@ function MicrosoftIcon() {
 export default function LoginPage() {
     const [scenario, setScenario] = useState<DemoScenario>("Default");
 
+const navigate = useNavigate();
+
     // Current Scenario config
     const s = SCENARIOS[scenario];
 
-    // TODO: Replace with MSAL redirect when authentication gets wired
+    // TODO: Replace with actual MSAL redirect when authentication gets wired
+    // Currently simulates what would happen on successful authentication
     function handlePrimaryClick() {
-        alert(`[Demo] Outline action triggered - scenario: "${scenario}"`);
+        navigate('/dashboard');
     }
 
     // TODO: Wire to MSAL account picker or resend the approval logic

@@ -22,7 +22,7 @@ export default function Sidebar({ className }: SidebarProps) {
 			</label>
 			<aside className={clsx('Sidebar', className)}>
 				<div className="Sidebar-title">
-					<Link className="Sidebar-titleLink" to="/">
+					<Link className="Sidebar-titleLink" to="/dashboard">
 						<div className="Sidebar-logoContainer">
 							<img className="Sidebar-logo" src={logo} alt="TFH" />
 						</div>
