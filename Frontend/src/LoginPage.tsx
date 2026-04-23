@@ -177,9 +177,16 @@ export default function LoginPage() {
     // Current Scenario config
     const s = SCENARIOS[scenario];
 
+    // TODO: Replace with MSAL redirect when authentication gets wired
     function handlePrimaryClick() {
         alert(`[Demo] Outline action triggered - scenario: "${scenario}"`);
     }
+
+    // TODO: Wire to MSAL account picker or resend the approval logic
+    function handleOutlineClick() { 
+        alert(`[Demo] Outline action triggered — scenario: "${scenario}"`);
+    }
+
 
     return (
         // Gray fullscreen background, the card is centered in the middle
