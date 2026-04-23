@@ -40,18 +40,33 @@ export default function Sermons() {
 	return (
 		<MainLayout title="Sermons">
 			{/* Sermon Filter Buttons, clicks set as active and update the selectedSermonFilter state */}
-			<div className="Sermons-statuses">
-				{[null, ...statuses].map(c => (
-					<button
-						key={c ?? 'All'}
-						type="button"
-						className={clsx('Sermons-status', status === c && 'is-active')}
-						onClick={() => setStatus(c)}
+			<fieldset className="Sermons-statuses">
+				{[null, ...statuses].map(s => (
+					<label
+						key={s ?? 'All'}
+						className={clsx(
+							'Sermons-status',
+							'u-button',
+							status === s && 'is-active',
+						)}
 					>
-						{c ?? 'All'}
-					</button>
+						<input
+							type="radio"
+							name="status"
+							hidden={true}
+							value={s ?? 'All'}
+							checked={s === status}
+							onChange={e => {
+								return setStatus(
+									// @ts-expect-error 2345: value comes from iterating over an array marked as const
+									e.target.value === 'All' ? null : e.target.value,
+								);
+							}}
+						/>
+						{s ?? 'All'}
+					</label>
 				))}
-			</div>
+			</fieldset>
 
 			{/* Sermon Topic Buttons, clicks set as active and update the selectedTopic state */}
 			<div className="filters-container">
@@ -98,8 +113,12 @@ export default function Sermons() {
 					</select>
 
 					{/* Video Upload Recency dropdown, selection updates the videoUploadRecency state */}
-					{/* @ts-expect-error 2345: value comes from iterating over an array marked as const */}
-					<select onChange={e => setSortCategory(e.target.value)}>
+					<select
+						onChange={e => {
+							// @ts-expect-error 2345: value comes from iterating over an array marked as const
+							return setSortCategory(e.target.value);
+						}}
+					>
 						{sortCategories.map(s => (
 							<option key={s} value={s}>
 								{s}
