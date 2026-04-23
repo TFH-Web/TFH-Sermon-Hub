@@ -9,12 +9,14 @@ import { useToast } from './components/ToastContext.tsx';
 import type { Sermon } from './types/sermon';
 
 const mockSermon: Sermon = {
+	id: 0,
 	title: 'The Foundation of Grace',
 	speaker: 'Dave Patterson',
 	series: 'Live Your Best Life',
-	date: '2026-04-13',
-	time: '10:00 AM',
+	date: new Date('2026-04-13'),
 	tags: ['grace', 'faith', 'purpose'],
+	status: 'Published',
+	duration: 0,
 };
 
 const mockTranscript = [
