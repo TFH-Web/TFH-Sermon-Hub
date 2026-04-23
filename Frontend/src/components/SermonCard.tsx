@@ -1,38 +1,52 @@
-import './SermonCard.css'
-import type { Sermon } from '../types/sermon';
+import './SermonCard.css';
+import {
+	durationToDateTime,
+	durationToString,
+	type Sermon,
+} from '$/types/sermon';
+import Container from './Container';
 
-interface SermonCardProps {
+export interface SermonCardProps {
 	sermon: Sermon;
 }
 
 export default function SermonCard({ sermon }: SermonCardProps) {
 	return (
-		<div className="sermon-card">
+		<Container className="SermonCard">
 			{/* Sermon card container with thumbnail, information, and tags */}
 			{/* Placeholder for sermon thumbnail, could be an <img> tag with sermon.thumbnailUrl in the future */}
-			<div className="sermon-thumbnail">
-				{sermon.time && <span className="sermon-time">{sermon.time}</span>}
+			<div className="SermonCard-thumbnail">
+				<time
+					className="SermonCard-duration"
+					dateTime={durationToDateTime(sermon.duration)}
+				>
+					{durationToString(sermon.duration)}
+				</time>
 			</div>
 
 			{/* Sermon information section with title, speaker, date, and tags */}
-			<div className="sermon-info">
+			<div className="SermonCard-info">
 				<h3>{sermon.title}</h3>
 				<p>
-					{sermon.speaker} • {formatDate(sermon.date)}{' '}
+					{sermon.speaker} • {formatDate(sermon.date)}
 				</p>
 			</div>
-			<div className="sermon-tags">
+			<div className="SermonCard-tags">
 				{sermon.tags.map(tag => (
 					<span key={tag} className="tag-pill">
 						{tag}
 					</span>
 				))}
 			</div>
-		</div>
+		</Container>
 	);
 }
 
 function formatDate(date: Date): string {
-	const formatter = Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+	const formatter = Intl.DateTimeFormat('en-US', {
+		month: 'short',
+		day: 'numeric',
+		year: 'numeric',
+	});
 	return formatter.format(date);
 }

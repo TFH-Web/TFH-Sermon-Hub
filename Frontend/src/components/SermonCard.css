@@ -1,5 +1,5 @@
 /* Sermon card */
-.sermon-card {
+.SermonCard {
 	padding: 0px;
 	overflow: hidden;
 	cursor: pointer;
@@ -10,23 +10,23 @@
 }
 
 /* Sermon thumbnail */
-.sermon-thumbnail {
+.SermonCard-thumbnail {
 	position: relative;
 	height: auto;
 	aspect-ratio: 16 / 9;
 	background: #a3a8a0;
 }
 
-/* Sermon info section */
-.sermon-info {
+/* SermonCard info section */
+.SermonCard-info {
 	height: 110px;
 	padding: 4px 16px 8px 16px;
 	margin: 0;
 	background: #ffffff;
 }
 
-/* Sermon time section */
-.sermon-time {
+/* SermonCard time section */
+.SermonCard-duration {
 	position: absolute;
 	right: 8px;
 	bottom: 8px;
@@ -38,7 +38,7 @@
 }
 
 /* Tags container */
-.sermon-tags {
+.SermonCard-tags {
 	display: flex;
 	gap: 8px;
 	padding: 0 16px 16px 16px;

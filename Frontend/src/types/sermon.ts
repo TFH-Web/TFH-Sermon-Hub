@@ -16,3 +16,29 @@ export interface Sermon {
 export function linkTo(sermon: Sermon): string {
 	return `/sermons/#${sermon.id}`;
 }
+
+const MS_TO_S = 1000;
+
+export function durationToDateTime(duration: number) {
+	const date = new Date(duration * MS_TO_S);
+	const h = date.getUTCHours();
+	const m = date.getUTCMinutes();
+	const s = date.getUTCSeconds();
+
+	return `PT${h}H${m}M${s}S`;
+}
+
+export function durationToString(duration: number) {
+	const date = new Date(duration * MS_TO_S);
+	const h = date.getUTCHours();
+	const m = date.getUTCMinutes();
+	const s = date.getUTCSeconds();
+
+	const pad = (n: number) => n.toString().padStart(2, '0');
+
+	if (h > 0) {
+		return `${h}:${pad(m)}:${pad(s)}`;
+	} else {
+		return `${m}:${pad(s)}`;
+	}
+}
