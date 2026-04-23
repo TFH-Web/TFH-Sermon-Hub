@@ -1,68 +1,55 @@
-.RecentActivity {
-	padding: 24px 28px;
-	background: #fff;
-	border: 1px solid #eee;
-	border-radius: 12px;
-}
-
 .RecentActivity-title {
-	margin: 0 0 20px 0;
-	font-size: 16px;
-	font-weight: 700;
-	color: #111;
+	margin-block: 0 1.5em;
 }
 
 .RecentActivity-list {
 	display: flex;
 	flex-direction: column;
-	gap: 20px;
+	gap: 1.25rem;
 	padding: 0;
 	margin: 0;
 	list-style: none;
 }
 
 .RecentActivity-item {
-	display: flex;
-	gap: 12px;
-	align-items: flex-start;
+	display: grid;
+	grid-template:
+		"dot text" auto
+		"dot time" auto / auto 1fr;
+	gap: 0.1rem 0.75rem;
 }
 
 /* Colored dot indicator */
 .RecentActivity-dot {
-	flex-shrink: 0;
-	width: 10px;
-	height: 10px;
-	margin-top: 4px;
+	grid-area: dot;
+	width: 0.625rem;
+	aspect-ratio: 1;
+	margin-block-start: 0.2em;
 	border-radius: 50%;
 }
 
 .RecentActivity-dot--success {
-	background: #5d6f54;
+	background: var(--cl-success);
 }
 .RecentActivity-dot--system {
-	background: #e67e22;
+	background: var(--cl-warning);
 }
 .RecentActivity-dot--error {
-	background: #c0392b;
+	background: var(--cl-error);
 }
 .RecentActivity-dot--info {
-	background: #aaa;
-}
-
-.RecentActivity-body {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
+	background: var(--cl-info);
 }
 
 .RecentActivity-text {
+	grid-area: text;
 	margin: 0;
-	font-size: 13px;
+	font-size: 0.8rem;
 	line-height: 1.4;
-	color: #111;
 }
 
 .RecentActivity-time {
-	font-size: 11px;
-	color: #aaa;
+	grid-area: time;
+	font-size: 0.75rem;
+	opacity: 0.6;
 }

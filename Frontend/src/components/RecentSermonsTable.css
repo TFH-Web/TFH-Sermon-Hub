@@ -1,77 +1,112 @@
-.RecentSermonsCard {
-	padding: 24px 28px;
-	background-color: #fff;
-	border: 1px solid #eee;
-	border-radius: 12px;
+.RecentSermonsTable {
+	overflow-inline: auto;
+	overscroll-behavior-inline: none;
+	background-color: var(--cl-surface);
 }
 
-.RecentSermonsCard-header {
+.RecentSermonsTable-header {
+	position: sticky;
+	inset-inline-start: 0;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin-bottom: 20px;
+	margin-block-end: 1.5rem;
 }
 
-.RecentSermonsCard-title {
-	font-size: 16px;
-	font-weight: 700;
-	color: #111;
+.RecentSermonsTable-title {
+	margin-block: 0;
+	font-weight: bold;
 }
 
-.RecentSermonsCard-viewAll {
-	font-size: 13px;
-	color: #888;
+.RecentSermonsTable-viewAll {
+	position: relative;
+	font-size: 0.8rem;
+	color: var(--cl-foreground);
+	white-space: nowrap;
 	text-decoration: none;
+	opacity: 0.6;
+	transition: all 150ms ease;
+
+	&::after {
+		position: absolute;
+		inset-block-end: 0;
+		inset-inline: 0;
+		height: 1px;
+		content: "";
+		background-color: var(--cl-accent);
+		opacity: 0;
+		transition: opacity 150ms ease;
+	}
+
+	&:hover {
+		color: var(--cl-accent);
+		opacity: 1;
+
+		&::after {
+			opacity: 1;
+		}
+	}
 }
 
-.RecentSermonsCard-table {
-	width: 100%;
-	font-size: 14px;
-	border-collapse: collapse;
-}
-
-.RecentSermonsCard-colHeader {
-	padding-bottom: 10px;
-	font-size: 11px;
-	font-weight: 600;
-	color: #aaa;
+.RecentSermonsTable-table {
+	width: max(40rem, 100%);
+	text-overflow: ellipsis;
+	font-size: 0.9rem;
 	text-align: left;
-	letter-spacing: 0.08em;
-	border-bottom: 1px solid #eee;
+	table-layout: fixed;
+	border-collapse: collapse;
+
+	tr {
+		border-block-end: 1px solid var(--cl-outline);
+	}
+
+	th,
+	td {
+		vertical-align: top;
+	}
+
+	thead th {
+		padding-block-end: 0.625em;
+		font-size: 0.8rem;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		opacity: 0.6;
+	}
+
+	tbody tr {
+		cursor: pointer;
+		transition: background-color 150ms ease;
+
+		&:hover,
+		&:focus-visible {
+			background-color: oklch(from var(--cl-surface) calc(l * 0.95) c h);
+		}
+	}
+
+	tbody :where(th, td) > a {
+		display: block;
+		padding-block: 0.875em;
+		color: inherit;
+		text-decoration: none;
+	}
 }
 
-.RecentSermonsCard-colSermon {
+.RecentSermonsTable-colSermon {
 	width: 28%;
 }
-.RecentSermonsCard-colSpeaker {
+
+.RecentSermonsTable-colSpeaker {
 	width: 22%;
 }
-.RecentSermonsCard-colSeries {
+
+.RecentSermonsTable-colSeries {
 	width: 24%;
 }
-.RecentSermonsCard-colDate {
+
+.RecentSermonsTable-colDate {
 	width: 13%;
 }
-.RecentSermonsCard-colStatus {
+
+.RecentSermonsTable-colStatus {
 	width: 13%;
-}
-
-.RecentSermonsCard-row {
-	cursor: pointer;
-	border-bottom: 1px solid #f0f0f0;
-}
-
-.RecentSermonsCard-row:hover {
-	background-color: #f9f9f9;
-}
-
-.RecentSermonsCard-cell {
-	padding: 14px 0;
-	color: #000;
-	text-align: left;
-}
-
-.RecentSermonsCard-cell--title {
-	font-weight: 600;
-	color: #111;
 }

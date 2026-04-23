@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import './ImportUpload.css';
-import { Icon } from '@iconify-icon/react';
 import Button from '$/components/Button';
 import { Card, CardHeader } from '$/components/Card';
 import { FormField, FormRow } from '$/components/FormField';
 import ImportItem from '$/components/ImportItem';
 import MainLayout from '$/components/MainLayout';
-import ProgressBar from '$/components/ProgressBar';
 import TabBar from '$/components/TabBar';
 import Tag from '$/components/Tag';
 import { useToast } from '$/components/ToastContext';
@@ -62,25 +60,8 @@ export default function ImportUpload() {
 							<CardHeader title="Active Imports" />
 							<div className="Card-body">
 								{activeImports.length > 0 ? (
-									activeImports.map(imp => (
-										<ImportItem
-											key={imp.id}
-											icon={<Icon icon={imp.icon} width={18} height={18} />}
-											title={imp.title}
-											subtitle={imp.subtitle}
-											action={
-												imp.progress != null ? (
-													<div style={{ textAlign: 'right' }}>
-														<ProgressBar percent={imp.progress} width="100px" />
-														<small className="ImportUpload-progressLabel">
-															{imp.progress}%
-														</small>
-													</div>
-												) : (
-													<Tag variant="amber">In Progress</Tag>
-												)
-											}
-										/>
+									activeImports.map(job => (
+										<ImportItem key={job.id} job={job} />
 									))
 								) : (
 									<p className="ImportUpload-empty">No active imports</p>
@@ -132,25 +113,8 @@ export default function ImportUpload() {
 					<Card>
 						<CardHeader title="Active Imports" />
 						<div className="Card-body">
-							{activeImports.map(imp => (
-								<ImportItem
-									key={imp.id}
-									icon={<Icon icon={imp.icon} width={18} height={18} />}
-									title={imp.title}
-									subtitle={imp.subtitle}
-									action={
-										imp.progress != null ? (
-											<div style={{ textAlign: 'right' }}>
-												<ProgressBar percent={imp.progress} width="100px" />
-												<small className="ImportUpload-progressLabel">
-													{imp.progress}%
-												</small>
-											</div>
-										) : (
-											<Tag variant="amber">In Progress</Tag>
-										)
-									}
-								/>
+							{activeImports.map(job => (
+								<ImportItem key={job.id} job={job} />
 							))}
 						</div>
 					</Card>
@@ -162,19 +126,7 @@ export default function ImportUpload() {
 					<CardHeader title="Import History" />
 					<div className="Card-body">
 						{importHistory.length > 0 ? (
-							importHistory.map(imp => (
-								<ImportItem
-									key={imp.id}
-									icon={<Icon icon={imp.icon} width={18} height={18} />}
-									title={imp.title}
-									subtitle={imp.subtitle}
-									action={
-										<Tag variant={imp.errorMessage ? 'amber' : 'green'}>
-											{imp.errorMessage ? 'Completed with errors' : 'Complete'}
-										</Tag>
-									}
-								/>
-							))
+							importHistory.map(job => <ImportItem key={job.id} job={job} />)
 						) : (
 							<p className="ImportUpload-empty">No import history yet</p>
 						)}
@@ -190,32 +142,7 @@ export default function ImportUpload() {
 					/>
 					<div className="Card-body">
 						{failedImports.length > 0 ? (
-							failedImports.map(imp => (
-								<ImportItem
-									key={imp.id}
-									icon={
-										<Icon
-											icon="lucide:circle-x"
-											width={18}
-											height={18}
-											style={{ color: 'var(--cl-error)' }}
-										/>
-									}
-									title={imp.title}
-									subtitle={imp.errorMessage || ''}
-									action={
-										<Button
-											variant="secondary"
-											size="sm"
-											onClick={() =>
-												showToast(`Retrying ${imp.title}...`, 'info')
-											}
-										>
-											Retry
-										</Button>
-									}
-								/>
-							))
+							failedImports.map(job => <ImportItem key={job.id} job={job} />)
 						) : (
 							<p className="ImportUpload-empty">No failed imports</p>
 						)}
