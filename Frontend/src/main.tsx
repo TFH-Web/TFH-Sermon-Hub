@@ -19,6 +19,8 @@ import Speakers from './Speakers.tsx';
 import TagsAndMetadata from './TagsAndMetadata.tsx';
 import UserManagement from './UserManagement.tsx';
 import SermonDetail from './SermonDetail.tsx';
+import { ErrorBoundary } from 'react-error-boundary';
+import MainLayout from '$/components/MainLayout.tsx';
 
 const queryClient = new QueryClient();
 
@@ -28,6 +30,7 @@ createRoot(document.getElementById('root')!).render(
 		<QueryClientProvider client={queryClient}>
 			<ToastProvider>
 				<BrowserRouter>
+					<ErrorBoundary fallback={<MainLayout title="Error">Error!</MainLayout>}>
 					<Routes>
 						<Route index element={<Dashboard />} />
 						<Route path="/sermons" element={<Sermons />} />
@@ -42,6 +45,7 @@ createRoot(document.getElementById('root')!).render(
 						<Route path="/notifications" element={<Notifications />} />
 						<Route path="/settings" element={<Settings />} />
 					</Routes>
+					</ErrorBoundary>
 				</BrowserRouter>
 			</ToastProvider>
 		</QueryClientProvider>
