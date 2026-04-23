@@ -1,15 +1,8 @@
 import './RecentSermonsTable.css';
 import { formatDate } from '$/lib/date';
-import { linkTo, type Sermon, type Status } from '$/types/sermon';
+import { linkTo, statusVariant, type Sermon, type Status } from '$/types/sermon';
 import Container from './Container';
 import Tag, { type TagVariant } from './Tag';
-
-const statusVariant: Record<Status, TagVariant> = {
-	Published: 'green',
-	Processing: 'blue',
-	Draft: 'amber',
-	Failed: 'red',
-};
 
 export interface RecentSermonsTableProps {
 	sermons: Sermon[];
@@ -66,7 +59,7 @@ export default function RecentSermonsTable({
 							</td>
 							<td>
 								<a href={linkTo(s)}>
-									<Tag variant={statusVariant[s.status]}>{s.status}</Tag>
+									<Tag variant={statusVariant(s.status)}>{s.status}</Tag>
 								</a>
 							</td>
 						</tr>

@@ -55,16 +55,22 @@ export function createOverlayInfo(status: Status): OverlayInfo {
 	switch (status) {
 		case 'Processing':
 			return {
-				tagVariant: 'blue',
+				tagVariant: 'amber',
 				icon: 'lucide:file-clock',
 				text: 'Processing',
 			};
 		case 'Draft':
 			return {
-				tagVariant: 'amber',
+				tagVariant: 'blue',
 				icon: 'lucide:file-text',
 				text: 'Drafting',
 			};
+		case 'Published':
+		return {
+				tagVariant: 'green',
+				icon: 'lucide:check',
+				text: 'Published',
+			}
 		default:
 			return {
 				tagVariant: 'red',
@@ -73,3 +79,5 @@ export function createOverlayInfo(status: Status): OverlayInfo {
 			};
 	}
 }
+
+export const statusVariant = (status: Status): TagVariant => createOverlayInfo(status).tagVariant;
