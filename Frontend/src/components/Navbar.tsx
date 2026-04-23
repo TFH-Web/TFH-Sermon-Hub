@@ -21,9 +21,9 @@ export default function Navbar() {
 				<NavbarItem icon="lucide:stars" to="/ai-search">
 					AI Search
 				</NavbarItem>
-        <NavbarItem icon="lucide:message-circle" to="/ai-chat">
-          AI Chat
-        </NavbarItem>
+				<NavbarItem icon="lucide:message-circle" to="/ai-chat">
+					AI Chat
+				</NavbarItem>
 			</ul>
 
 			<h2 className="Navbar-header">Content</h2>
