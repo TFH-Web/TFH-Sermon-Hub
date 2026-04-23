@@ -66,11 +66,11 @@ export function createOverlayInfo(status: Status): OverlayInfo {
 				text: 'Drafting',
 			};
 		case 'Published':
-		return {
+			return {
 				tagVariant: 'green',
 				icon: 'lucide:check',
 				text: 'Published',
-			}
+			};
 		default:
 			return {
 				tagVariant: 'red',
@@ -80,4 +80,5 @@ export function createOverlayInfo(status: Status): OverlayInfo {
 	}
 }
 
-export const statusVariant = (status: Status): TagVariant => createOverlayInfo(status).tagVariant;
+export const statusVariant = (status: Status): TagVariant =>
+	createOverlayInfo(status).tagVariant;

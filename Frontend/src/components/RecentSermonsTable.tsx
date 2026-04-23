@@ -1,6 +1,6 @@
 import './RecentSermonsTable.css';
 import { formatDate } from '$/lib/date';
-import { linkTo, statusVariant, type Sermon } from '$/types/sermon';
+import { linkTo, type Sermon, statusVariant } from '$/types/sermon';
 import Container from './Container';
 import Tag from './Tag';
 

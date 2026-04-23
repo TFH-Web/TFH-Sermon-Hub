@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import './ImportUpload.css';
-import { Icon } from '@iconify-icon/react';
 import Button from '$/components/Button';
 import { Card, CardHeader } from '$/components/Card';
 import { FormField, FormRow } from '$/components/FormField';
@@ -62,10 +61,7 @@ export default function ImportUpload() {
 							<div className="Card-body">
 								{activeImports.length > 0 ? (
 									activeImports.map(job => (
-										<ImportItem
-											key={job.id}
-											job={job}
-										/>
+										<ImportItem key={job.id} job={job} />
 									))
 								) : (
 									<p className="ImportUpload-empty">No active imports</p>
@@ -118,10 +114,7 @@ export default function ImportUpload() {
 						<CardHeader title="Active Imports" />
 						<div className="Card-body">
 							{activeImports.map(job => (
-								<ImportItem
-									key={job.id}
-									job={job}
-								/>
+								<ImportItem key={job.id} job={job} />
 							))}
 						</div>
 					</Card>
@@ -133,12 +126,7 @@ export default function ImportUpload() {
 					<CardHeader title="Import History" />
 					<div className="Card-body">
 						{importHistory.length > 0 ? (
-							importHistory.map(job => (
-								<ImportItem
-									key={job.id}
-									job={job}
-								/>
-							))
+							importHistory.map(job => <ImportItem key={job.id} job={job} />)
 						) : (
 							<p className="ImportUpload-empty">No import history yet</p>
 						)}
@@ -154,12 +142,7 @@ export default function ImportUpload() {
 					/>
 					<div className="Card-body">
 						{failedImports.length > 0 ? (
-							failedImports.map(job => (
-								<ImportItem
-									key={job.id}
-									job={job}
-								/>
-							))
+							failedImports.map(job => <ImportItem key={job.id} job={job} />)
 						) : (
 							<p className="ImportUpload-empty">No failed imports</p>
 						)}
