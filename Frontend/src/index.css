@@ -119,7 +119,7 @@ button {
 	}
 }
 
-.u-button {
+:where(.u-button) {
 	--hover-brightness-default: 1.3;
 	--active-brightness-default: 0.9;
 

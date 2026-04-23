@@ -38,7 +38,7 @@ export default function Sermons() {
 	const [sortCategory, setSortCategory] = useState<SortCategory>('Newest');
 
 	return (
-		<MainLayout title="Sermons">
+		<MainLayout title="Sermons" className="Sermons">
 			{/* Sermon Filter Buttons, clicks set as active and update the selectedSermonFilter state */}
 			<fieldset className="Sermons-statuses">
 				{[null, ...statuses].map(s => (
@@ -69,22 +69,37 @@ export default function Sermons() {
 			</fieldset>
 
 			{/* Sermon Topic Buttons, clicks set as active and update the selectedTopic state */}
-			<div className="filters-container">
-				<div className="Sermons-topics">
+			<fieldset className="Sermons-controls">
+				<fieldset className="Sermons-topics">
 					{[null, ...topics].map(t => (
-						<button
+						<label
 							key={t ?? 'All'}
-							type="button"
-							className={clsx('Sermons-topic', topic === t && 'is-active')}
-							onClick={() => setTopic(t)}
+							className={clsx(
+								'Sermons-topic',
+								'u-button',
+								topic === t && 'is-active',
+							)}
 						>
+							<input
+								type="radio"
+								name="topic"
+								hidden={true}
+								value={t ?? 'All'}
+								checked={t === topic}
+								onChange={e => {
+									return setTopic(
+										// @ts-expect-error 2345: value comes from iterating over an array marked as const
+										e.target.value === 'All' ? null : e.target.value,
+									);
+								}}
+							/>
 							{t ?? 'All'}
-						</button>
+						</label>
 					))}
-				</div>
+				</fieldset>
 
 				{/* Sermon Speaker dropdown, selection updates the selectedSpeaker state */}
-				<div className="sermon-filters">
+				<fieldset className="Sermons-inputs">
 					<select
 						onChange={e =>
 							setSpeaker(
@@ -125,8 +140,8 @@ export default function Sermons() {
 							</option>
 						))}
 					</select>
-				</div>
-			</div>
+				</fieldset>
+			</fieldset>
 
 			<div className="Sermons-grid">
 				{sermons
@@ -143,11 +158,7 @@ export default function Sermons() {
 						}
 					})
 					.map(sermon => (
-						<SermonCard
-							key={sermon.title}
-							sermon={sermon}
-							className="Sermons-card"
-						/>
+						<SermonCard key={sermon.title} sermon={sermon} />
 					))}
 			</div>
 		</MainLayout>

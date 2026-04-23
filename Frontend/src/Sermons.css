@@ -1,9 +1,15 @@
+.Sermons {
+	:where(fieldset) {
+		padding: 0;
+		margin: 0;
+		border: none;
+	}
+}
+
 /* Sermons.css, transparent background by default when not selected. !important was to override global styles */
 .Sermons-statuses {
 	display: flex;
-	padding: 0;
 	margin-block: 1rem 2rem;
-	border: none;
 }
 
 .Sermons-status {
@@ -34,58 +40,33 @@
 	}
 }
 
-/* Topic filter pills */
 .Sermons-topics {
 	display: flex;
-	gap: 16px;
-	margin-bottom: 16px;
+	flex-wrap: wrap;
+	gap: 0.5rem;
 }
 
-/* Default unselected topic pills, transparent background */
 .Sermons-topic {
-	--cl-accent: transparent;
-	--cl-on-accent: #1f1f1f;
-	padding: 6px 16px;
-	font-size: 0.9rem;
-	color: #1f1f1f;
-	cursor: pointer;
-	background: transparent;
-	background-color: transparent;
-	border: 1px solid #e0e0e0;
-	border-radius: 20px;
+	--hover-brightness: 0.95;
 
-	/* Selected topic pills, green background and white text */
-	&.is-active {
-		padding: 10px 15px;
-		font-size: 0.9rem;
-		color: #ffffff;
-		cursor: pointer;
-		background: #7a9166;
-		border: 1px solid #7a9166;
-		border-radius: 20px;
+	flex: none;
+	padding: 0.5em 1em;
+	font-size: 0.9rem;
+	background-color: var(--cl-surface);
+	border: 2px solid var(--cl-outline);
+	border-radius: 1.5rem;
+	transition: all 100ms ease;
+
+	&:hover,
+	&:focus-visible {
+		color: var(--cl-accent);
+		border-color: var(--cl-accent);
 	}
-}
 
-/* Filter dropdown styles */
-.sermon-filters {
-	display: flex;
-	gap: 12px;
-	padding: 10px 12px;
-	margin-bottom: 24px;
-	font-size: 0.9rem;
-	color: #1f1f1f;
-	cursor: pointer;
-	border: 1px solid #e0e0e0;
-	border-radius: 12px;
-}
-
-/* Filters Container */
-.filters-container {
-	display: flex;
-	gap: 12px;
-	align-items: center;
-	justify-content: space-between;
-	margin-bottom: 10px;
+	&.is-active {
+		color: var(--cl-on-accent);
+		background-color: var(--cl-accent);
+	}
 }
 
 .Sermons-grid {
@@ -93,9 +74,4 @@
 	grid-template-columns: repeat(auto-fill, minmax(min(12rem, 100%), auto));
 	grid-auto-rows: 10rem auto auto auto;
 	gap: 1rem;
-	margin-top: 10px;
-}
-
-.Sermons-card {
-	max-width: 20rem;
 }

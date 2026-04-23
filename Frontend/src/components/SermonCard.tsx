@@ -2,19 +2,18 @@ import './SermonCard.css';
 import { Icon } from '@iconify-icon/react';
 import clsx from 'clsx';
 import {
+	createOverlayInfo,
 	durationToDateTime,
 	durationToString,
 	linkTo,
-	createOverlayInfo,
 	type Sermon,
-	type Status,
 } from '$/types/sermon';
 import Container from './Container';
-import Tag, { type TagVariant } from './Tag';
+import Tag from './Tag';
 
 export interface SermonCardProps {
 	sermon: Sermon;
-	className: string;
+	className?: string;
 }
 
 export default function SermonCard({ className, sermon }: SermonCardProps) {
@@ -52,7 +51,10 @@ export default function SermonCard({ className, sermon }: SermonCardProps) {
 					className="SermonCard-overlay"
 					hidden={sermon.status === 'Published'}
 				>
-					<Tag variant={overlayInfo.tagVariant} className="SermonCard-overlayTag">
+					<Tag
+						variant={overlayInfo.tagVariant}
+						className="SermonCard-overlayTag"
+					>
 						<Icon icon={overlayInfo.icon} />
 						{overlayInfo.text}
 					</Tag>

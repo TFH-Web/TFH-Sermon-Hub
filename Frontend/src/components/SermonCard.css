@@ -1,5 +1,6 @@
 .SermonCard {
 	--border-radius: 0.75rem;
+	--hover-brightness: 1.05;
 
 	display: grid;
 	grid-template-areas:

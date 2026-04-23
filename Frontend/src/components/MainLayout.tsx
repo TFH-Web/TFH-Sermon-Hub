@@ -2,6 +2,7 @@ import '@fontsource/dm-sans';
 import '@fontsource/dm-sans/600';
 import './MainLayout.css';
 
+import clsx from 'clsx';
 import type React from 'react';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router';
@@ -11,10 +12,12 @@ import Sidebar from './Sidebar';
 
 export interface MainLayoutProps {
 	title: string;
+	className?: string;
 }
 
 export default function MainLayout({
 	title,
+	className,
 	children,
 }: React.PropsWithChildren<MainLayoutProps>) {
 	const onNavigate = useSidebar(state => state.onNavigate);
@@ -25,7 +28,7 @@ export default function MainLayout({
 	}, [onNavigate, location]);
 
 	return (
-		<div className="Layout">
+		<div className={clsx('Layout', className)}>
 			<Header className="Layout-header">{title}</Header>
 			<main className="Layout-main">
 				<h2 className="Layout-title">{title}</h2>
