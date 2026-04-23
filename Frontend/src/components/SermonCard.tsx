@@ -2,21 +2,37 @@ import './SermonCard.css';
 import {
 	durationToDateTime,
 	durationToString,
+	linkTo,
 	type Sermon,
 } from '$/types/sermon';
 import Container from './Container';
+import clsx from 'clsx';
+import Tag from './Tag';
 
 export interface SermonCardProps {
 	sermon: Sermon;
+	className: string;
 }
 
-export default function SermonCard({ sermon }: SermonCardProps) {
+export default function SermonCard({ className, sermon }: SermonCardProps) {
 	return (
-		<Container className="SermonCard">
-			{/* Sermon card container with thumbnail, information, and tags */}
-			{/* Placeholder for sermon thumbnail, could be an <img> tag with sermon.thumbnailUrl in the future */}
+		<Container className={clsx('SermonCard u-button', className)} as="a" href={linkTo(sermon)}>
+			<h3 className="SermonCard-title">{sermon.title}</h3>
+
+			<div className="SermonCard-info">
+				<p className="SermonCard-speaker">{sermon.speaker}</p>
+				<time className="SermonCard-date" dateTime={sermon.date.toISOString()}>
+					{formatDate(sermon.date)}
+				</time>
+			</div>
+
 			<div className="SermonCard-thumbnail">
-				<img className="SermonCard-thumbnailImage" src={`https://unsplash.it/seed/${sermon.title}/1280/720`} alt={`${sermon.title} thumbnail`} />
+				{/* Placeholder for sermon thumbnail, could be an <img> tag with sermon.thumbnailUrl in the future */}
+				<img
+					className="SermonCard-thumbnailImage"
+					src={`https://unsplash.it/seed/${sermon.title}/1280/720`}
+					alt={`${sermon.title} thumbnail`}
+				/>
 				<time
 					className="SermonCard-duration"
 					dateTime={durationToDateTime(sermon.duration)}
@@ -25,18 +41,11 @@ export default function SermonCard({ sermon }: SermonCardProps) {
 				</time>
 			</div>
 
-			{/* Sermon information section with title, speaker, date, and tags */}
-			<div className="SermonCard-info">
-				<h3>{sermon.title}</h3>
-				<p>
-					{sermon.speaker} • {formatDate(sermon.date)}
-				</p>
-			</div>
 			<div className="SermonCard-tags">
 				{sermon.tags.map(tag => (
-					<span key={tag} className="tag-pill">
+					<Tag key={tag} variant="solid">
 						{tag}
-					</span>
+					</Tag>
 				))}
 			</div>
 		</Container>

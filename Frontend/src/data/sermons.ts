@@ -8,7 +8,7 @@ export const sermons: Sermon[] = [
 		series: 'Live Your Best Life',
 		date: new Date('Feb 23 2026'),
 		status: 'Published',
-		tags: ['Grace', 'Faith'],
+		tags: ['grace', 'faith'],
 		duration: 2538,
 	},
 	{
@@ -18,7 +18,7 @@ export const sermons: Sermon[] = [
 		series: 'Live Your Best Life',
 		date: new Date('Feb 16 2026'),
 		status: 'Published',
-		tags: ['Freedom', 'Faith'],
+		tags: ['freedom', 'faith'],
 		duration: 2304,
 	},
 	{
@@ -28,7 +28,7 @@ export const sermons: Sermon[] = [
 		series: 'Hope Rising',
 		date: new Date('Feb 9 2026'),
 		status: 'Processing',
-		tags: ['Hope', 'Healing'],
+		tags: ['hope', 'healing'],
 		duration: 2650,
 	},
 	{
@@ -38,7 +38,7 @@ export const sermons: Sermon[] = [
 		series: 'Together',
 		date: new Date('Feb 2 2026'),
 		status: 'Published',
-		tags: ['Community'],
+		tags: ['community'],
 		duration: 2152,
 	},
 	{
@@ -48,7 +48,7 @@ export const sermons: Sermon[] = [
 		series: null,
 		date: new Date('Jan 26 2026'),
 		status: 'Published',
-		tags: ['Worship', 'Prayer'],
+		tags: ['worship', 'prayer'],
 		duration: 2601,
 	},
 	{
@@ -58,7 +58,7 @@ export const sermons: Sermon[] = [
 		series: 'Fearless',
 		date: new Date('Jan 26 2026'),
 		status: 'Failed',
-		tags: ['Worship', 'Prayer'],
+		tags: ['worship', 'prayer'],
 		duration: 2493,
 	},
 ];

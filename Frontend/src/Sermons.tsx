@@ -110,10 +110,10 @@ export default function Sermons() {
 				</div>
 			</div>
 
-			<div className="Sermon-grid">
+			<div className="Sermons-grid">
 				{sermons
 					.filter(s => status === null || s.status === status)
-					.filter(s => topic === null || s.tags.includes(topic))
+					.filter(s => topic === null || s.tags.includes(topic.toLowerCase()))
 					.filter(s => speaker === null || s.speaker === speaker)
 					.filter(s => series === null || s.series === series)
 					.toSorted((a, b) => {
@@ -125,7 +125,7 @@ export default function Sermons() {
 						}
 					})
 					.map(sermon => (
-						<SermonCard key={sermon.title} sermon={sermon} />
+						<SermonCard key={sermon.title} sermon={sermon} className="Sermons-card" />
 					))}
 			</div>
 		</MainLayout>
