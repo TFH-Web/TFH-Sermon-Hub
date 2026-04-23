@@ -138,5 +138,6 @@ export default function useAISearch() {
 		visibleResults,
 		handleSubmit,
 		contentOptions,
+		submittedQuery,
 	};
 }

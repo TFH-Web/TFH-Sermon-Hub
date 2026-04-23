@@ -23,6 +23,7 @@ export default function AISearch() {
 		visibleResults,
 		handleSubmit,
 		contentOptions,
+		submittedQuery,
 	} = useAISearch();
 
 	function handleCardClick(item: AISearchResultPreview) {
@@ -56,7 +57,7 @@ export default function AISearch() {
 					<section className="AISearch-results" aria-live="polite">
 						<p className="AISearch-resultsMeta">
 							Found <strong>{visibleResults.length} results</strong> for "
-							{query}" — ranked by relevance
+							{submittedQuery}" — ranked by relevance
 						</p>
 
 						<div className="AISearch-resultsList">
