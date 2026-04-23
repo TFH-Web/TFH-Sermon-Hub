@@ -3,10 +3,20 @@ import MainLayout from '$/components/MainLayout';
 import SermonCard from './components/SermonCard';
 import './Sermons.css';
 import { sermons } from '$/data/sermons';
+import clsx from 'clsx';
+
+const categories = [
+	'All',
+	'Published',
+	'Processing',
+	'Draft',
+	'Failed',
+] as const;
+type Category = (typeof categories)[number];
 
 export default function Sermons() {
 	// Tracks the currently selected sermon filter, defaults to "All"
-	const [selectedSermonFilter, setSelectedSermonFilter] = useState('All');
+	const [category, setCategory] = useState<Category>('All');
 
 	// Tracks the currently selected topic filter, defaults to "All"
 	const [selectedTopic, setSelectedTopic] = useState('All');
@@ -23,62 +33,17 @@ export default function Sermons() {
 	return (
 		<MainLayout title="Sermons">
 			{/* Sermon Filter Buttons, clicks set as active and update the selectedSermonFilter state */}
-			<div className="sermon-tabs">
-				<button
-					type="button"
-					className={
-						selectedSermonFilter === 'All'
-							? 'active-sermon-filter'
-							: 'sermon-tab'
-					}
-					onClick={() => setSelectedSermonFilter('All')}
-				>
-					All Sermons
-				</button>
-				<button
-					type="button"
-					className={
-						selectedSermonFilter === 'Published'
-							? 'active-sermon-filter'
-							: 'sermon-tab'
-					}
-					onClick={() => setSelectedSermonFilter('Published')}
-				>
-					Published
-				</button>
-				<button
-					type="button"
-					className={
-						selectedSermonFilter === 'Processing'
-							? 'active-sermon-filter'
-							: 'sermon-tab'
-					}
-					onClick={() => setSelectedSermonFilter('Processing')}
-				>
-					Processing
-				</button>
-				<button
-					type="button"
-					className={
-						selectedSermonFilter === 'Draft'
-							? 'active-sermon-filter'
-							: 'sermon-tab'
-					}
-					onClick={() => setSelectedSermonFilter('Draft')}
-				>
-					Draft
-				</button>
-				<button
-					type="button"
-					className={
-						selectedSermonFilter === 'Failed'
-							? 'active-sermon-filter'
-							: 'sermon-tab'
-					}
-					onClick={() => setSelectedSermonFilter('Failed')}
-				>
-					Failed
-				</button>
+			<div className="Sermon-categories">
+				{categories.map(c => (
+					<button
+						key={c}
+						type="button"
+						className={clsx('Sermons-category', category === c && 'is-active')}
+						onClick={() => setCategory(c)}
+					>
+						{c}
+					</button>
+				))}
 			</div>
 
 			{/* Sermon Topic Buttons, clicks set as active and update the selectedTopic state */}
