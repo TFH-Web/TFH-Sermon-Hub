@@ -1,8 +1,8 @@
 import './RecentSermonsTable.css';
 import { formatDate } from '$/lib/date';
-import { linkTo, statusVariant, type Sermon, type Status } from '$/types/sermon';
+import { linkTo, statusVariant, type Sermon } from '$/types/sermon';
 import Container from './Container';
-import Tag, { type TagVariant } from './Tag';
+import Tag from './Tag';
 
 export interface RecentSermonsTableProps {
 	sermons: Sermon[];

@@ -61,28 +61,10 @@ export default function ImportUpload() {
 							<CardHeader title="Active Imports" />
 							<div className="Card-body">
 								{activeImports.length > 0 ? (
-									activeImports.map(imp => (
+									activeImports.map(job => (
 										<ImportItem
-											key={imp.id}
-											icon={<Icon icon={imp.icon} width={18} height={18} />}
-											title={imp.title}
-											subtitle={imp.subtitle}
-											action={
-												imp.progress != null ? (
-													<div style={{ textAlign: 'right' }}>
-														<progress
-															max={100}
-															value={imp.progress}
-															style={{ width: '100px' }}
-														/>
-														<small className="ImportUpload-progressLabel">
-															{imp.progress}%
-														</small>
-													</div>
-												) : (
-													<Tag variant="amber">In Progress</Tag>
-												)
-											}
+											key={job.id}
+											job={job}
 										/>
 									))
 								) : (
@@ -135,28 +117,10 @@ export default function ImportUpload() {
 					<Card>
 						<CardHeader title="Active Imports" />
 						<div className="Card-body">
-							{activeImports.map(imp => (
+							{activeImports.map(job => (
 								<ImportItem
-									key={imp.id}
-									icon={<Icon icon={imp.icon} width={18} height={18} />}
-									title={imp.title}
-									subtitle={imp.subtitle}
-									action={
-										imp.progress != null ? (
-											<div style={{ textAlign: 'right' }}>
-												<progress
-													max={100}
-													value={imp.progress}
-													style={{ width: '100px' }}
-												/>
-												<small className="ImportUpload-progressLabel">
-													{imp.progress}%
-												</small>
-											</div>
-										) : (
-											<Tag variant="amber">In Progress</Tag>
-										)
-									}
+									key={job.id}
+									job={job}
 								/>
 							))}
 						</div>
@@ -169,17 +133,10 @@ export default function ImportUpload() {
 					<CardHeader title="Import History" />
 					<div className="Card-body">
 						{importHistory.length > 0 ? (
-							importHistory.map(imp => (
+							importHistory.map(job => (
 								<ImportItem
-									key={imp.id}
-									icon={<Icon icon={imp.icon} width={18} height={18} />}
-									title={imp.title}
-									subtitle={imp.subtitle}
-									action={
-										<Tag variant={imp.errorMessage ? 'amber' : 'green'}>
-											{imp.errorMessage ? 'Completed with errors' : 'Complete'}
-										</Tag>
-									}
+									key={job.id}
+									job={job}
 								/>
 							))
 						) : (
@@ -197,30 +154,10 @@ export default function ImportUpload() {
 					/>
 					<div className="Card-body">
 						{failedImports.length > 0 ? (
-							failedImports.map(imp => (
+							failedImports.map(job => (
 								<ImportItem
-									key={imp.id}
-									icon={
-										<Icon
-											icon="lucide:circle-x"
-											width={18}
-											height={18}
-											style={{ color: 'var(--cl-error)' }}
-										/>
-									}
-									title={imp.title}
-									subtitle={imp.errorMessage || ''}
-									action={
-										<Button
-											variant="secondary"
-											size="sm"
-											onClick={() =>
-												showToast(`Retrying ${imp.title}...`, 'info')
-											}
-										>
-											Retry
-										</Button>
-									}
+									key={job.id}
+									job={job}
 								/>
 							))
 						) : (
