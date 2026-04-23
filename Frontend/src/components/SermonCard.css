@@ -55,14 +55,14 @@
 	border-start-end-radius: var(--border-radius);
 }
 
-.SermonCard-failure:not([hidden]) {
+.SermonCard-overlay:not([hidden]) {
 	position: absolute;
 	inset: 0;
 	display: grid;
 	place-items: center;
 	background-color: oklch(from var(--cl-surface) l c h / 0.6);
 
-	.SermonCard-failureTag {
+	.SermonCard-overlayTag {
 		display: flex;
 		gap: 0.5em;
 		font-size: 0.8rem;

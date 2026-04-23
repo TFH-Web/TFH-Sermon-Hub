@@ -1,3 +1,5 @@
+import type { TagVariant } from '$/components/Tag';
+
 /* This file defines the interface for the sermon data structures used in the Sermons component. It includes properties such as title, speaker, series, date, time, and tags. */
 export const statuses = ['Published', 'Processing', 'Draft', 'Failed'] as const;
 export type Status = (typeof statuses)[number];
@@ -40,5 +42,34 @@ export function durationToString(duration: number) {
 		return `${h}:${pad(m)}:${pad(s)}`;
 	} else {
 		return `${m}:${pad(s)}`;
+	}
+}
+
+export interface OverlayInfo {
+	tagVariant: TagVariant;
+	icon: string;
+	text: string;
+}
+
+export function createOverlayInfo(status: Status): OverlayInfo {
+	switch (status) {
+		case 'Processing':
+			return {
+				tagVariant: 'blue',
+				icon: 'lucide:file-clock',
+				text: 'Processing',
+			};
+		case 'Draft':
+			return {
+				tagVariant: 'amber',
+				icon: 'lucide:file-text',
+				text: 'Drafting',
+			};
+		default:
+			return {
+				tagVariant: 'red',
+				icon: 'lucide:alert-triangle',
+				text: 'Transcription Failed',
+			};
 	}
 }

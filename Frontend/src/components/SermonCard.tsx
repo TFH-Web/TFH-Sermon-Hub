@@ -5,10 +5,12 @@ import {
 	durationToDateTime,
 	durationToString,
 	linkTo,
+	createOverlayInfo,
 	type Sermon,
+	type Status,
 } from '$/types/sermon';
 import Container from './Container';
-import Tag from './Tag';
+import Tag, { type TagVariant } from './Tag';
 
 export interface SermonCardProps {
 	sermon: Sermon;
@@ -16,6 +18,8 @@ export interface SermonCardProps {
 }
 
 export default function SermonCard({ className, sermon }: SermonCardProps) {
+	const overlayInfo = createOverlayInfo(sermon.status);
+
 	return (
 		<Container
 			className={clsx('SermonCard u-button', className)}
@@ -44,10 +48,13 @@ export default function SermonCard({ className, sermon }: SermonCardProps) {
 				>
 					{durationToString(sermon.duration)}
 				</time>
-				<div className="SermonCard-failure" hidden={sermon.status !== 'Failed'}>
-					<Tag variant="red" className="SermonCard-failureTag">
-						<Icon icon="lucide:alert-triangle" />
-						Transcription Failed
+				<div
+					className="SermonCard-overlay"
+					hidden={sermon.status === 'Published'}
+				>
+					<Tag variant={overlayInfo.tagVariant} className="SermonCard-overlayTag">
+						<Icon icon={overlayInfo.icon} />
+						{overlayInfo.text}
 					</Tag>
 				</div>
 			</div>

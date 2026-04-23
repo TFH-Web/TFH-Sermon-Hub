@@ -3,8 +3,10 @@ import './Tag.css';
 import clsx from 'clsx';
 import type { Polymorphic } from '$/lib/polymorphic';
 
+export type TagVariant = 'green' | 'outline' | 'red' | 'amber' | 'blue' | 'admin' | 'solid';
+
 export interface TagProps {
-	variant?: 'green' | 'outline' | 'red' | 'amber' | 'blue' | 'admin' | 'solid';
+	variant?: TagVariant;
 	className?: string;
 }
 
