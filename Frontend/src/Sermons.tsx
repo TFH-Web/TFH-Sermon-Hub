@@ -5,21 +5,18 @@ import './Sermons.css';
 import { sermons } from '$/data/sermons';
 import clsx from 'clsx';
 
-const categories = [
-	'All',
-	'Published',
-	'Processing',
-	'Draft',
-	'Failed',
-] as const;
+const categories = ['Published', 'Processing', 'Draft', 'Failed'] as const;
 type Category = (typeof categories)[number];
 
-export default function Sermons() {
-	// Tracks the currently selected sermon filter, defaults to "All"
-	const [category, setCategory] = useState<Category>('All');
+const topics = ['Faith', 'Hope', 'Grace', 'Healing', 'Anxiety'] as const;
+type Topic = (typeof topics)[number];
 
-	// Tracks the currently selected topic filter, defaults to "All"
-	const [selectedTopic, setSelectedTopic] = useState('All');
+export default function Sermons() {
+	// Tracks the currently selected sermon filter, defaults to null
+	const [category, setCategory] = useState<Category | null>(null);
+
+	// Tracks the currently selected topic filter, defaults to null
+	const [topic, setTopic] = useState<Topic | null>(null);
 
 	// Tracks the currently selected speaker filter, defaults to "All"
 	const [selectedSpeaker, setSelectedSpeaker] = useState('All');
@@ -33,76 +30,32 @@ export default function Sermons() {
 	return (
 		<MainLayout title="Sermons">
 			{/* Sermon Filter Buttons, clicks set as active and update the selectedSermonFilter state */}
-			<div className="Sermon-categories">
-				{categories.map(c => (
+			<div className="Sermons-categories">
+				{[null, ...categories].map(c => (
 					<button
-						key={c}
+						key={c ?? 'All'}
 						type="button"
 						className={clsx('Sermons-category', category === c && 'is-active')}
 						onClick={() => setCategory(c)}
 					>
-						{c}
+						{c ?? 'All'}
 					</button>
 				))}
 			</div>
 
 			{/* Sermon Topic Buttons, clicks set as active and update the selectedTopic state */}
 			<div className="filters-container">
-				<div className="topic-filters">
-					<button
-						type="button"
-						className={
-							selectedTopic === 'All' ? 'active-topic-filter' : 'topic-pill'
-						}
-						onClick={() => setSelectedTopic('All')}
-					>
-						All
-					</button>
-					<button
-						type="button"
-						className={
-							selectedTopic === 'Faith' ? 'active-topic-filter' : 'topic-pill'
-						}
-						onClick={() => setSelectedTopic('Faith')}
-					>
-						Faith
-					</button>
-					<button
-						type="button"
-						className={
-							selectedTopic === 'Hope' ? 'active-topic-filter' : 'topic-pill'
-						}
-						onClick={() => setSelectedTopic('Hope')}
-					>
-						Hope
-					</button>
-					<button
-						type="button"
-						className={
-							selectedTopic === 'Grace' ? 'active-topic-filter' : 'topic-pill'
-						}
-						onClick={() => setSelectedTopic('Grace')}
-					>
-						Grace
-					</button>
-					<button
-						type="button"
-						className={
-							selectedTopic === 'Healing' ? 'active-topic-filter' : 'topic-pill'
-						}
-						onClick={() => setSelectedTopic('Healing')}
-					>
-						Healing
-					</button>
-					<button
-						type="button"
-						className={
-							selectedTopic === 'Anxiety' ? 'active-topic-filter' : 'topic-pill'
-						}
-						onClick={() => setSelectedTopic('Anxiety')}
-					>
-						Anxiety
-					</button>
+				<div className="Sermons-topics">
+					{[null, ...topics].map(t => (
+						<button
+							key={t ?? 'All'}
+							type="button"
+							className={clsx('Sermons-topic', topic === t && 'is-active')}
+							onClick={() => setTopic(t)}
+						>
+							{t ?? 'All'}
+						</button>
+					))}
 				</div>
 
 				{/* Sermon Speaker dropdown, selection updates the selectedSpeaker state */}
@@ -134,8 +87,7 @@ export default function Sermons() {
 				{sermons
 					.filter(
 						sermon =>
-							(selectedTopic === 'All' ||
-								sermon.tags.includes(selectedTopic)) &&
+							(topic === null || sermon.tags.includes(topic)) &&
 							(selectedSpeaker === 'All' ||
 								sermon.speaker === selectedSpeaker) &&
 							(selectedSeries === 'All' || sermon.series === selectedSeries),
