@@ -78,6 +78,9 @@
 	--shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
 	--shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.1);
 
+	--z-sidebar: 1000;
+	--z-sidebar-backdrop: 500;
+
 	accent-color: var(--cl-accent);
 	cursor: auto;
 }
