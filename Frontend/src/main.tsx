@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router';
 
 import AISearch from './AISearch.tsx';
+import AIChat from './AIChat.tsx';
 import AISearchResults from './AISearchResults.tsx';
 import { ToastProvider } from './components/ToastContext';
 import Dashboard from './Dashboard.tsx';
@@ -33,6 +34,7 @@ createRoot(document.getElementById('root')!).render(
 						<Route path="/series" element={<Series />} />
 						<Route path="/speakers" element={<Speakers />} />
 						<Route path="/ai-search" element={<AISearch />} />
+            <Route path="/ai-chat" element={<AIChat />} />
 						<Route path="/ai-search/results" element={<AISearchResults />} />
 						<Route path="/upload" element={<ImportUpload />} />
 						<Route path="/tags" element={<TagsAndMetadata />} />
