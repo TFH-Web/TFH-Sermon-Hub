@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import './SermonDetail.css';
+import { useParams } from 'react-router';
 import Button from '$/components/Button';
 import MainLayout from '$/components/MainLayout';
 import { Card } from './components/Card.tsx';
 import FileUploadButton from './components/FileUploadButton.tsx';
 import Tag from './components/Tag.tsx';
 import { useToast } from './components/ToastContext.tsx';
-import type { Sermon } from './types/sermon';
 import { sermons } from './data/sermons.ts';
-import { useParams } from 'react-router';
 
 // TODO: add transcript to sermon type when we're integrating w/ backend
 const mockTranscript = [
