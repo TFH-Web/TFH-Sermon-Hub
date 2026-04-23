@@ -1,3 +1,4 @@
+import './SermonCard.css'
 import type { Sermon } from '../types/sermon';
 
 interface SermonCardProps {
