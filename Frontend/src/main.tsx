@@ -10,6 +10,7 @@ import AISearch from './AISearch.tsx';
 import AISearchResults from './AISearchResults.tsx';
 import { ToastProvider } from './components/ToastContext';
 import Dashboard from './Dashboard.tsx';
+import Login from './Login.tsx';
 import Notifications from './Notifications.tsx';
 import ImportUpload from './pages/ImportUpload.tsx';
 import Series from './Series.tsx';
@@ -39,6 +40,7 @@ createRoot(document.getElementById('root')!).render(
 						<Route path="/user-management" element={<UserManagement />} />
 						<Route path="/notifications" element={<Notifications />} />
 						<Route path="/settings" element={<Settings />} />
+						<Route path="/login" element={<Login />} />
 					</Routes>
 				</BrowserRouter>
 			</ToastProvider>
