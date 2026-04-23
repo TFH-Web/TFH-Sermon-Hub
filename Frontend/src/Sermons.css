@@ -103,7 +103,6 @@
 	margin-bottom: 10px;
 }
 
-/* Sermon grid, 3 card layout */
 .Sermons-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(min(12rem, 100%), auto));

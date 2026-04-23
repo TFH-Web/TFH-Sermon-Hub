@@ -2,9 +2,9 @@ import { useState } from 'react';
 import MainLayout from '$/components/MainLayout';
 import SermonCard from '$/components/SermonCard';
 import './Sermons.css';
-import { sermons } from '$/data/sermons';
 import clsx from 'clsx';
-import { statuses, type Status } from '$/types/sermon';
+import { sermons } from '$/data/sermons';
+import { type Status, statuses } from '$/types/sermon';
 
 const topics = ['Faith', 'Hope', 'Grace', 'Healing', 'Anxiety'] as const;
 type Topic = (typeof topics)[number];
@@ -35,8 +35,7 @@ export default function Sermons() {
 	const [series, setSeries] = useState<Series | null>(null);
 
 	// Tracks the currently selected "freshness" filter, defaults to "Newest"
-	const [sortCategory, setSortCategory] =
-		useState<SortCategory>('Newest');
+	const [sortCategory, setSortCategory] = useState<SortCategory>('Newest');
 
 	return (
 		<MainLayout title="Sermons">
@@ -125,7 +124,11 @@ export default function Sermons() {
 						}
 					})
 					.map(sermon => (
-						<SermonCard key={sermon.title} sermon={sermon} className="Sermons-card" />
+						<SermonCard
+							key={sermon.title}
+							sermon={sermon}
+							className="Sermons-card"
+						/>
 					))}
 			</div>
 		</MainLayout>

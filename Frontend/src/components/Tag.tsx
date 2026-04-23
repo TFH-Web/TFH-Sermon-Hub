@@ -6,9 +6,9 @@ import type { Polymorphic } from '$/lib/polymorphic';
 export interface TagProps {
 	variant?: 'green' | 'outline' | 'red' | 'amber' | 'blue' | 'admin' | 'solid';
 	className?: string;
-};
+}
 
-export default function Tag<Component extends React.ElementType = "span">({
+export default function Tag<Component extends React.ElementType = 'span'>({
 	variant = 'green',
 	children,
 	className,

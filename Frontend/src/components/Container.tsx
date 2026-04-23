@@ -5,7 +5,7 @@ import type { Polymorphic } from '$/lib/polymorphic';
 
 export interface ContainerProps {
 	className: string;
-};
+}
 
 export default function Container<Component extends React.ElementType = 'div'>({
 	className,

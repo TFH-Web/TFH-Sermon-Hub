@@ -87,7 +87,7 @@
 	opacity: 0;
 	transition: opacity 50ms ease;
 
-	.Header-searchLabel:has(.Header-searchInput:not(:placeholder-shown))~& {
+	.Header-searchLabel:has(.Header-searchInput:not(:placeholder-shown)) ~ & {
 		pointer-events: initial;
 		opacity: 1;
 	}
@@ -106,8 +106,11 @@
 	margin-block: 0;
 }
 
-@container (width <=550px) {
-	.Header-title:has(~ .Header-controls .Header-searchInput:where(:focus-visible, :not(:placeholder-shown))) {
+@container (width <= 550px) {
+	.Header-title:has(
+			~ .Header-controls
+				.Header-searchInput:where(:focus-visible, :not(:placeholder-shown))
+		) {
 		display: none;
 		opacity: 0;
 	}

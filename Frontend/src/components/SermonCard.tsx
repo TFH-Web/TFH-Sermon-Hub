@@ -1,4 +1,5 @@
 import './SermonCard.css';
+import clsx from 'clsx';
 import {
 	durationToDateTime,
 	durationToString,
@@ -6,7 +7,6 @@ import {
 	type Sermon,
 } from '$/types/sermon';
 import Container from './Container';
-import clsx from 'clsx';
 import Tag from './Tag';
 
 export interface SermonCardProps {
@@ -16,7 +16,11 @@ export interface SermonCardProps {
 
 export default function SermonCard({ className, sermon }: SermonCardProps) {
 	return (
-		<Container className={clsx('SermonCard u-button', className)} as="a" href={linkTo(sermon)}>
+		<Container
+			className={clsx('SermonCard u-button', className)}
+			as="a"
+			href={linkTo(sermon)}
+		>
 			<h3 className="SermonCard-title">{sermon.title}</h3>
 
 			<div className="SermonCard-info">

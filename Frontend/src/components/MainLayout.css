@@ -7,7 +7,7 @@
 		"sidebar main" 1fr / minmax(auto, 15rem) 1fr;
 	container-type: inline-size;
 
-	@media (width <=800px) {
+	@media (width <= 800px) {
 		grid-template-columns: 0 1fr;
 	}
 }
@@ -31,12 +31,12 @@
 .Layout-sidebar {
 	grid-area: sidebar;
 
-	@container (width <=800px) {
+	@container (width <= 800px) {
 		grid-column: 2;
 	}
 }
 
-@container (width <=350px) {
+@container (width <= 350px) {
 	.Header-title {
 		display: none;
 	}
