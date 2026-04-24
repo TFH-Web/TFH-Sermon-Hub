@@ -4,8 +4,8 @@ import SermonCard from '$/components/SermonCard';
 import './Sermons.css';
 import clsx from 'clsx';
 import { sermons } from '$/data/sermons';
-import { type Status, statuses } from '$/types/sermon';
 import FloatingAddSermon from '$/modals/AddSermon';
+import { type Status, statuses } from '$/types/sermon';
 
 const topics = ['Faith', 'Hope', 'Grace', 'Healing', 'Anxiety'] as const;
 type Topic = (typeof topics)[number];
