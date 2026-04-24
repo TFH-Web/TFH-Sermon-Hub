@@ -39,7 +39,7 @@ export default function AISearch() {
 					Natural language search across transcripts, tags, speakers, and topics
 				</p>
 
-				<form onSubmit={handleSubmit} className="AISearch-form">
+				<form className="AISearch-form" onSubmit={handleSubmit}>
 					<SearchBar query={query} onQueryChange={setQuery} />
 
 					<SearchFilters
@@ -54,7 +54,7 @@ export default function AISearch() {
 				</form>
 
 				{showResults && (
-					<section className="AISearch-results" aria-live="polite">
+					<section aria-live="polite" className="AISearch-results">
 						<p className="AISearch-resultsMeta">
 							Found <strong>{visibleResults.length} results</strong> for "
 							{submittedQuery}" — ranked by relevance
@@ -64,8 +64,8 @@ export default function AISearch() {
 							{visibleResults.map(item => (
 								<AISearchPreviewCard
 									key={item.id}
-									result={item}
 									onOpen={handleCardClick}
+									result={item}
 								/>
 							))}
 						</div>

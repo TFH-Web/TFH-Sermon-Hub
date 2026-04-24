@@ -17,17 +17,17 @@
 	padding: 0 15px;
 	font-size: 13px;
 	font-weight: 600;
-	color: #5a5a5a;
+	color: var(--ai-body, var(--cl-on-surface-muted));
 	cursor: pointer;
-	background: #ffffff;
-	border: 1px solid #d8d8d8;
+	background: var(--ai-surface, var(--cl-surface));
+	border: 1px solid var(--ai-border, var(--cl-outline));
 	border-radius: 999px;
 }
 
 .SearchFilters-pill--active {
-	color: #ffffff;
-	background: #7a9166;
-	border-color: #7a9166;
+	color: var(--cl-on-accent);
+	background: var(--ai-accent, var(--cl-accent));
+	border-color: var(--ai-accent, var(--cl-accent));
 }
 
 .SearchFilters-selectWrap {
@@ -42,16 +42,17 @@
 	padding: 0 16px 0 4px;
 	font: inherit;
 	font-size: 13px;
+	font-weight: 600;
 	line-height: 36px;
-	color: #5a5a5a;
+	color: var(--ai-body, var(--cl-on-surface-muted));
 	text-align: center;
 	text-align-last: center;
 	-moz-appearance: none;
 	-webkit-appearance: none;
 	appearance: none;
 	outline: none;
-	background: #ffffff;
-	border: 1px solid #d8d8d8;
+	background: var(--ai-surface, var(--cl-surface));
+	border: 1px solid var(--ai-border, var(--cl-outline));
 	border-radius: 8px;
 }
 
@@ -61,7 +62,7 @@
 	right: 6px;
 	font-size: 9px;
 	line-height: 1;
-	color: #6f6f6f;
+	color: var(--ai-body, var(--cl-on-surface-muted));
 	pointer-events: none;
 	transform: translateY(-50%);
 }

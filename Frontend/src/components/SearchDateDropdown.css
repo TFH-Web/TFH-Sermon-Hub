@@ -14,12 +14,13 @@
 	padding: 0 34px 0 16px;
 	font: inherit;
 	font-size: 13px;
+	font-weight: 600;
 	line-height: 1;
-	color: #5a5a5a;
+	color: var(--ai-body, var(--cl-on-surface-muted));
 	white-space: nowrap;
 	cursor: pointer;
-	background: #ffffff;
-	border: 1px solid #d8d8d8;
+	background: var(--ai-surface, var(--cl-surface));
+	border: 1px solid var(--ai-border, var(--cl-outline));
 	border-radius: 8px;
 }
 
@@ -35,7 +36,7 @@
 	right: 12px;
 	font-size: 9px;
 	line-height: 1;
-	color: #6f6f6f;
+	color: var(--ai-body, var(--cl-on-surface-muted));
 	transform: translateY(-50%);
 }
 
@@ -46,8 +47,8 @@
 	z-index: 40;
 	width: 390px;
 	padding: 12px 0 14px;
-	background: #ffffff;
-	border: 1px solid #d8d8d8;
+	background: var(--ai-surface, var(--cl-surface));
+	border: 1px solid var(--ai-border, var(--cl-outline));
 	border-radius: 12px;
 	box-shadow: 0 10px 30px rgb(0 0 0 / 12%);
 }
@@ -67,7 +68,7 @@
 	padding: 0 12px;
 	font: inherit;
 	font-size: 14px;
-	color: #363636;
+	color: var(--ai-title, var(--cl-foreground));
 	cursor: pointer;
 	background: transparent;
 	border: none;
@@ -75,7 +76,7 @@
 }
 
 .SearchDateDropdown-option:hover {
-	background: #f6f6f6;
+	background: var(--ai-accent-soft, var(--cl-accent-container));
 }
 
 .SearchDateDropdown-option--active {
@@ -86,14 +87,14 @@
 	min-width: 16px;
 	margin-left: 12px;
 	font-size: 14px;
-	color: #363636;
+	color: var(--ai-accent-strong, var(--cl-accent));
 	text-align: right;
 }
 
 .SearchDateDropdown-divider {
 	height: 1px;
 	margin: 8px 0 10px;
-	background: #e6e6e6;
+	background: var(--ai-border, var(--cl-outline));
 }
 
 .SearchDateDropdown-range {
@@ -115,7 +116,7 @@
 
 .SearchDateDropdown-label {
 	font-size: 12px;
-	color: #6b6b6b;
+	color: var(--ai-body, var(--cl-on-surface-muted));
 }
 
 .SearchDateDropdown-input {
@@ -123,8 +124,8 @@
 	padding: 0 10px;
 	font: inherit;
 	font-size: 13px;
-	color: #363636;
-	background: #ffffff;
-	border: 1px solid #d8d8d8;
+	color: var(--ai-title, var(--cl-foreground));
+	background: var(--ai-surface, var(--cl-surface));
+	border: 1px solid var(--ai-border, var(--cl-outline));
 	border-radius: 8px;
 }

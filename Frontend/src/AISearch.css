@@ -1,4 +1,18 @@
 .AISearch {
+	--ai-surface: var(--cl-surface);
+	--ai-border: var(--cl-outline);
+	--ai-title: var(--cl-foreground);
+	--ai-muted: var(--cl-on-surface-muted);
+	--ai-body: oklch(from var(--cl-on-surface-muted) calc(l * 0.92) c h);
+	--ai-accent: oklch(from var(--cl-accent) calc(l * 0.96) calc(c * 0.95) h);
+	--ai-accent-strong: oklch(
+		from var(--cl-accent) calc(l * 0.78) calc(c * 0.85) h
+	);
+	--ai-accent-soft: oklch(
+		from var(--cl-accent-container) calc(l * 1.02) calc(c * 0.75) h
+	);
+	--ai-thumb: oklch(from var(--cl-outline) calc(l * 0.82) calc(c * 0.28) h);
+
 	width: 100%;
 	max-width: 920px;
 	padding: 44px 24px 40px;
@@ -11,7 +25,7 @@
 	font-size: 2.1rem;
 	font-weight: 700;
 	line-height: 1.1;
-	color: #1f1f1f;
+	color: var(--ai-title);
 	letter-spacing: -0.02em;
 }
 
@@ -20,7 +34,7 @@
 	font-size: 0.95rem;
 	font-weight: 400;
 	line-height: 1.4;
-	color: #8a8a8a;
+	color: var(--ai-muted);
 }
 
 .AISearch-form {
@@ -40,7 +54,12 @@
 	margin: 0 0 14px 0;
 	font-size: 13px;
 	font-weight: 400;
-	color: #9a9a9a;
+	color: var(--ai-muted);
+}
+
+.AISearch-resultsMeta b,
+.AISearch-resultsMeta strong {
+	font-weight: 700;
 }
 
 .AISearch-resultsList {
