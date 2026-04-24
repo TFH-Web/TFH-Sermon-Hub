@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom';
+import AISearchPreviewCard from '$/components/AISearchPreviewCard';
 import MainLayout from '$/components/MainLayout';
 import SearchBar from '$/components/SearchBar';
 import SearchFilters from '$/components/SearchFilters';
-import AISearchPreviewCard from '$/components/AISearchPreviewCard';
-import type { AISearchResultPreview } from '$/types/aiSearch';
 import useAISearch from '$/hooks/useAISearch';
+import type { AISearchResultPreview } from '$/types/aiSearch';
 import './AISearch.css';
 
 export default function AISearch() {
