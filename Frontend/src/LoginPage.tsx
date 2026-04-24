@@ -186,7 +186,7 @@ export default function LoginPage() {
   // TODO: Replace with MSAL redirect when authentication gets wired
   function handlePrimaryClick() {
     alert(`[Demo] Outline action triggered - scenario: "${scenario}"`);
-    navigate("/");
+    navigate("/dashboard");
   }
 
   // TODO: Wire to MSAL account picker or resend the approval logic

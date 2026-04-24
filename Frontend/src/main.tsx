@@ -29,7 +29,8 @@ createRoot(document.getElementById("root")!).render(
       <ToastProvider>
         <BrowserRouter>
           <Routes>
-            <Route index element={<Dashboard />} />
+            <Route index element={<LoginPage />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/sermons" element={<Sermons />} />
             <Route path="/series" element={<Series />} />
             <Route path="/speakers" element={<Speakers />} />
@@ -40,7 +41,6 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/user-management" element={<UserManagement />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/settings" element={<Settings />} />
-            <Route path="/login" element={<LoginPage />} />
           </Routes>
         </BrowserRouter>
       </ToastProvider>

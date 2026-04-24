@@ -1,0 +1,222 @@
+/* Fullscreen grey background, card is centered */
+.login-page { 
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e8e8e8;
+    padding: 24px;
+}
+
+/* The white card being centered */
+.login-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 360px;
+    overflow: hidden;
+}
+
+/* Demo Bar */
+.demo-bar {
+    background: #f7f7f7;
+    border-bottom: 1px solid #e5e5e5;
+    padding: 14px 18px;
+}
+
+.demo-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #aaa;
+    margin-bottom: 10px;
+}
+
+.demo-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.demo-pill {
+    padding: 4px 13px;
+    border-radius: 999px;
+    border: 1.5px solid #ccc;
+    background: #fff;
+    font-size: 12px;
+    color: #444;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.demo-pill:hover {
+    border-color: #999;
+}
+
+/* Active pill has a green border and text */
+.demo-pill.active {
+    border-color: #3d5a38;
+    color: #3d5a38;
+    font-weight: 600;
+}
+
+/* Card Body */
+.login-body {
+    padding: 36px 32px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.tfh-badge {
+    width: 56px;
+    height: 56px;
+    background: #3d5a38;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.05em;
+    margin-bottom: 16px;
+}
+
+.login-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #111;
+    margin-bottom: 4px;
+}
+
+.login-subtitle {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 20px;
+}
+
+/* Alert Box styling */
+.alert-box {
+    width: 100%;
+    border-radius: 8px;
+    padding: 14px 16px;
+    text-align: left;
+    margin-bottom: 18px;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.alert.error {
+    background: #fde8e8;
+    border: 1.5px solid #e8a0a0;
+}
+
+.alert-warning {
+    background: #fffbf0;
+    border: 1.5px solid #f5dfa0;
+}
+
+.alert-title {
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+
+.alert-error .alert-title { 
+    color: #c0392b;
+ }
+.alert-warning .alert-title { 
+    color: #b45309; 
+}
+.alert-error .alert-body { 
+    color: #c0392b; 
+}
+.alert-warning .alert-body { 
+    color: #92400e; 
+}
+
+
+/* Error code line shown in SSO Error */
+.alert-code {
+    margin-top: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #888;
+    background: rgba(0, 0, 0, 0.04);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+/* Button styling */
+.btn-primary,
+.btn-outline {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 11px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-primary {
+    background: #3d5a38;
+    color: #fff;
+    border: none;
+}
+
+.btn-primary:hover {
+    background: #2f4a2c;
+}
+
+.btn-outline {
+    background: #fff;
+    color: #222;
+    border: 1.5px solid #ccc;
+    margin-top: 10px;
+}
+
+.btn-outline:hover {
+    border-color: #999;
+}
+
+/* Subtext */
+.login-subtext {
+    font-size: 12px;
+    color: #888;
+    margin-top: 12px;
+    line-height: 1.5;
+}
+
+/* Text styling for the text inside the subtext and alert bodies */
+.subtext-green {
+    color: #3d5a38;
+    font-weight: 700;
+}
+
+/* Footer Styling */
+.login-footer {
+    border-top: 1px solid #f0f0f0;
+    padding: 16px 32px;
+    text-align: center;
+}
+
+.login-footer p {
+    font-size: 12px;
+    color: #aaa;
+    line-height: 1.6;
+}
+
+.login-footer p:first-child {
+    color: #999;
+    font-weight: 500;
+}
