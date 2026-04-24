@@ -14,7 +14,7 @@
     border-radius: 16px;
     box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1);
     width: 100%;
-    max-width: 360px;
+    max-width: 440px;
     overflow: hidden;
 }
 
@@ -57,14 +57,14 @@
 
 /* Active pill has a green border and text */
 .demo-pill.active {
-    border-color: #3d5a38;
-    color: #3d5a38;
+    border-color: #4a6e42;
+    color: #4a6e42;
     font-weight: 600;
 }
 
 /* Card Body */
 .login-body {
-    padding: 36px 32px 28px;
+    padding: 20px 32px 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -72,9 +72,9 @@
 }
 
 .tfh-badge {
-    width: 56px;
-    height: 56px;
-    background: #3d5a38;
+    width: 54px;
+    height: 54px;
+    background: #4a6e42;
     border-radius: 12px;
     display: flex;
     align-items: center;
@@ -83,14 +83,14 @@
     font-weight: 700;
     font-size: 15px;
     letter-spacing: 0.05em;
-    margin-bottom: 16px;
+    margin-bottom: 2px;
 }
 
 .login-title {
     font-size: 22px;
     font-weight: 700;
     color: #111;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .login-subtitle {
@@ -110,7 +110,7 @@
     line-height: 1.55;
 }
 
-.alert.error {
+.alert-error {
     background: #fde8e8;
     border: 1.5px solid #e8a0a0;
 }
@@ -169,7 +169,7 @@
 }
 
 .btn-primary {
-    background: #3d5a38;
+    background: #4a6e42;
     color: #fff;
     border: none;
 }
@@ -199,14 +199,14 @@
 
 /* Text styling for the text inside the subtext and alert bodies */
 .subtext-green {
-    color: #3d5a38;
+    color: #4a6e42;
     font-weight: 700;
 }
 
 /* Footer Styling */
 .login-footer {
     border-top: 1px solid #f0f0f0;
-    padding: 16px 32px;
+    padding: 10px 32px;
     text-align: center;
 }
 
