@@ -16,11 +16,11 @@
 	font-size: 13px;
 	line-height: 1;
 	color: #5a5a5a;
+	white-space: nowrap;
 	cursor: pointer;
 	background: #ffffff;
 	border: 1px solid #d8d8d8;
 	border-radius: 8px;
-	white-space: nowrap;
 }
 
 .SearchDateDropdown-triggerLabel {
@@ -31,12 +31,12 @@
 
 .SearchDateDropdown-chevron {
 	position: absolute;
-	right: 12px;
 	top: 50%;
-	transform: translateY(-50%);
+	right: 12px;
 	font-size: 9px;
 	line-height: 1;
 	color: #6f6f6f;
+	transform: translateY(-50%);
 }
 
 .SearchDateDropdown-panel {

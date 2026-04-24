@@ -46,10 +46,7 @@ export default function SearchFilters({
 				))}
 			</div>
 
-			<div
-				className="SearchFilters-selectWrap"
-				style={{ width: speakerWidth }}
-			>
+			<div className="SearchFilters-selectWrap" style={{ width: speakerWidth }}>
 				<select
 					value={speaker}
 					onChange={e => onSpeakerChange(e.target.value)}

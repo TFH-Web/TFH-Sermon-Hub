@@ -46,9 +46,7 @@ export default function AISearchPreviewCard({
 						{result.match}% match
 					</span>
 
-					<span className="AISearchPreviewCard-tag">
-						{result.contentType}
-					</span>
+					<span className="AISearchPreviewCard-tag">{result.contentType}</span>
 				</div>
 			</div>
 

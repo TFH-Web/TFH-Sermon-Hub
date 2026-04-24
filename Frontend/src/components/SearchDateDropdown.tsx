@@ -90,8 +90,7 @@ export default function SearchDateDropdown({
 		hasPartialCustomRange || hasInvalidCustomRange || isCustomValue(value);
 
 	const triggerLabel = useMemo(
-		() =>
-			getTriggerLabel(value, hasPartialCustomRange, hasInvalidCustomRange),
+		() => getTriggerLabel(value, hasPartialCustomRange, hasInvalidCustomRange),
 		[value, hasPartialCustomRange, hasInvalidCustomRange],
 	);
 
@@ -160,10 +159,7 @@ export default function SearchDateDropdown({
 									onClick={() => handlePresetSelect(option.value)}
 								>
 									<span>{option.label}</span>
-									<span
-										className="SearchDateDropdown-check"
-										aria-hidden="true"
-									>
+									<span className="SearchDateDropdown-check" aria-hidden="true">
 										{isActive ? '✓' : ''}
 									</span>
 								</button>
