@@ -1,0 +1,148 @@
+import type { AISearchResultPreview } from '$/types/aiSearch';
+
+export const aiSearchPreviewResults: AISearchResultPreview[] = [
+	{
+		id: 'ai-search-1',
+		title: 'The Messy Family of God',
+		speaker: 'Jon Laurenzo',
+		date: 'Apr 19, 2026',
+		series: 'A Life of Freedom',
+		contentType: 'sermon',
+		snippet:
+			'Freedom in Christ grows when we stop hiding our mess and let God shape us in community.',
+		match: 98,
+		redirectTo: '/sermons',
+	},
+	{
+		id: 'ai-search-2',
+		title: 'A Different Gospel',
+		speaker: 'Dave Patterson',
+		date: 'Apr 13, 2026',
+		series: 'A Life of Freedom',
+		contentType: 'transcript',
+		snippet:
+			'Grace is not earned through striving, and the true gospel keeps pointing us back to Jesus.',
+		match: 96,
+		redirectTo: '/sermons',
+	},
+	{
+		id: 'ai-search-3',
+		title: 'A Generous Church',
+		speaker: 'Hilary Harris',
+		date: 'Mar 29, 2026',
+		series: 'A Study in the Book of Philippians',
+		contentType: 'note',
+		snippet:
+			'Generosity is not only about giving money, but about living open-handed toward people and purpose.',
+		match: 94,
+		redirectTo: '/sermons',
+	},
+	{
+		id: 'ai-search-4',
+		title: 'The Guard of Peace',
+		speaker: 'Dave Patterson',
+		date: 'Mar 22, 2026',
+		series: 'A Study in the Book of Philippians',
+		contentType: 'sermon',
+		snippet:
+			'The peace of God protects the heart and mind when prayer becomes our first response instead of panic.',
+		match: 93,
+		redirectTo: '/sermons',
+	},
+	{
+		id: 'ai-search-5',
+		title: "Press On, Don't Look Back",
+		speaker: 'Tosha Zwanziger',
+		date: 'Mar 15, 2026',
+		series: 'A Study in the Book of Philippians',
+		contentType: 'transcript',
+		snippet:
+			'Spiritual maturity means refusing to live chained to what is behind and moving forward in faith.',
+		match: 91,
+		redirectTo: '/sermons',
+	},
+	{
+		id: 'ai-search-6',
+		title: 'Live Like Epaphroditus',
+		speaker: 'Dave Patterson',
+		date: 'Mar 1, 2026',
+		series: 'A Study in the Book of Philippians',
+		contentType: 'sermon',
+		snippet:
+			'Faithfulness often looks like quiet courage, steady service, and showing up for others at cost to yourself.',
+		match: 89,
+		redirectTo: '/sermons',
+	},
+	{
+		id: 'ai-search-7',
+		title: "God's Kindness in Suffering",
+		speaker: 'Rich Harris',
+		date: 'Feb 15, 2026',
+		series: 'A Study in the Book of Philippians',
+		contentType: 'note',
+		snippet:
+			'God does not waste suffering, and His kindness is often most visible when life feels most uncertain.',
+		match: 87,
+		redirectTo: '/sermons',
+	},
+	{
+		id: 'ai-search-8',
+		title: 'Strong and Courageous',
+		speaker: 'Dave Patterson',
+		date: 'Jan 25, 2026',
+		series: 'New Ground',
+		contentType: 'transcript',
+		snippet:
+			'Courage grows when obedience matters more than comfort and when trust replaces hesitation.',
+		match: 86,
+		redirectTo: '/sermons',
+	},
+	{
+		id: 'ai-search-9',
+		title: 'New Ground',
+		speaker: 'Dave Patterson',
+		date: 'Jan 4, 2026',
+		series: 'New Ground',
+		contentType: 'sermon',
+		snippet:
+			'New seasons require fresh faith, and God often prepares new ground before we fully understand it.',
+		match: 84,
+		redirectTo: '/sermons',
+	},
+	{
+		id: 'ai-search-10',
+		title: 'Family Matters',
+		speaker: 'Dave Patterson',
+		date: 'Nov 2, 2025',
+		series: 'I Can Relate',
+		contentType: 'sermon',
+		snippet:
+			'Healthy relationships are built through humility, patience, and a willingness to love like Jesus.',
+		match: 82,
+		redirectTo: '/sermons',
+	},
+	{
+		id: 'ai-search-11',
+		title: 'Relate Like Jesus',
+		speaker: 'Dave Patterson',
+		date: 'Oct 12, 2025',
+		series: 'I Can Relate',
+		contentType: 'transcript',
+		snippet:
+			'The way of Jesus teaches us to relate with truth, grace, compassion, and sacrificial love.',
+		match: 80,
+		redirectTo: '/sermons',
+	},
+	{
+		id: 'ai-search-12',
+		title: 'Supernatural Power',
+		speaker: 'Dave Patterson',
+		date: 'Oct 5, 2025',
+		series: 'New Testament Believer',
+		contentType: 'note',
+		snippet:
+			'The Christian life is not meant to be lived in human strength alone, but through the Spirit of God.',
+		match: 78,
+		redirectTo: '/sermons',
+	},
+];
