@@ -6,17 +6,22 @@ import { Card } from './components/Card.tsx';
 import FileUploadButton from './components/FileUploadButton.tsx';
 import Tag from './components/Tag.tsx';
 import { useToast } from './components/ToastContext.tsx';
-import type { Sermon } from './types/sermon';
+import { durationToString } from './types/sermon';
 
-const mockSermon: Sermon = {
+const mockSermon = {
 	id: 0,
 	title: 'The Foundation of Grace',
 	speaker: 'Dave Patterson',
 	series: 'Live Your Best Life',
-	date: new Date('2026-04-13'),
-	tags: ['grace', 'faith', 'purpose'],
-	status: 'Published',
-	duration: 0,
+	seriesIndex: 4,
+	seriesTotal: 6,
+	videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+	transcriptStatus: 'Generated',
+	summaryStatus: 'Generated',
+	date: new Date('2026-02-23'),
+	tags: ['grace', 'faith', 'purpose', 'identity', 'calling'],
+	status: 'Published' as const,
+	duration: 2538,
 };
 
 const mockTranscript = [
@@ -24,6 +29,12 @@ const mockTranscript = [
 	"A lot of people misunderstand what grace really means. It's not just a theological concept. Grace is the operating system of the Kingdom of God.",
 	'Let me read from Ephesians 2:8-9. "For it is by grace you have been saved, through faith — and this is not from yourselves, it is the gift of God."',
 	'Three things about living under grace: grace is not earned, grace changes your identity, and grace empowers your purpose ...',
+];
+
+const mockSummary = [
+	'Pastor Dave Patterson explores grace as the foundation of Christian living.',
+	' The sermon covers three main points: grace cannot be earned, grace transforms identity, and grace empowers believers to fulfill their purpose. ',
+	'Drawing from Ephesians 2:8-9, Patterson emphasizes that understanding grace should change how we relate to God and each other.',
 ];
 
 function highlightKeywords(text: string, keywords: string[]) {
@@ -52,14 +63,18 @@ function highlightKeywords(text: string, keywords: string[]) {
 export default function SermonDetail() {
 	const { showToast } = useToast();
 	const [_transcript, setTranscript] = useState('');
+	const [isEditingSummary, setIsEditingSummary] = useState(false);
+
+	const [summary, setSummary] = useState(mockSummary.join(' '));
 
 	return (
 		<MainLayout title="Sermon Detail">
 			<div className="SermonDetail-grid">
-				<Card className="SermonDetail-transcriptCard">
-					<div className="SermonDetail-transcript-header">
-						<h2 className="SermonDetail-transcript-title">Transcript</h2>
-						<div className="SermonDetail-transcript-actions">
+				{/* Transcript Section */}
+				<Card className="SermonDetail-transcript">
+					<div className="SermonDetail-card-header">
+						<h2 className="SermonDetail-card-title">Transcript</h2>
+						<div className="SermonDetail-card-actions">
 							<Button variant="ghost" className="SermonDetail-copy-btn">
 								Copy
 							</Button>
@@ -95,6 +110,120 @@ export default function SermonDetail() {
 								{highlightKeywords(paragraph, mockSermon.tags)}
 							</p>
 						))}
+					</div>
+				</Card>
+
+				{/* Summary Section */}
+				<Card className="SermonDetail-summary">
+					<div className="SermonDetail-card-header">
+						<h2 className="SermonDetail-card-title">Summary</h2>
+						<div className="SermonDetail-card-actions">
+							<Tag variant="blue">AI Generated</Tag>
+							<Button
+								variant="ghost"
+								className="SermonDetail-regenerate-btn"
+								onClick={() =>
+									showToast('Regenerating summary via AI...', 'info')
+								}
+							>
+								Regenerate with AI
+							</Button>
+						</div>
+					</div>
+					<div className="SermonDetail-summary-container">
+						<p className="SermonDetail-summary-paragraph">{mockSummary}</p>
+					</div>
+					<div className="SermonDetail-summary-edit-container">
+						{isEditingSummary ? (
+							<div className="SermonDetail-summary-editing">
+								<Button
+									variant="secondary"
+									className="SermonDetail-summary-btn"
+									onClick={() => setIsEditingSummary(false)}
+								>
+									Edit Summary Manually
+								</Button>
+								<textarea
+									className="SermonDetail-summary-textarea"
+									value={summary}
+									onChange={e => setSummary(e.target.value)}
+								/>
+							</div>
+						) : (
+							<Button
+								variant="secondary"
+								className="SermonDetail-summary-btn"
+								onClick={() => setIsEditingSummary(true)}
+							>
+								Edit Summary Manually
+							</Button>
+						)}
+					</div>
+				</Card>
+
+				{/* Metadata Section */}
+				<Card className="SermonDetail-metadata">
+					<div className="SermonDetail-card-header">
+						<h2 className="SermonDetail-card-title">Metadata</h2>
+					</div>
+					<div className="SermonDetail-metadata-body">
+						<span className="SermonDetail-metadata-label">Series</span>
+						<span className="SermonDetail-metadata-value">
+							{mockSermon.series}
+						</span>
+
+						<span className="SermonDetail-metadata-label">Series Index</span>
+						<span className="SermonDetail-metadata-value">
+							#{mockSermon.seriesIndex} of {mockSermon.seriesTotal}
+						</span>
+
+						<span className="SermonDetail-metadata-label">Speaker</span>
+						<span className="SermonDetail-metadata-value">
+							{mockSermon.speaker}
+						</span>
+
+						<span className="SermonDetail-metadata-label">Date</span>
+						<span className="SermonDetail-metadata-value">
+							{mockSermon.date.toLocaleDateString('en-US', {
+								month: 'long',
+								day: 'numeric',
+								year: 'numeric',
+							})}
+						</span>
+
+						<span className="SermonDetail-metadata-label">Duration</span>
+						<span className="SermonDetail-metadata-value">
+							{durationToString(mockSermon.duration)}
+						</span>
+
+						<span className="SermonDetail-metadata-label">Video</span>
+						<span className="SermonDetail-metadata-value">
+							<a
+								href={mockSermon.videoUrl}
+								target="_blank"
+								rel="noreferrer"
+								className="SermonDetail-metadata-link"
+							>
+								{mockSermon.videoUrl.replace('https://', '')}
+							</a>
+						</span>
+
+						<span className="SermonDetail-metadata-label">Transcript</span>
+						<span className="SermonDetail-metadata-value">
+							<Tag variant="green">{mockSermon.transcriptStatus}</Tag>
+						</span>
+
+						<span className="SermonDetail-metadata-label">Summary</span>
+						<span className="SermonDetail-metadata-value">
+							<Tag variant="green">{mockSermon.summaryStatus}</Tag>
+						</span>
+
+						<span className="SermonDetail-metadata-label">Tags</span>
+						<span className="SermonDetail-metadata-value">
+							<Tag variant="green">
+								AI Generated ({mockSermon.tags.length})
+							</Tag>
+						</span>
 					</div>
 				</Card>
 			</div>
