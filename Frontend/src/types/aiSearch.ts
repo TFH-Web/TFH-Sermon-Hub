@@ -10,4 +10,5 @@ export interface AISearchResultPreview {
 	snippet: string;
 	match: number;
 	redirectTo: string;
+	thumbnailUrl?: string;
 }
