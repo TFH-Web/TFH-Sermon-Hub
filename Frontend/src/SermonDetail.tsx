@@ -8,9 +8,9 @@ import FileUploadButton from './components/FileUploadButton.tsx';
 import Tag from './components/Tag.tsx';
 import { useToast } from './components/ToastContext.tsx';
 import { sermons } from './data/sermons.ts';
-import { durationToString } from './types/sermon';
-import EditSermonModal from './modals/EditSermonModal.tsx';
 import DeleteSermonModal from './modals/DeleteSermonModal.tsx';
+import EditSermonModal from './modals/EditSermonModal.tsx';
+import { durationToString } from './types/sermon';
 
 // TODO: Add missing fields to sermon type when we're integrating w/ backend
 const mockSermon = {
@@ -78,16 +78,10 @@ export default function SermonDetail() {
 			<div className="SermonDetail-grid">
 				<div className="SermonDetail-video-container">
 					<div className="SermonDetail-btn-group">
-						<Button
-							variant="secondary"
-							onClick={() => setEditSermonOpen(true)}
-						>
+						<Button variant="secondary" onClick={() => setEditSermonOpen(true)}>
 							Edit
 						</Button>
-						<Button
-							variant="danger"
-							onClick={() => setDeleteSermonOpen(true)}
-						>
+						<Button variant="danger" onClick={() => setDeleteSermonOpen(true)}>
 							Delete
 						</Button>
 					</div>
@@ -190,9 +184,7 @@ export default function SermonDetail() {
 					</div>
 					<div className="SermonDetail-metadata-body">
 						<span className="SermonDetail-metadata-label">Series</span>
-						<span className="SermonDetail-metadata-value">
-							{sermon.series}
-						</span>
+						<span className="SermonDetail-metadata-value">{sermon.series}</span>
 
 						<span className="SermonDetail-metadata-label">Series Index</span>
 						<span className="SermonDetail-metadata-value">
@@ -242,14 +234,12 @@ export default function SermonDetail() {
 
 						<span className="SermonDetail-metadata-label">Tags</span>
 						<span className="SermonDetail-metadata-value">
-							<Tag variant="green">
-								AI Generated ({sermon.tags.length})
-							</Tag>
+							<Tag variant="green">AI Generated ({sermon.tags.length})</Tag>
 						</span>
 					</div>
 				</Card>
 			</div>
-			
+
 			{/* Edit and Delete buttons */}
 			<EditSermonModal
 				isOpen={editSermonOpen}
@@ -262,7 +252,6 @@ export default function SermonDetail() {
 				onClose={() => setDeleteSermonOpen(false)}
 				sermon={sermon}
 			/>
-
 		</MainLayout>
 	);
 }

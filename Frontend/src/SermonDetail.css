@@ -1,7 +1,7 @@
 .SermonDetail-grid {
 	display: grid;
 	grid-template-areas:
-			"video video"
+		"video video"
 		"transcript summary"
 		"transcript metadata";
 	grid-template-columns: 1fr 1fr;
@@ -12,7 +12,6 @@
 	display: block;
 	grid: video;
 }
-
 
 .SermonDetail-btn-group {
 	display: flex;
