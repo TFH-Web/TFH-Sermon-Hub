@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import './SermonDetail.css';
+import { useParams } from 'react-router';
 import Button from '$/components/Button';
 import MainLayout from '$/components/MainLayout';
 import { Card } from './components/Card.tsx';
 import FileUploadButton from './components/FileUploadButton.tsx';
 import Tag from './components/Tag.tsx';
 import { useToast } from './components/ToastContext.tsx';
+import { sermons } from './data/sermons.ts';
+
+// TODO: add transcript to sermon type when we're integrating w/ backend
 import { durationToString } from './types/sermon';
 
 const mockSermon = {
@@ -63,12 +67,18 @@ function highlightKeywords(text: string, keywords: string[]) {
 export default function SermonDetail() {
 	const { showToast } = useToast();
 	const [_transcript, setTranscript] = useState('');
+	const { id } = useParams();
+	const sermon = sermons.find(s => s.id.toString() === id);
+
+	if (!sermon) {
+		throw new Error('Not found');
+	}
 	const [isEditingSummary, setIsEditingSummary] = useState(false);
 
 	const [summary, setSummary] = useState(mockSummary.join(' '));
 
 	return (
-		<MainLayout title="Sermon Detail">
+		<MainLayout title={sermon.title}>
 			<div className="SermonDetail-grid">
 				{/* Transcript Section */}
 				<Card className="SermonDetail-transcript">
@@ -107,7 +117,7 @@ export default function SermonDetail() {
 					<div className="SermonDetail-transcript-container">
 						{mockTranscript.map(paragraph => (
 							<p key={paragraph} className="SermonDetail-transcript-paragraph">
-								{highlightKeywords(paragraph, mockSermon.tags)}
+								{highlightKeywords(paragraph, sermon.tags)}
 							</p>
 						))}
 					</div>
