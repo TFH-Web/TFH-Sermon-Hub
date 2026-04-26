@@ -1,4 +1,5 @@
 import { Fragment, type MouseEvent, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { AISearchVisibleResult } from '$/hooks/useAISearch';
 import type { AISearchResultPreview } from '$/types/aiSearch';
 import './AISearchPreviewCard.css';
@@ -65,8 +66,11 @@ export default function AISearchPreviewCard({
 	result,
 	onOpen,
 }: AISearchPreviewCardProps) {
+	const navigate = useNavigate();
+
 	function handleChatClick(e: MouseEvent<HTMLButtonElement>) {
 		e.stopPropagation();
+		navigate('/ai-chat');
 	}
 
 	return (
@@ -110,8 +114,8 @@ export default function AISearchPreviewCard({
 				type="button"
 				className="AISearchPreviewCard-chatButton"
 				onClick={handleChatClick}
-				aria-label="AI chat coming soon"
-				title="AI chat coming soon"
+				aria-label={`Open AI chat for ${result.title}`}
+				title={`Open AI chat for ${result.title}`}
 			>
 				<span className="AISearchPreviewCard-chatBubble" aria-hidden="true" />
 			</button>
