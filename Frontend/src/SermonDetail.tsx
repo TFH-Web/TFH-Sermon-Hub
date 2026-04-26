@@ -8,28 +8,20 @@ import FileUploadButton from './components/FileUploadButton.tsx';
 import Tag from './components/Tag.tsx';
 import { useToast } from './components/ToastContext.tsx';
 import { sermons } from './data/sermons.ts';
-
-// TODO: add transcript to sermon type when we're integrating w/ backend
 import { durationToString } from './types/sermon';
 import EditSermonModal from './modals/EditSermonModal.tsx';
 import DeleteSermonModal from './modals/DeleteSermonModal.tsx';
 
+// TODO: Add missing fields to sermon type when we're integrating w/ backend
 const mockSermon = {
-	id: 0,
-	title: 'The Foundation of Grace',
-	speaker: 'Dave Patterson',
-	series: 'Live Your Best Life',
 	seriesIndex: 4,
 	seriesTotal: 6,
 	videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
 	transcriptStatus: 'Generated',
 	summaryStatus: 'Generated',
-	date: new Date('2026-02-23'),
-	tags: ['grace', 'faith', 'purpose', 'identity', 'calling'],
-	status: 'Published' as const,
-	duration: 2538,
 };
 
+// TODO: add transcript to sermon type when we're integrating w/ backend
 const mockTranscript = [
 	"Good morning everyone. I'm so glad you're here today. We're continuing our series \"Live Your Best Life\" and today we're talking about something that is at the foundation of everything — grace.",
 	"A lot of people misunderstand what grace really means. It's not just a theological concept. Grace is the operating system of the Kingdom of God.",
@@ -37,6 +29,7 @@ const mockTranscript = [
 	'Three things about living under grace: grace is not earned, grace changes your identity, and grace empowers your purpose ...',
 ];
 
+// TODO: add summary to sermon type when we're integrating w/ backend
 const mockSummary = [
 	'Pastor Dave Patterson explores grace as the foundation of Christian living.',
 	' The sermon covers three main points: grace cannot be earned, grace transforms identity, and grace empowers believers to fulfill their purpose. ',
@@ -69,17 +62,16 @@ function highlightKeywords(text: string, keywords: string[]) {
 export default function SermonDetail() {
 	const { showToast } = useToast();
 	const [_transcript, setTranscript] = useState('');
+	const [_summary, setSummary] = useState(mockSummary.join(' '));
 	const { id } = useParams();
 	const sermon = sermons.find(s => s.id.toString() === id);
+	const [isEditingSummary, setIsEditingSummary] = useState(false);
+	const [editSermonOpen, setEditSermonOpen] = useState(false);
+	const [deleteSermonOpen, setDeleteSermonOpen] = useState(false);
 
 	if (!sermon) {
 		throw new Error('Not found');
 	}
-	const [isEditingSummary, setIsEditingSummary] = useState(false);
-
-	const [summary, setSummary] = useState(mockSummary.join(' '));
-	const [editSermonOpen, setEditSermonOpen] = useState(false);
-	const [deleteSermonOpen, setDeleteSermonOpen] = useState(false);
 
 	return (
 		<MainLayout title={sermon.title}>
@@ -175,7 +167,7 @@ export default function SermonDetail() {
 								</Button>
 								<textarea
 									className="SermonDetail-summary-textarea"
-									value={summary}
+									value={_summary}
 									onChange={e => setSummary(e.target.value)}
 								/>
 							</div>
@@ -199,7 +191,7 @@ export default function SermonDetail() {
 					<div className="SermonDetail-metadata-body">
 						<span className="SermonDetail-metadata-label">Series</span>
 						<span className="SermonDetail-metadata-value">
-							{mockSermon.series}
+							{sermon.series}
 						</span>
 
 						<span className="SermonDetail-metadata-label">Series Index</span>
@@ -209,12 +201,12 @@ export default function SermonDetail() {
 
 						<span className="SermonDetail-metadata-label">Speaker</span>
 						<span className="SermonDetail-metadata-value">
-							{mockSermon.speaker}
+							{sermon.speaker}
 						</span>
 
 						<span className="SermonDetail-metadata-label">Date</span>
 						<span className="SermonDetail-metadata-value">
-							{mockSermon.date.toLocaleDateString('en-US', {
+							{sermon.date.toLocaleDateString('en-US', {
 								month: 'long',
 								day: 'numeric',
 								year: 'numeric',
@@ -223,7 +215,7 @@ export default function SermonDetail() {
 
 						<span className="SermonDetail-metadata-label">Duration</span>
 						<span className="SermonDetail-metadata-value">
-							{durationToString(mockSermon.duration)}
+							{durationToString(sermon.duration)}
 						</span>
 
 						<span className="SermonDetail-metadata-label">Video</span>
@@ -251,7 +243,7 @@ export default function SermonDetail() {
 						<span className="SermonDetail-metadata-label">Tags</span>
 						<span className="SermonDetail-metadata-value">
 							<Tag variant="green">
-								AI Generated ({mockSermon.tags.length})
+								AI Generated ({sermon.tags.length})
 							</Tag>
 						</span>
 					</div>
