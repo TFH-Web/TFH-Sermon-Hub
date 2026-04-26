@@ -29,7 +29,10 @@ export default function SermonCard({
 			className={clsx('SermonCard u-button', className)}
 			as="a"
 			href={linkTo(sermon)}
-			onClick={onClick}
+			onClick={(e: React.MouseEvent) => {
+				e.preventDefault();
+				onClick?.();
+			}}
 		>
 			<h3 className="SermonCard-title">{sermon.title}</h3>
 

@@ -75,10 +75,6 @@ export default function SermonDetail({
 }: SermonDetailProps) {
 	const [_transcript, setTranscript] = useState('');
 
-	if (!sermon) {
-		throw new Error('Not found');
-	}
-
 	// Renders nothing if there isn't a selected sermon
 	if (!sermon) return null;
 
