@@ -40,8 +40,10 @@
 }
 
 .AISearchPreviewCard-thumb {
+	display: block;
 	width: 112px;
 	height: 72px;
+	object-fit: cover;
 	background: oklch(85% 0.01 110deg);
 	border-radius: 12px;
 }

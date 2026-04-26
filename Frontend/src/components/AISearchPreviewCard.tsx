@@ -62,6 +62,13 @@ function renderHighlightedText(text: string, matchTerms: string[]) {
 	return parts.length > 0 ? parts : text;
 }
 
+function previewImageUrl(result: AISearchResultPreview) {
+	return (
+		result.thumbnailUrl ??
+		`https://unsplash.it/seed/${encodeURIComponent(result.title)}/1280/720`
+	);
+}
+
 export default function AISearchPreviewCard({
 	result,
 	onOpen,
@@ -80,7 +87,11 @@ export default function AISearchPreviewCard({
 				className="AISearchPreviewCard-open"
 				onClick={() => onOpen(result)}
 			>
-				<div className="AISearchPreviewCard-thumb" aria-hidden="true" />
+				<img
+					className="AISearchPreviewCard-thumb"
+					src={previewImageUrl(result)}
+					alt={`${result.title} preview`}
+				/>
 
 				<div className="AISearchPreviewCard-main">
 					<h2 className="AISearchPreviewCard-title">{result.title}</h2>
