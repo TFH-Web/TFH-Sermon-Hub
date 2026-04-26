@@ -1,19 +1,17 @@
 import { useState } from 'react';
 import './SermonDetail.css';
-import Modal from '$/components/Modal';
-import { Card } from '$/components/Card';
 import Button from '$/components/Button';
-import Tag from '$/components/Tag';
+import { Card } from '$/components/Card';
 import FileUploadButton from '$/components/FileUploadButton';
+import Modal from '$/components/Modal';
+import Tag from '$/components/Tag';
 import type { Sermon } from '$/types/sermon';
-
 
 interface SermonDetailProps {
 	isOpen: boolean;
 	onClose: () => void;
 	sermon: Sermon | null;
 }
-
 
 // Mock transcripts for the mockup, backup will handle later
 const mockTranscript = [
@@ -25,7 +23,7 @@ const mockTranscript = [
 
 // Mock summary, to change later as well
 const mockSummary =
-  	'Pastor Dave Patterson explores grace as the foundation of Christian living. The sermon covers three main points: grace cannot be earned, grace transforms identity, and grace empowers believers to fulfill ' +
+	'Pastor Dave Patterson explores grace as the foundation of Christian living. The sermon covers three main points: grace cannot be earned, grace transforms identity, and grace empowers believers to fulfill ' +
 	'their purpose. Drawing from Ephesians 2:8-9, Patterson emphasizes that understanding grace should change how we relate to God and each other.';
 
 // Matching keywords are wrapped in a highlight span inside the transcipt
@@ -70,8 +68,11 @@ function formatDateShort(date: Date): string {
 	}).format(date);
 }
 
-
-export default function SermonDetail({ isOpen, onClose, sermon }: SermonDetailProps) {
+export default function SermonDetail({
+	isOpen,
+	onClose,
+	sermon,
+}: SermonDetailProps) {
 	const [_transcript, setTranscript] = useState('');
 
 	if (!sermon) {
@@ -82,21 +83,20 @@ export default function SermonDetail({ isOpen, onClose, sermon }: SermonDetailPr
 	if (!sermon) return null;
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} size="lg" className="SermonDetail-modal">
+		<Modal
+			isOpen={isOpen}
+			onClose={onClose}
+			size="lg"
+			className="SermonDetail-modal"
+		>
 			<div className="SermonDetail">
-				
 				{/* Back button to close the modal */}
-				<button
-					type="button"
-					className="SermonDetail-back"
-					onClick={onClose}
-				>
+				<button type="button" className="SermonDetail-back" onClick={onClose}>
 					← Back to Sermons
 				</button>
 
 				{/* Top Portion, Video is on the left, Info is on the right */}
 				<div className="SermonDetail-top">
-
 					{/* Left Side, gray video placeholder with centered play button */}
 					<div className="SermonDetail-videoPlaceholder">
 						<div className="SermonDetail-playButton">▶</div>
@@ -104,7 +104,6 @@ export default function SermonDetail({ isOpen, onClose, sermon }: SermonDetailPr
 
 					{/* Right side, sermon metadata is stacked vertically */}
 					<div className="SermonDetail-info">
-
 						{/* Sermon series label */}
 						{sermon.series && (
 							<p className="SermonDetail-series">{sermon.series} Series</p>
@@ -119,9 +118,11 @@ export default function SermonDetail({ isOpen, onClose, sermon }: SermonDetailPr
 							{' • '}
 							{'  Date: '}
 							{formatDateShort(sermon.date)}
-							{sermon.duration ? `  •  Duration: ${Math.round(sermon.duration / 60)} min` : ''}
+							{sermon.duration
+								? `  •  Duration: ${Math.round(sermon.duration / 60)} min`
+								: ''}
 						</p>
-						
+
 						{/* Description, mock placeholder for now */}
 						<p className="SermonDetail-description">
 							Exploring the transformative power of grace and how it shapes our
@@ -156,12 +157,10 @@ export default function SermonDetail({ isOpen, onClose, sermon }: SermonDetailPr
 					</div>
 				</div>
 
-
 				{/* Bottom Section; Transcript on the left and summary + Metadata on the right */}
 				<div className="SermonDetail-bottom">
 					{/* Left Side - Transcript */}
 					<Card className="SermonDetail-transcriptCard">
-						
 						{/* Title, copy, and upload button */}
 						<div className="SermonDetail-transcriptHeader">
 							<h2 className="SermonDetail-cardTitle">Transcript</h2>
@@ -204,17 +203,17 @@ export default function SermonDetail({ isOpen, onClose, sermon }: SermonDetailPr
 
 					{/* Right Column */}
 					<div className="SermonDetail-rightColumn">
-
-
 						{/* Summary card */}
 						<Card className="SermonDetail-summaryCard">
-
 							{/* Title, AI tag, regenerate button */}
 							<div className="SermonDetail-summaryHeader">
 								<h2 className="SermonDetail-cardTitle">Summary</h2>
 								<div className="SermonDetail-summaryHeaderActions">
 									<Tag variant="blue">AI Generated</Tag>
-									<Button variant="ghost" className="SermonDetail-regenerateBtn">
+									<Button
+										variant="ghost"
+										className="SermonDetail-regenerateBtn"
+									>
 										Regenerate with AI
 									</Button>
 								</div>
@@ -224,21 +223,25 @@ export default function SermonDetail({ isOpen, onClose, sermon }: SermonDetailPr
 							<p className="SermonDetail-summaryText">{mockSummary}</p>
 
 							{/* Manual edit button below summary */}
-							<Button variant="secondary" className="SermonDetail-editSummaryBtn">
+							<Button
+								variant="secondary"
+								className="SermonDetail-editSummaryBtn"
+							>
 								Edit Summary Manually
 							</Button>
 						</Card>
 
 						{/* Metadata Card */}
 						<Card className="SermonDetail-metadataCard">
-              				<h2 className="SermonDetail-cardTitle">Metadata</h2>
+							<h2 className="SermonDetail-cardTitle">Metadata</h2>
 
 							{/* Each row is label on left, value on right */}
-              				<div className="SermonDetail-metadataRows">
-
+							<div className="SermonDetail-metadataRows">
 								<div className="SermonDetail-metaRow">
 									<span className="SermonDetail-metaLabel">Series</span>
-									<span className="SermonDetail-metaValue">{sermon.series ?? '—'}</span>
+									<span className="SermonDetail-metaValue">
+										{sermon.series ?? '—'}
+									</span>
 								</div>
 
 								{/* Series index is mocked for now */}
@@ -249,12 +252,16 @@ export default function SermonDetail({ isOpen, onClose, sermon }: SermonDetailPr
 
 								<div className="SermonDetail-metaRow">
 									<span className="SermonDetail-metaLabel">Speaker</span>
-									<span className="SermonDetail-metaValue">{sermon.speaker}</span>
+									<span className="SermonDetail-metaValue">
+										{sermon.speaker}
+									</span>
 								</div>
 
 								<div className="SermonDetail-metaRow">
 									<span className="SermonDetail-metaLabel">Date</span>
-									<span className="SermonDetail-metaValue">{formatDateLong(sermon.date)}</span>
+									<span className="SermonDetail-metaValue">
+										{formatDateLong(sermon.date)}
+									</span>
 								</div>
 
 								<div className="SermonDetail-metaRow">
@@ -265,13 +272,13 @@ export default function SermonDetail({ isOpen, onClose, sermon }: SermonDetailPr
 
 								<div className="SermonDetail-metaRow">
 									<span className="SermonDetail-metaLabel">Video</span>
-									{/* Mocked YouTube link */}	
-									<a																
+									{/* Mocked YouTube link */}
+									<a
 										className="SermonDetail-metaLink"
 										href="https://youtube.com/watch?v=abc123"
 										target="_blank"
 										rel="noreferrer"
-									>								
+									>
 										youtube.com/watch?v=abc123
 									</a>
 								</div>
@@ -290,12 +297,11 @@ export default function SermonDetail({ isOpen, onClose, sermon }: SermonDetailPr
 									<span className="SermonDetail-metaLabel">Tags</span>
 									<Tag variant="solid">AI Generated ({sermon.tags.length})</Tag>
 								</div>
-
-						</div>
-					</Card>
+							</div>
+						</Card>
+					</div>
 				</div>
 			</div>
-		</div>
-	</Modal>
+		</Modal>
 	);
 }

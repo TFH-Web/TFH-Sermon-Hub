@@ -1,7 +1,7 @@
 .SermonDetail {
-	padding: 24px 32px;
 	width: 90vw;
 	max-width: 1100px;
+	padding: 24px 32px;
 }
 
 /* Manual override for modal size */
@@ -12,21 +12,20 @@
 
 /* Back button */
 .SermonDetail-back {
-	background: none;
-	border: 1.5px solid #ccc;
-	color: #555;
-	font-size: 13px;
-	cursor: pointer;
+	display: inline-block;
 	padding: 5px;
 	margin-bottom: 20px;
-	display: inline-block;
+	font-size: 13px;
+	color: #555;
+	cursor: pointer;
+	background: none;
+	border: 1.5px solid #ccc;
 	border-radius: 10px;
 }
 
 .SermonDetail-back:hover {
 	color: #111;
 }
-
 
 /* Top Section, video takes 3 parts and info takes 2 parts */
 .SermonDetail-top {
@@ -38,27 +37,27 @@
 
 /* Grey Video box, currently set to 16:9 */
 .SermonDetail-videoPlaceholder {
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	width: 100%;
 	aspect-ratio: 16 / 9;
 	background: #d0d0d0;
 	border-radius: 12px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
 }
 
 /* White play button */
 .SermonDetail-playButton {
-	width: 60px;
-	height: 60px;
-	background: rgba(255, 255, 255, 0.85);
-	border-radius: 50%;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	width: 60px;
+	height: 60px;
 	font-size: 22px;
 	color: #333;
 	cursor: pointer;
+	background: rgba(255, 255, 255, 0.85);
+	border-radius: 50%;
 }
 
 /* Info column stacks vertically */
@@ -78,27 +77,27 @@
 
 /* Large Bold Title */
 .SermonDetail-title {
+	margin: 0;
 	font-size: 30px;
 	font-weight: 700;
-	color: #111;
 	line-height: 1.2;
-	margin: 0;
+	color: #111;
 }
 
 /* Meta data: Speaker/Date/Duration */
 .SermonDetail-meta {
+	margin: 0;
 	font-size: 13px;
 	color: #777;
-	margin: 0;
 	letter-spacing: 0.02em;
 }
 
 /* Description Paragraph */
 .SermonDetail-description {
-	font-size: 14px;
-	color: #444;
-	line-height: 1.6;
 	margin: 0;
+	font-size: 14px;
+	line-height: 1.6;
+	color: #444;
 }
 
 /* Pills for Tags */
@@ -116,9 +115,8 @@
 }
 
 .SermonDetail-deleteBtn {
-	color: #c0392b !important;
+	color: #c0392b;
 }
-
 
 /* Bottom Section, two columns */
 .SermonDetail-bottom {
@@ -136,12 +134,11 @@
 
 /* Card Title used for the bottom cards */
 .SermonDetail-cardTitle {
+	margin: 0;
 	font-size: 15px;
 	font-weight: 600;
 	color: #111;
-	margin: 0;
 }
-
 
 /* Transcript Card */
 /* Top, title is on the left, copy and upload on the right */
@@ -161,8 +158,8 @@
 /* Second row, AI tag on the left, regenerate button on the right */
 .SermonDetail-transcriptAiRow {
 	display: flex;
-	align-items: center;
 	gap: 12px;
+	align-items: center;
 	margin-bottom: 12px;
 }
 
@@ -172,28 +169,27 @@
 	flex-direction: column;
 	gap: 14px;
 	max-height: 320px;
+	padding: 14px;
 	overflow-y: auto;
 	border: 1px solid #e5e5e5;
 	border-radius: 8px;
-	padding: 14px;
 }
 
 .SermonDetail-paragraph {
-	font-size: 13px;
-	color: #444;
-	line-height: 1.65;
 	margin: 0;
+	font-size: 13px;
+	line-height: 1.65;
+	color: #444;
 }
 
 /* Yellow Pill Highligh for matching keywords */
 .SermonDetail-keyword {
+	padding: 0 4px;
+	font-size: 12px;
 	background: #e8ede7;
 	border: 1px solid #c5d4c2;
 	border-radius: 4px;
-	padding: 0 4px;
-	font-size: 12px;
 }
-
 
 /* Summary Card */
 /* Top row, title on the left and AI tag plus regenerate on the right */
@@ -206,22 +202,21 @@
 
 .SermonDetail-summaryHeaderActions {
 	display: flex;
-	align-items: center;
 	gap: 8px;
+	align-items: center;
 }
 
 .SermonDetail-summaryText {
-	font-size: 13px;
-	color: #444;
-	line-height: 1.65;
 	margin: 0 0 14px 0;
+	font-size: 13px;
+	line-height: 1.65;
+	color: #444;
 }
 
 /* Edit summary manually button */
 .SermonDetail-editSummaryBtn {
 	width: fit-content;
 }
-
 
 /* Metadata Card */
 .SermonDetail-metadataRows {
@@ -233,34 +228,33 @@
 /* Each row, label on left, value on right */
 .SermonDetail-metaRow {
 	display: flex;
-	justify-content: space-between;
 	align-items: center;
-	font-size: 13px;
+	justify-content: space-between;
 	padding: 10px 0;
+	font-size: 13px;
 	border-bottom: 1px solid #f0f0f0;
 }
 
 .SermonDetail-metaLabel {
-	color: #888;
 	font-weight: 500;
+	color: #888;
 }
 
 .SermonDetail-metaValue {
-	color: #111;
 	font-weight: 500;
+	color: #111;
 }
 
 /* Youtube link in the metadata */
 .SermonDetail-metaLink {
-	color: #4a6342;
 	font-size: 13px;
+	color: #4a6342;
 	text-decoration: none;
 }
 
 .SermonDetail-metaLink:hover {
 	text-decoration: underline;
 }
-
 
 /* Extra Padding so boxes aren't squished */
 .SermonDetail-transcriptCard,

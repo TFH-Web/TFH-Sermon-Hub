@@ -4,9 +4,9 @@ import SermonCard from '$/components/SermonCard';
 import './Sermons.css';
 import clsx from 'clsx';
 import { sermons } from '$/data/sermons';
+import type { Sermon } from '$/types/sermon';
 import { type Status, statuses } from '$/types/sermon';
 import SermonDetail from './SermonDetail';
-import type { Sermon } from '$/types/sermon';
 
 const topics = ['Faith', 'Hope', 'Grace', 'Healing', 'Anxiety'] as const;
 type Topic = (typeof topics)[number];
@@ -167,9 +167,9 @@ export default function Sermons() {
 						}
 					})
 					.map(sermon => (
-						<SermonCard 
-							key={sermon.title} 
-							sermon={sermon} 
+						<SermonCard
+							key={sermon.title}
+							sermon={sermon}
 							onClick={() => setSelectedSermon(sermon)}
 						/>
 					))}
