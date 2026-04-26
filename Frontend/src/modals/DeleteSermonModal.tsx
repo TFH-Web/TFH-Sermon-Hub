@@ -1,5 +1,6 @@
 import './DeleteSermonModal.css';
 import { Icon } from '@iconify-icon/react';
+import { useNavigate } from 'react-router-dom';
 import Button from '$/components/Button';
 import Modal from '$/components/Modal';
 import { useToast } from '$/components/ToastContext';
@@ -17,10 +18,12 @@ export default function DeleteSermonModal({
 	sermon,
 }: DeleteSermonModalProps) {
 	const { showToast } = useToast();
+	const navigate = useNavigate();
 
 	const handleDelete = () => {
 		onClose();
 		showToast('Sermon deleted successfully', 'success');
+		navigate('/sermons');
 	};
 
 	return (
