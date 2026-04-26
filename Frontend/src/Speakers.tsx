@@ -1,4 +1,3 @@
-// import { useState } from 'react';
 import SpeakerCard from './components/SpeakerCard';
 import './Speakers.css';
 import MainLayout from '$/components/MainLayout';
@@ -8,118 +7,47 @@ const speakers = [
 	{
 		name: 'Dave Patterson',
 		role: 'Lead Pastor',
-		sermoncount: '1847',
+		sermoncount: '8',
 		color: 'green',
-		id: '0',
+		id: '1',
 	},
 	{
-		name: 'Guest Speakers',
-		role: 'Various',
-		sermoncount: '342',
+		name: 'Jon Laurenzo',
+		role: 'Guest Speaker',
+		sermoncount: '1',
 		color: 'blue',
-		id: '0',
+		id: '2',
 	},
 	{
-		name: 'Worship Team',
-		role: 'Team',
-		sermoncount: '248',
-		color: 'orange ',
-		id: '0',
+		name: 'Hilary Harris',
+		role: 'Guest Speaker',
+		sermoncount: '1',
+		color: 'orange',
+		id: '3',
 	},
-
-	// {	name: 'Dave Patterson',
-	// 	role: 'Lead Pastor',
-	// 	sermoncount: '1847',
-	// 	color: 'green',
-	// 	id: '0'
-	// },
-	// {
-	// 	name: 'Guest Speakers',
-	// 	role: 'Various',
-	// 	sermoncount: '342',
-	// 	color: 'blue',
-	// 	id: '0'
-	// },
-	// {
-	// 	name:'Worship Team',
-	// 	role: 'Team',
-	// 	sermoncount: '248',
-	// 	color: 'orange ',
-	// 	id: '0'
-	// },
-	// {
-	// 	name: 'Dave Patterson',
-	// 	role: 'Lead Pastor',
-	// 	sermoncount: '1847',
-	// 	color: 'green',
-	// 	id: '0'
-	// },
-	// {
-	// 	name: 'Guest Speakers',
-	// 	role: 'Various',
-	// 	sermoncount: '342',
-	// 	color: 'blue',
-	// 	id: '0'
-	// },
-	// {
-	// 	name:'Worship Team',
-	// 	role: 'Team',
-	// 	sermoncount: '248',
-	// 	color: 'orange ',
-	// 	id: '0'
-	// },
-	// {
-	// 	name: 'Dave Patterson',
-	// 	role: 'Lead Pastor',
-	// 	sermoncount: '1847',
-	// 	color: 'green',
-	// 	id: '0'
-	// },
-	// {
-	// 	name: 'Guest Speakers',
-	// 	role: 'Various',
-	// 	sermoncount: '342',
-	// 	color: 'blue',
-	// 	id: '0'
-	// },
-	// {
-	// 	name:'Worship Team',
-	// 	role: 'Team',
-	// 	sermoncount: '248',
-	// 	color: 'orange ',
-	// 	id: '0'
-	// },
-	// {
-	// 	name: 'Dave Patterson',
-	// 	role: 'Lead Pastor',
-	// 	sermoncount: '1847',
-	// 	color: 'green',
-	// 	id: '0'
-	// },
-	// {
-	// 	name: 'Guest Speakers',
-	// 	role: 'Various',
-	// 	sermoncount: '342',
-	// 	color: 'blue',
-	// 	id: '0'
-	// },
-	// {
-	// 	name:'Worship Team',
-	// 	role: 'Team',
-	// 	sermoncount: '248',
-	// 	color: 'orange ',
-	// 	id: '0'
-	// },
+	{
+		name: 'Tosha Zwanziger',
+		role: 'Guest Speaker',
+		sermoncount: '1',
+		color: 'green',
+		id: '4',
+	},
+	{
+		name: 'Rich Harris',
+		role: 'Guest Speaker',
+		sermoncount: '1',
+		color: 'blue',
+		id: '5',
+	},
 ];
 
-//displays 3-wide grid of SpeakerCard components from given list of speakers
+// displays grid of SpeakerCard components from given list of speakers
 export default function Speakers() {
 	return (
 		<MainLayout title="Speakers">
-			{/* <h2>Speakers</h2> */}
 			<div className="speaker-grid">
 				{speakers.map(speaker => (
-					<SpeakerCard key={speaker.name} speaker={speaker} />
+					<SpeakerCard key={speaker.id} speaker={speaker} />
 				))}
 			</div>
 		</MainLayout>
