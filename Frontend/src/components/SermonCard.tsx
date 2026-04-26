@@ -17,7 +17,11 @@ export interface SermonCardProps {
 	onClick?: () => void;
 }
 
-export default function SermonCard({ className, sermon, onClick }: SermonCardProps) {
+export default function SermonCard({
+	className,
+	sermon,
+	onClick,
+}: SermonCardProps) {
 	const overlayInfo = createOverlayInfo(sermon.status);
 
 	return (
