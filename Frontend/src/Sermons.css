@@ -108,7 +108,9 @@
 }
 
 .Sermons-cardLink {
-	grid-row: span 4;
+	display: block;
+	color: inherit;
+	text-decoration: none;
 	cursor: pointer;
 }
 
