@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MainLayout from '$/components/MainLayout';
 import SermonCard from '$/components/SermonCard';
 import './Sermons.css';
@@ -22,6 +23,8 @@ const sortCategories = ['Newest', 'Oldest', 'Relevance'] as const;
 type SortCategory = (typeof sortCategories)[number];
 
 export default function Sermons() {
+	const navigate = useNavigate();
+
 	// Tracks the currently selected sermon filter, defaults to null
 	const [status, setStatus] = useState<Status | null>(null);
 
@@ -163,7 +166,21 @@ export default function Sermons() {
 						}
 					})
 					.map(sermon => (
-						<SermonCard key={sermon.title} sermon={sermon} />
+						<div
+							key={sermon.id}
+							className="Sermons-cardLink"
+							role="button"
+							tabIndex={0}
+							onClick={() => navigate(`/sermons/${sermon.id}`)}
+							onKeyDown={e => {
+								if (e.key === 'Enter' || e.key === ' ') {
+									e.preventDefault();
+									navigate(`/sermons/${sermon.id}`);
+								}
+							}}
+						>
+							<SermonCard sermon={sermon} />
+						</div>
 					))}
 			</div>
 		</MainLayout>
