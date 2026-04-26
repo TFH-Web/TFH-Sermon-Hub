@@ -4,9 +4,7 @@ import './index.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ErrorBoundary } from 'react-error-boundary';
 import { BrowserRouter, Route, Routes } from 'react-router';
-import MainLayout from '$/components/MainLayout.tsx';
 
 import AIChat from './AIChat.tsx';
 import AISearch from './AISearch.tsx';
@@ -16,7 +14,6 @@ import Dashboard from './Dashboard.tsx';
 import Notifications from './Notifications.tsx';
 import ImportUpload from './pages/ImportUpload.tsx';
 import Series from './Series.tsx';
-import SermonDetail from './SermonDetail.tsx';
 import Sermons from './Sermons.tsx';
 import Settings from './Settings.tsx';
 import Speakers from './Speakers.tsx';
