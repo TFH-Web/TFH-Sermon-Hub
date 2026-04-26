@@ -14,9 +14,10 @@ import Tag from './Tag';
 export interface SermonCardProps {
 	sermon: Sermon;
 	className?: string;
+	onClick?: () => void;
 }
 
-export default function SermonCard({ className, sermon }: SermonCardProps) {
+export default function SermonCard({ className, sermon, onClick }: SermonCardProps) {
 	const overlayInfo = createOverlayInfo(sermon.status);
 
 	return (
@@ -24,6 +25,7 @@ export default function SermonCard({ className, sermon }: SermonCardProps) {
 			className={clsx('SermonCard u-button', className)}
 			as="a"
 			href={linkTo(sermon)}
+			onClick={onClick}
 		>
 			<h3 className="SermonCard-title">{sermon.title}</h3>
 

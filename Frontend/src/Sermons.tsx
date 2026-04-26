@@ -5,6 +5,8 @@ import './Sermons.css';
 import clsx from 'clsx';
 import { sermons } from '$/data/sermons';
 import { type Status, statuses } from '$/types/sermon';
+import SermonDetail from './SermonDetail';
+import type { Sermon } from '$/types/sermon';
 
 const topics = ['Faith', 'Hope', 'Grace', 'Healing', 'Anxiety'] as const;
 type Topic = (typeof topics)[number];
@@ -36,6 +38,8 @@ export default function Sermons() {
 
 	// Tracks the currently selected "freshness" filter, defaults to "Newest"
 	const [sortCategory, setSortCategory] = useState<SortCategory>('Newest');
+
+	const [selectedSermon, setSelectedSermon] = useState<Sermon | null>(null);
 
 	return (
 		<MainLayout title="Sermons" className="Sermons">
@@ -163,9 +167,18 @@ export default function Sermons() {
 						}
 					})
 					.map(sermon => (
-						<SermonCard key={sermon.title} sermon={sermon} />
+						<SermonCard 
+							key={sermon.title} 
+							sermon={sermon} 
+							onClick={() => setSelectedSermon(sermon)}
+						/>
 					))}
 			</div>
+			<SermonDetail
+				isOpen={selectedSermon !== null}
+				onClose={() => setSelectedSermon(null)}
+				sermon={selectedSermon}
+			/>
 		</MainLayout>
 	);
 }

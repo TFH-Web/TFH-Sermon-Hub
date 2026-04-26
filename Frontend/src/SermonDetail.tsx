@@ -78,7 +78,7 @@ export default function SermonDetail({ isOpen, onClose, sermon }: SermonDetailPr
 	if (!sermon) return null;
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose}>
+		<Modal isOpen={isOpen} onClose={onClose} size="lg" className="SermonDetail-modal">
 			<div className="SermonDetail">
 				
 				{/* Back button to close the modal */}
@@ -112,9 +112,10 @@ export default function SermonDetail({ isOpen, onClose, sermon }: SermonDetailPr
 						{/* Speaker, date, and duration listed on the same line */}
 						<p className="SermonDetail-meta">
 							{sermon.speaker}
+							{' • '}
 							{'  Date: '}
 							{formatDateShort(sermon.date)}
-							{sermon.duration ? `  Duration: ${sermon.duration} min` : ''}
+							{sermon.duration ? `  •  Duration: ${Math.round(sermon.duration / 60)} min` : ''}
 						</p>
 						
 						{/* Description, mock placeholder for now */}
@@ -134,7 +135,7 @@ export default function SermonDetail({ isOpen, onClose, sermon }: SermonDetailPr
 						</div>
 
 						{/* Action buttons */}
-						<div className="SermonDetail-action">
+						<div className="SermonDetail-actions">
 							{/* Primary button, green filled */}
 							<Button variant="primary" className="SermonDetail-watchBtn">
 								Watch
@@ -261,11 +262,12 @@ export default function SermonDetail({ isOpen, onClose, sermon }: SermonDetailPr
 								<div className="SermonDetail-metaRow">
 									<span className="SermonDetail-metaLabel">Video</span>
 									{/* Mocked YouTube link */}	
-									<a>								
+									<a																
 										className="SermonDetail-metaLink"
 										href="https://youtube.com/watch?v=abc123"
 										target="_blank"
-										rel="noreferrer"									
+										rel="noreferrer"
+									>								
 										youtube.com/watch?v=abc123
 									</a>
 								</div>
