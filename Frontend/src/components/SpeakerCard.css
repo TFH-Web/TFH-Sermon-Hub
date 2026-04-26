@@ -30,10 +30,17 @@
 
 	font-size: 18px;
 	font-weight: 700;
+	line-height: 1.2;
 }
 
 .speaker-info {
-	margin-top: 0px;
+	margin-top: 4px;
 	margin-bottom: 0px;
 	color: gray;
+	line-height: 1.25;
+}
+
+.speaker-name p,
+.speaker-info p {
+	margin: 0;
 }
