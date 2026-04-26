@@ -34,9 +34,21 @@
 /* 3 column grid as done in the mockup, auto rows to make the cards the same height */
 .series-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 24px;
 	overflow-y: auto;
+}
+
+@media (width <= 56rem) {
+	.series-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (width <= 34rem) {
+	.series-grid {
+		grid-template-columns: 1fr;
+	}
 }
 
 /* Card styling, mirroring the SermonCard styling in Sermons.css */
@@ -59,6 +71,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	aspect-ratio: 16 / 9;
 	min-height: 148px;
 	padding: 20px;
 }
