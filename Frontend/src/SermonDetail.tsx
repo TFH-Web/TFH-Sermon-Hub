@@ -11,6 +11,8 @@ import { sermons } from './data/sermons.ts';
 
 // TODO: add transcript to sermon type when we're integrating w/ backend
 import { durationToString } from './types/sermon';
+import EditSermonModal from './modals/EditSermonModal.tsx';
+import DeleteSermonModal from './modals/DeleteSermonModal.tsx';
 
 const mockSermon = {
 	id: 0,
@@ -76,10 +78,28 @@ export default function SermonDetail() {
 	const [isEditingSummary, setIsEditingSummary] = useState(false);
 
 	const [summary, setSummary] = useState(mockSummary.join(' '));
+	const [editSermonOpen, setEditSermonOpen] = useState(false);
+	const [deleteSermonOpen, setDeleteSermonOpen] = useState(false);
 
 	return (
 		<MainLayout title={sermon.title}>
 			<div className="SermonDetail-grid">
+				<div className="SermonDetail-video-container">
+					<div className="SermonDetail-btn-group">
+						<Button
+							variant="secondary"
+							onClick={() => setEditSermonOpen(true)}
+						>
+							Edit
+						</Button>
+						<Button
+							variant="danger"
+							onClick={() => setDeleteSermonOpen(true)}
+						>
+							Delete
+						</Button>
+					</div>
+				</div>
 				{/* Transcript Section */}
 				<Card className="SermonDetail-transcript">
 					<div className="SermonDetail-card-header">
@@ -237,6 +257,20 @@ export default function SermonDetail() {
 					</div>
 				</Card>
 			</div>
+			
+			{/* Edit and Delete buttons */}
+			<EditSermonModal
+				isOpen={editSermonOpen}
+				onClose={() => setEditSermonOpen(false)}
+				sermon={sermon}
+			/>
+
+			<DeleteSermonModal
+				isOpen={deleteSermonOpen}
+				onClose={() => setDeleteSermonOpen(false)}
+				sermon={sermon}
+			/>
+
 		</MainLayout>
 	);
 }

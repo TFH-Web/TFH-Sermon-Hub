@@ -1,10 +1,22 @@
 .SermonDetail-grid {
 	display: grid;
 	grid-template-areas:
+			"video video"
 		"transcript summary"
 		"transcript metadata";
 	grid-template-columns: 1fr 1fr;
 	gap: 16px;
+}
+
+.SermonDetail-video-container {
+	display: block;
+	grid: video;
+}
+
+
+.SermonDetail-btn-group {
+	display: flex;
+	gap: 10px;
 }
 
 .SermonDetail-transcript {
