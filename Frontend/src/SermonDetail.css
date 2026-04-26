@@ -1,77 +1,254 @@
-.SermonDetail-grid {
+.SermonDetail {
+	padding: 24px;
+	width: 100%;
+	max-width: 1100px;
+}
+
+/* Back button */
+.SermonDetail-back {
+	background: none;
+	border: none;
+	color: #555;
+	font-size: 13px;
+	cursor: pointer;
+	padding: 0px;
+	margin-bottom: 20px;
+	display: inline-block;
+}
+
+.SermonDetail-back:hover {
+	color: #111;
+}
+
+
+/* Top Section, video takes 3 parts and info takes 2 parts */
+.SermonDetail-top {
+	display: grid;
+	grid-template-columns: 3fr 2fr;
+	gap: 28px;
+	margin-bottom: 28px;
+}
+
+/* Grey Video box, currently set to 16:9 */
+.SermonDetail-videoPlaceholder {
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	background: #d0d0d0;
+	border-radius: 12 px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+/* White play button */
+.SermonDetail-playButton {
+	width: 60px;
+	height: 60px;
+	background: rgba(255, 255, 255, 0.85);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 22px;
+	color: #333;
+	cursor: pointer;
+}
+
+/* Info column stacks vertically */
+.SermonDetail-info {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+/* Series Label */
+.SermonDetail-series {
+	font-size: 12px;
+	font-weight: 600px;
+	color: #4a6e42;
+	letter-spacing: 0.04em;
+}
+
+/* Large Bold Title */
+.SermonDetail-title {
+	font-size: 30px;
+	font-weight: 700;
+	color: #111;
+	line-height: 1.2;
+	margin: 0;
+}
+
+/* Meta data: Speaker/Date/Duration */
+.SermonDetail-meta {
+	font-size: 13px;
+	color: #777;
+	margin: 0;
+}
+
+/* Description Paragraph */
+.SermonDetail-description {
+	font-size: 14px;
+	color: #444;
+	line-height: 1.6;
+	margin: 0;
+}
+
+/* Pills for Tags */
+.SermonDetail-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+/* Interact Row: Watch/Edit/Delete */
+.SermonDetail-actions {
+	display: felx;
+	gap: 10px;
+	margin-top: 4px;
+}
+
+.SermonDetail-deleteBtn {
+	color: #c0392b !important;
+}
+
+
+/* Bottom Section, two columns */
+.SermonDetail-bottom {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
+	gap: 20px;
+}
+
+/* Right column has the summary and metadata */
+.SermonDetail-rightColumn {
+	display: flex;
+	flex-direction: column;
 	gap: 16px;
 }
 
-.SermonDetail-transcriptCard {
-	margin-bottom: 16px;
+/* Card Title used for the bottom cards */
+.SermonDetail-cardTitle {
+	font-size: 15px;
+	font-weight: 600;
+	color: #111;
+	margin: 0;
 }
 
-.SermonDetail-transcript-header {
+
+/* Transcript Card */
+/* Top, title is on the left, copy and upload on the right */
+.SermonDetail-transcriptHeader {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 14px 20px;
-	border-bottom: 1px solid var(--cl-outline);
+	margin-bottom: 10px;
 }
 
-.SermonDetail-transcript-title {
+.SermonDetail-transcriptHeaderActions {
+	display: felx;
+	gap: 8px;
+	align-items: center;
+}
+
+/* Second row, AI tag on the left, regenerate button on the right */
+.SermonDetail-transcriptAiRow {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 12px;
+}
+
+/* Scrollable transcript */
+.SermonDetail-transcriptBody {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	max-height: 320px;
+	overflow-y: auto;
+	border: 1px solid #e5e5e5;
+	border-radius: 8px;
+	padding: 14px;
+}
+
+.SermonDetail-paragraph {
+	font-size: 13px;
+	color: #444;
+	line-height: 1.65;
 	margin: 0;
-	font-size: 16px;
-	font-weight: 1000;
-	color: var(--cl-foreground);
 }
 
-.SermonDetail-copy-btn {
-	padding: 5px 10px;
-	font-size: 11px;
-}
-
-.SermonDetail-upload-button {
-	padding: 5px 16px;
-	font-size: 11px;
-	color: #3d3e3b;
-}
-
-.SermonDetail-transcript-actions {
-	display: flex;
-	gap: 7px;
-	align-items: center;
-	padding: 10px 10px 0;
-}
-
-.SermonDetail-transcript-ai {
-	display: flex;
-	gap: 10px;
-	align-items: center;
-	padding: 20px 20px 10px;
-}
-
-.SermonDetail-regenerate-btn {
-	padding: 4px 14px;
+/* Yellow Pill Highligh for matching keywords */
+.SermonDetail-keyword {
+	background: #e8ede7;
+	border: 1px solid #c5d4c2;
+	border-radius: 4px;
+	padding: 0 4px;
 	font-size: 12px;
 }
 
-.SermonDetail-transcript-container {
-	padding: 20px 20px;
-	margin: 5px 20px 100px;
-	background: var(--cl-surface-dim);
-	border-radius: 8px;
+
+/* Summary Card */
+/* Top row, title on the left and AI tag plus regenerate on the right */
+.SermonDetail-summaryHeader {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 12px;
 }
 
-.SermonDetail-transcript-paragraph {
-	margin: 0 0 16px;
-	font-size: 13px;
-	line-height: 1.75;
-	color: #3d4043;
+.SermonDetail-summaryHeaderActions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
 }
 
-.SermonDetail-keyword {
-	display: inline-block;
-	padding: 0px 5px;
+.SermonDetail-summaryText {
 	font-size: 13px;
-	color: #55644e;
-	background: #d4ddd0;
-	border-radius: 4px;
+	color: #444;
+	line-height: 1.65;
+	margin: 0 0 14px 0;
+}
+
+/* Edit summary manually button */
+.SermonDetail-editSummaryBtn {
+	width: fit-content;
+}
+
+
+/* Metadata Card */
+.SermonDetail-metadataRows {
+	display: flex;
+	flex-direction: column;
+	margin-top: 12px;
+}
+
+/* Each row, label on left, value on right */
+.SermonDetail-metaRow {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: 13px;
+	padding: 10px 0;
+	border-bottom: 1px solid #f0f0f0;
+}
+
+.SermonDetail-metaLabel {
+	color: #888;
+	font-weight: 500;
+}
+
+.SermonDetail-metaValue {
+	color: #111;
+	font-weight: 500;
+}
+
+/* Youtube link in the metadata */
+.SermonDetail-metaLink {
+	color: #4a6342;
+	font-size: 13px;
+	text-decoration: none;
+}
+
+.SermonDetail-metaLink:hover {
+	text-decoration: underline;
 }
