@@ -13,6 +13,7 @@ import Dashboard from './Dashboard.tsx';
 import Notifications from './Notifications.tsx';
 import ImportUpload from './pages/ImportUpload.tsx';
 import Series from './Series.tsx';
+import SermonDetail from './SermonDetail.tsx';
 import Sermons from './Sermons.tsx';
 import Settings from './Settings.tsx';
 import Speakers from './Speakers.tsx';
@@ -30,6 +31,7 @@ createRoot(document.getElementById('root')!).render(
 					<Routes>
 						<Route index element={<Dashboard />} />
 						<Route path="/sermons" element={<Sermons />} />
+						<Route path="/sermons/:id" element={<SermonDetail />} />
 						<Route path="/series" element={<Series />} />
 						<Route path="/speakers" element={<Speakers />} />
 						<Route path="/ai-search" element={<AISearch />} />
