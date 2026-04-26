@@ -16,7 +16,7 @@ export interface Sermon {
 }
 
 export function linkTo(sermon: Sermon): string {
-	return `/sermons#${sermon.id}`;
+	return `/sermons/${sermon.id}`;
 }
 
 const MS_TO_S = 1000;

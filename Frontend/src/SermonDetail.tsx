@@ -74,6 +74,10 @@ function formatDateShort(date: Date): string {
 export default function SermonDetail({ isOpen, onClose, sermon }: SermonDetailProps) {
 	const [_transcript, setTranscript] = useState('');
 
+	if (!sermon) {
+		throw new Error('Not found');
+	}
+
 	// Renders nothing if there isn't a selected sermon
 	if (!sermon) return null;
 

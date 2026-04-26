@@ -24,6 +24,12 @@
 	gap: 16px;
 }
 
+@container (width <= 700px) {
+	.Notifications-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
 .Notifications-settingsCard {
 	margin-bottom: 16px;
 }
