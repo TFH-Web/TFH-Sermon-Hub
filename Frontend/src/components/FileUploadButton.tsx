@@ -44,7 +44,7 @@ export default function FileUploadButton({
 				type="file"
 				accept=".txt"
 				onChange={handleFileSelect}
-				style={{ display: 'none' }}
+				hidden={true}
 			/>
 			<Button
 				variant="secondary"
