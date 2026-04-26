@@ -106,3 +106,12 @@
 	grid-auto-rows: 10rem auto auto auto;
 	gap: 1rem;
 }
+
+.Sermons-cardLink {
+	grid-row: span 4;
+	cursor: pointer;
+}
+
+.Sermons-cardLink > * {
+	height: 100%;
+}
