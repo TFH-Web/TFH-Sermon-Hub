@@ -16,7 +16,7 @@ export default function Profile() {
 			<button
 				type="button"
 				className="Profile-logOut u-button"
-				onClick={() => navigate('/')}
+				onClick={() => navigate('/login')}
 			>
 				Log Out
 			</button>
