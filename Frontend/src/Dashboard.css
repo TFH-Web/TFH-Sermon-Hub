@@ -12,6 +12,7 @@
 	flex-wrap: wrap;
 	gap: 1rem;
 	overflow-inline: auto;
+	text-wrap: balance;
 }
 
 .DashboardBody-main {

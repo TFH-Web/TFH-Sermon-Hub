@@ -11,7 +11,7 @@ export const aiSearchPreviewResults: AISearchResultPreview[] = [
 		snippet:
 			'Freedom in Christ grows when we stop hiding our mess and let God shape us in community.',
 		match: 98,
-		redirectTo: '/sermons',
+		redirectTo: '/sermons/1',
 	},
 	{
 		id: 'ai-search-2',
@@ -23,7 +23,7 @@ export const aiSearchPreviewResults: AISearchResultPreview[] = [
 		snippet:
 			'Grace is not earned through striving, and the true gospel keeps pointing us back to Jesus.',
 		match: 96,
-		redirectTo: '/sermons',
+		redirectTo: '/sermons/2',
 	},
 	{
 		id: 'ai-search-3',
@@ -35,7 +35,7 @@ export const aiSearchPreviewResults: AISearchResultPreview[] = [
 		snippet:
 			'Generosity is not only about giving money, but about living open-handed toward people and purpose.',
 		match: 94,
-		redirectTo: '/sermons',
+		redirectTo: '/sermons/3',
 	},
 	{
 		id: 'ai-search-4',
@@ -47,7 +47,7 @@ export const aiSearchPreviewResults: AISearchResultPreview[] = [
 		snippet:
 			'The peace of God protects the heart and mind when prayer becomes our first response instead of panic.',
 		match: 93,
-		redirectTo: '/sermons',
+		redirectTo: '/sermons/4',
 	},
 	{
 		id: 'ai-search-5',
@@ -59,7 +59,7 @@ export const aiSearchPreviewResults: AISearchResultPreview[] = [
 		snippet:
 			'Spiritual maturity means refusing to live chained to what is behind and moving forward in faith.',
 		match: 91,
-		redirectTo: '/sermons',
+		redirectTo: '/sermons/5',
 	},
 	{
 		id: 'ai-search-6',
@@ -71,7 +71,7 @@ export const aiSearchPreviewResults: AISearchResultPreview[] = [
 		snippet:
 			'Faithfulness often looks like quiet courage, steady service, and showing up for others at cost to yourself.',
 		match: 89,
-		redirectTo: '/sermons',
+		redirectTo: '/sermons/6',
 	},
 	{
 		id: 'ai-search-7',
@@ -83,7 +83,7 @@ export const aiSearchPreviewResults: AISearchResultPreview[] = [
 		snippet:
 			'God does not waste suffering, and His kindness is often most visible when life feels most uncertain.',
 		match: 87,
-		redirectTo: '/sermons',
+		redirectTo: '/sermons/7',
 	},
 	{
 		id: 'ai-search-8',
@@ -95,7 +95,7 @@ export const aiSearchPreviewResults: AISearchResultPreview[] = [
 		snippet:
 			'Courage grows when obedience matters more than comfort and when trust replaces hesitation.',
 		match: 86,
-		redirectTo: '/sermons',
+		redirectTo: '/sermons/8',
 	},
 	{
 		id: 'ai-search-9',
@@ -107,7 +107,7 @@ export const aiSearchPreviewResults: AISearchResultPreview[] = [
 		snippet:
 			'New seasons require fresh faith, and God often prepares new ground before we fully understand it.',
 		match: 84,
-		redirectTo: '/sermons',
+		redirectTo: '/sermons/9',
 	},
 	{
 		id: 'ai-search-10',
@@ -119,7 +119,7 @@ export const aiSearchPreviewResults: AISearchResultPreview[] = [
 		snippet:
 			'Healthy relationships are built through humility, patience, and a willingness to love like Jesus.',
 		match: 82,
-		redirectTo: '/sermons',
+		redirectTo: '/sermons/10',
 	},
 	{
 		id: 'ai-search-11',
@@ -131,7 +131,7 @@ export const aiSearchPreviewResults: AISearchResultPreview[] = [
 		snippet:
 			'The way of Jesus teaches us to relate with truth, grace, compassion, and sacrificial love.',
 		match: 80,
-		redirectTo: '/sermons',
+		redirectTo: '/sermons/11',
 	},
 	{
 		id: 'ai-search-12',
@@ -143,6 +143,6 @@ export const aiSearchPreviewResults: AISearchResultPreview[] = [
 		snippet:
 			'The Christian life is not meant to be lived in human strength alone, but through the Spirit of God.',
 		match: 78,
-		redirectTo: '/sermons',
+		redirectTo: '/sermons/12',
 	},
 ];

@@ -34,16 +34,27 @@
 /* 3 column grid as done in the mockup, auto rows to make the cards the same height */
 .series-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 24px;
 	overflow-y: auto;
+}
+
+@media (width <= 56rem) {
+	.series-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (width <= 34rem) {
+	.series-grid {
+		grid-template-columns: 1fr;
+	}
 }
 
 /* Card styling, mirroring the SermonCard styling in Sermons.css */
 .series-card {
 	display: flex;
 	flex-direction: column;
-	aspect-ratio: 4 / 3;
 	overflow: hidden;
 	cursor: pointer;
 	background: #ffffff;
@@ -60,7 +71,9 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	height: 70%;
+	min-height: 148px;
+	aspect-ratio: 16 / 9;
+	padding: 20px;
 }
 
 /* Lifts the cards on hover and adds a shadow for visual feedback */
@@ -75,14 +88,15 @@
 	padding: 0 20px;
 	font-size: 22px;
 	font-weight: 700;
+	line-height: 1.35;
 	color: #ffffff;
 	text-align: center;
+	text-wrap: balance;
 	text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
 }
 
 /* Container for the series details below the banner */
 .series-info {
-	height: 30%;
 	padding: 10px 14px 14px 14px;
 	background: #ffffff;
 }
@@ -92,11 +106,14 @@
 	margin-bottom: 4px;
 	font-size: 17px;
 	font-weight: 700;
+	line-height: 1.35;
 	color: #1a1a1a;
+	text-wrap: balance;
 }
 
 /* The muted text for the description portion of the cards */
 .series-meta-data {
 	font-size: 14px;
+	line-height: 1.4;
 	color: #666;
 }
