@@ -193,7 +193,7 @@ export default function LoginPage() {
 	// TODO: Replace with actual MSAL redirect when authentication gets wired
 	// Currently simulates what would happen on successful authentication
 	function handlePrimaryClick() {
-		navigate('/dashboard');
+		navigate('/');
 	}
 
 	// TODO: Wire to MSAL account picker or resend the approval logic

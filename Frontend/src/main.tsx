@@ -36,8 +36,8 @@ createRoot(document.getElementById('root')!).render(
 						fallback={<MainLayout title="Error">Error!</MainLayout>}
 					>
 						<Routes>
-							<Route index element={<LoginPage />} />
-							<Route path="/dashboard" element={<Dashboard />} />
+							<Route index element={<Dashboard />} />
+							<Route path="/login" element={<LoginPage />} />
 							<Route path="/sermons" element={<Sermons />} />
 							<Route path="/sermons/:id" element={<SermonDetail />} />
 							<Route path="/series" element={<Series />} />
