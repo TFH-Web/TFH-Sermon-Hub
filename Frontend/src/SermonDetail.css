@@ -241,13 +241,13 @@
 }
 
 .SermonDetail-meta {
-    margin: 0;
-    font-size: 13px;
-    color: #777;
+	margin: 0;
+	font-size: 13px;
+	color: #777;
 }
 
 .SermonDetail-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
 }

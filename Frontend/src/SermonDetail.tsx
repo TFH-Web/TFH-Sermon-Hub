@@ -97,18 +97,36 @@ export default function SermonDetail() {
 							<p className="SermonDetail-meta">
 								{sermon.speaker}
 								{' • '}
-								{sermon.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-								{sermon.duration ? ` • ${durationToString(sermon.duration)}` : ''}
+								{sermon.date.toLocaleDateString('en-US', {
+									month: 'short',
+									day: 'numeric',
+									year: 'numeric',
+								})}
+								{sermon.duration
+									? ` • ${durationToString(sermon.duration)}`
+									: ''}
 							</p>
 							<div className="SermonDetail-tags">
 								{sermon.tags.map(tag => (
-									<Tag key={tag} variant="solid">{tag}</Tag>
+									<Tag key={tag} variant="solid">
+										{tag}
+									</Tag>
 								))}
 							</div>
 							<div className="SermonDetail-btn-group">
 								<Button variant="primary">Watch</Button>
-								<Button variant="secondary" onClick={() => setEditSermonOpen(true)}>Edit</Button>
-								<Button variant="danger" onClick={() => setDeleteSermonOpen(true)}>Delete</Button>
+								<Button
+									variant="secondary"
+									onClick={() => setEditSermonOpen(true)}
+								>
+									Edit
+								</Button>
+								<Button
+									variant="danger"
+									onClick={() => setDeleteSermonOpen(true)}
+								>
+									Delete
+								</Button>
 							</div>
 						</div>
 					</div>
