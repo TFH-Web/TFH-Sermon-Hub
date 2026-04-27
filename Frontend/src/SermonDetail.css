@@ -1,3 +1,70 @@
+.SermonDetail-top {
+    display: grid;
+    grid-template-columns: 55fr 45fr;
+    gap: 28px;
+    margin-bottom: 28px;
+}
+
+.SermonDetail-videoPlaceholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #d0d0d0;
+    border-radius: 12px;
+}
+
+.SermonDetail-playButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    font-size: 22px;
+    color: #333;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 50%;
+}
+
+.SermonDetail-back {
+    display: inline-block;
+    padding: 5px 12px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #555;
+    cursor: pointer;
+    background: none;
+    border: 1.5px solid #ccc;
+    border-radius: 8px;
+}
+
+.SermonDetail-back:hover {
+    color: #111;
+    border-color: #999;
+}
+
+.SermonDetail-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.SermonDetail-series {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4a6e42;
+    letter-spacing: 0.04em;
+}
+
+.SermonDetail-title {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #111;
+}
 .SermonDetail-grid {
 	display: grid;
 	grid-template-areas:

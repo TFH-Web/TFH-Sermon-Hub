@@ -22,6 +22,7 @@ import Settings from './Settings.tsx';
 import Speakers from './Speakers.tsx';
 import TagsAndMetadata from './TagsAndMetadata.tsx';
 import UserManagement from './UserManagement.tsx';
+import LoginPage from './LoginPage.tsx';
 
 const queryClient = new QueryClient();
 
@@ -35,7 +36,8 @@ createRoot(document.getElementById('root')!).render(
 						fallback={<MainLayout title="Error">Error!</MainLayout>}
 					>
 						<Routes>
-							<Route index element={<Dashboard />} />
+							<Route index element={<LoginPage />} />
+							<Route path="/dashboard" element={<Dashboard />} />
 							<Route path="/sermons" element={<Sermons />} />
 							<Route path="/sermons/:id" element={<SermonDetail />} />
 							<Route path="/series" element={<Series />} />

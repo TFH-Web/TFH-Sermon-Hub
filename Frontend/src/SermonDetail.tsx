@@ -75,6 +75,13 @@ export default function SermonDetail() {
 
 	return (
 		<MainLayout title={sermon.title}>
+			<button
+				type="button"
+				className="SermonDetail-back"
+				onClick={() => navigate('/sermons')}
+			>
+				← Back to Sermons
+			</button>
 			<div className="SermonDetail-grid">
 				<div className="SermonDetail-video-container">
 					<div className="SermonDetail-btn-group">
