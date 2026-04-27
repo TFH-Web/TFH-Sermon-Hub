@@ -4,6 +4,7 @@ import SermonCard from '$/components/SermonCard';
 import './Sermons.css';
 import clsx from 'clsx';
 import { sermons } from '$/data/sermons';
+import FloatingAddSermon from '$/modals/AddSermon';
 import { type Status, statuses } from '$/types/sermon';
 
 const topics = ['Faith', 'Hope', 'Grace', 'Healing', 'Anxiety'] as const;
@@ -166,6 +167,7 @@ export default function Sermons() {
 						<SermonCard key={sermon.title} sermon={sermon} />
 					))}
 			</div>
+			<FloatingAddSermon />
 		</MainLayout>
 	);
 }
