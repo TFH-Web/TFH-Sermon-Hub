@@ -16,7 +16,7 @@ export default function Navbar() {
 
 			<h2 className="Navbar-header">Library</h2>
 			<ul className="Navbar-list">
-        <NavbarItem icon="lucide:square-terminal" to="/dashboard">
+				<NavbarItem icon="lucide:square-terminal" to="/dashboard">
 					Dashboard
 				</NavbarItem>
 				<NavbarItem icon="lucide:video" to="/sermons">
