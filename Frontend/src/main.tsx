@@ -13,6 +13,7 @@ import AISearch from './AISearch.tsx';
 import AISearchResults from './AISearchResults.tsx';
 import { ToastProvider } from './components/ToastContext';
 import Dashboard from './Dashboard.tsx';
+import LoginPage from './LoginPage.tsx';
 import Notifications from './Notifications.tsx';
 import ImportUpload from './pages/ImportUpload.tsx';
 import Series from './Series.tsx';
@@ -36,6 +37,7 @@ createRoot(document.getElementById('root')!).render(
 					>
 						<Routes>
 							<Route index element={<Dashboard />} />
+							<Route path="/login" element={<LoginPage />} />
 							<Route path="/sermons" element={<Sermons />} />
 							<Route path="/sermons/:id" element={<SermonDetail />} />
 							<Route path="/series" element={<Series />} />
