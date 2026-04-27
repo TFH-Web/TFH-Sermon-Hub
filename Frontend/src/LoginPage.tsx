@@ -165,7 +165,14 @@ const SCENARIO_KEYS = Object.keys(SCENARIOS) as DemoScenario[];
 // Component for Microsoft logo until backend is connected and integrated
 function MicrosoftIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 21 21" fill="none">
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 21 21"
+      fill="none"
+      aria-label="Microsoft logo"
+    >
+      <title>Microsoft logo</title>
       <rect x="1" y="1" width="9" height="9" fill="#F25022" />
       <rect x="11" y="1" width="9" height="9" fill="#7FBA00" />
       <rect x="1" y="11" width="9" height="9" fill="#00A4EF" />
@@ -186,7 +193,7 @@ export default function LoginPage() {
   // TODO: Replace with MSAL redirect when authentication gets wired
   function handlePrimaryClick() {
     alert(`[Demo] Outline action triggered - scenario: "${scenario}"`);
-    navigate("/dashboard");
+    navigate("/");
   }
 
   // TODO: Wire to MSAL account picker or resend the approval logic

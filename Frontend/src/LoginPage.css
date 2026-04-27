@@ -1,222 +1,224 @@
 /* Fullscreen grey background, card is centered */
-.login-page { 
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #e8e8e8;
-    padding: 24px;
+.login-page {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 100vh;
+	padding: 24px;
+	background-color: #e8e8e8;
 }
 
 /* The white card being centered */
 .login-card {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 360px;
-    overflow: hidden;
+	width: 100%;
+	max-width: 440px;
+	overflow: hidden;
+	background: #fff;
+	border-radius: 16px;
+	box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1);
 }
 
 /* Demo Bar */
 .demo-bar {
-    background: #f7f7f7;
-    border-bottom: 1px solid #e5e5e5;
-    padding: 14px 18px;
+	padding: 14px 18px;
+	background: #f7f7f7;
+	border-bottom: 1px solid #e5e5e5;
 }
 
 .demo-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #aaa;
-    margin-bottom: 10px;
+	margin-bottom: 10px;
+	font-size: 10px;
+	font-weight: 700;
+	color: #aaa;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
 }
 
 .demo-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 7px;
 }
 
 .demo-pill {
-    padding: 4px 13px;
-    border-radius: 999px;
-    border: 1.5px solid #ccc;
-    background: #fff;
-    font-size: 12px;
-    color: #444;
-    cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
+	padding: 4px 13px;
+	font-size: 12px;
+	color: #444;
+	cursor: pointer;
+	background: #fff;
+	border: 1.5px solid #ccc;
+	border-radius: 999px;
+	transition:
+		border-color 0.15s,
+		color 0.15s;
 }
 
 .demo-pill:hover {
-    border-color: #999;
+	border-color: #999;
 }
 
 /* Active pill has a green border and text */
 .demo-pill.active {
-    border-color: #3d5a38;
-    color: #3d5a38;
-    font-weight: 600;
+	font-weight: 600;
+	color: #4a6e42;
+	border-color: #4a6e42;
 }
 
 /* Card Body */
 .login-body {
-    padding: 36px 32px 28px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 20px 32px 16px;
+	text-align: center;
 }
 
 .tfh-badge {
-    width: 56px;
-    height: 56px;
-    background: #3d5a38;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-weight: 700;
-    font-size: 15px;
-    letter-spacing: 0.05em;
-    margin-bottom: 16px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 54px;
+	height: 54px;
+	margin-bottom: 2px;
+	font-size: 15px;
+	font-weight: 700;
+	color: #fff;
+	letter-spacing: 0.05em;
+	background: #4a6e42;
+	border-radius: 12px;
 }
 
 .login-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: #111;
-    margin-bottom: 4px;
+	margin-bottom: 2px;
+	font-size: 22px;
+	font-weight: 700;
+	color: #111;
 }
 
 .login-subtitle {
-    font-size: 13px;
-    color: #888;
-    margin-bottom: 20px;
+	margin-bottom: 20px;
+	font-size: 13px;
+	color: #888;
 }
 
 /* Alert Box styling */
 .alert-box {
-    width: 100%;
-    border-radius: 8px;
-    padding: 14px 16px;
-    text-align: left;
-    margin-bottom: 18px;
-    font-size: 13px;
-    line-height: 1.55;
+	width: 100%;
+	padding: 14px 16px;
+	margin-bottom: 18px;
+	font-size: 13px;
+	line-height: 1.55;
+	text-align: left;
+	border-radius: 8px;
 }
 
-.alert.error {
-    background: #fde8e8;
-    border: 1.5px solid #e8a0a0;
+.alert-error {
+	background: #fde8e8;
+	border: 1.5px solid #e8a0a0;
 }
 
 .alert-warning {
-    background: #fffbf0;
-    border: 1.5px solid #f5dfa0;
+	background: #fffbf0;
+	border: 1.5px solid #f5dfa0;
 }
 
 .alert-title {
-    font-weight: 700;
-    margin-bottom: 5px;
+	margin-bottom: 5px;
+	font-weight: 700;
 }
 
-
-.alert-error .alert-title { 
-    color: #c0392b;
- }
-.alert-warning .alert-title { 
-    color: #b45309; 
+.alert-error .alert-title {
+	color: #c0392b;
 }
-.alert-error .alert-body { 
-    color: #c0392b; 
+.alert-warning .alert-title {
+	color: #b45309;
 }
-.alert-warning .alert-body { 
-    color: #92400e; 
+.alert-error .alert-body {
+	color: #c0392b;
 }
-
+.alert-warning .alert-body {
+	color: #92400e;
+}
 
 /* Error code line shown in SSO Error */
 .alert-code {
-    margin-top: 10px;
-    font-family: 'Courier New', monospace;
-    font-size: 11px;
-    color: #888;
-    background: rgba(0, 0, 0, 0.04);
-    padding: 4px 8px;
-    border-radius: 4px;
-    display: inline-block;
+	display: inline-block;
+	padding: 4px 8px;
+	margin-top: 10px;
+	font-family: "Courier New", monospace;
+	font-size: 11px;
+	color: #888;
+	background: rgba(0, 0, 0, 0.04);
+	border-radius: 4px;
 }
 
 /* Button styling */
 .btn-primary,
 .btn-outline {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 11px 16px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	padding: 11px 16px;
+	font-size: 14px;
+	font-weight: 500;
+	cursor: pointer;
+	border-radius: 8px;
+	transition:
+		background 0.15s,
+		border-color 0.15s;
 }
 
 .btn-primary {
-    background: #3d5a38;
-    color: #fff;
-    border: none;
+	color: #fff;
+	background: #4a6e42;
+	border: none;
 }
 
 .btn-primary:hover {
-    background: #2f4a2c;
+	background: #2f4a2c;
 }
 
 .btn-outline {
-    background: #fff;
-    color: #222;
-    border: 1.5px solid #ccc;
-    margin-top: 10px;
+	margin-top: 10px;
+	color: #222;
+	background: #fff;
+	border: 1.5px solid #ccc;
 }
 
 .btn-outline:hover {
-    border-color: #999;
+	border-color: #999;
 }
 
 /* Subtext */
 .login-subtext {
-    font-size: 12px;
-    color: #888;
-    margin-top: 12px;
-    line-height: 1.5;
+	margin-top: 12px;
+	font-size: 12px;
+	line-height: 1.5;
+	color: #888;
 }
 
 /* Text styling for the text inside the subtext and alert bodies */
 .subtext-green {
-    color: #3d5a38;
-    font-weight: 700;
+	font-weight: 700;
+	color: #4a6e42;
 }
 
 /* Footer Styling */
 .login-footer {
-    border-top: 1px solid #f0f0f0;
-    padding: 16px 32px;
-    text-align: center;
+	padding: 10px 32px;
+	text-align: center;
+	border-top: 1px solid #f0f0f0;
 }
 
 .login-footer p {
-    font-size: 12px;
-    color: #aaa;
-    line-height: 1.6;
+	font-size: 12px;
+	line-height: 1.6;
+	color: #aaa;
 }
 
 .login-footer p:first-child {
-    color: #999;
-    font-weight: 500;
+	font-weight: 500;
+	color: #999;
 }
