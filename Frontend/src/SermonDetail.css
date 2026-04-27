@@ -239,3 +239,15 @@
 .SermonDetail-metadata-link:hover {
 	text-decoration: underline;
 }
+
+.SermonDetail-meta {
+    margin: 0;
+    font-size: 13px;
+    color: #777;
+}
+
+.SermonDetail-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
