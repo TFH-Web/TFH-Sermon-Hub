@@ -6,6 +6,16 @@ export default function Navbar() {
 		<nav className="Navbar">
 			<h2 className="Navbar-header">Main</h2>
 			<ul className="Navbar-list">
+				<NavbarItem icon="lucide:stars" to="/ai-search">
+					AI Search
+				</NavbarItem>
+				<NavbarItem icon="lucide:message-circle" to="/ai-chat">
+					AI Chat
+				</NavbarItem>
+			</ul>
+
+			<h2 className="Navbar-header">Library</h2>
+			<ul className="Navbar-list">
 				<NavbarItem icon="lucide:square-terminal" to="/">
 					Dashboard
 				</NavbarItem>
@@ -18,9 +28,6 @@ export default function Navbar() {
 				<NavbarItem icon="lucide:megaphone" to="/speakers">
 					Speakers
 				</NavbarItem>
-				<NavbarItem icon="lucide:stars" to="/ai-search">
-					AI Search
-				</NavbarItem>
 			</ul>
 
 			<h2 className="Navbar-header">Content</h2>
@@ -30,9 +37,6 @@ export default function Navbar() {
 				</NavbarItem>
 				<NavbarItem icon="lucide:tag" to="/tags">
 					Tags &amp; Metadata
-				</NavbarItem>
-				<NavbarItem icon="lucide:file-text" to="/transcripts">
-					Transcripts
 				</NavbarItem>
 			</ul>
 

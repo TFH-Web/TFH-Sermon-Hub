@@ -1,21 +1,33 @@
 import type React from 'react';
 import './Tag.css';
 import clsx from 'clsx';
+import type { Polymorphic } from '$/lib/polymorphic';
+
+export type TagVariant =
+	| 'green'
+	| 'outline'
+	| 'red'
+	| 'amber'
+	| 'blue'
+	| 'admin'
+	| 'solid';
 
 export interface TagProps {
-	variant?: 'green' | 'outline' | 'red' | 'amber' | 'blue' | 'admin';
-	children: React.ReactNode;
+	variant?: TagVariant;
 	className?: string;
 }
 
-export default function Tag({
+export default function Tag<Component extends React.ElementType = 'span'>({
 	variant = 'green',
 	children,
 	className,
-}: TagProps) {
+	as,
+	...props
+}: Polymorphic<Component, TagProps>) {
+	const Component = as ?? 'span';
 	return (
-		<span className={clsx('Tag', `Tag--${variant}`, className)}>
+		<Component className={clsx('Tag', `Tag--${variant}`, className)} {...props}>
 			{children}
-		</span>
+		</Component>
 	);
 }

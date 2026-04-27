@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import Button from '$/components/Button';
 import Modal from '$/components/Modal';
-import ProgressBar from '$/components/ProgressBar';
 import Tag from '$/components/Tag';
 import { useToast } from '$/components/ToastContext';
 import './Tags.css';
@@ -67,57 +66,59 @@ export default function Table() {
 			</div>
 
 			{/* Table */}
-			<table className="UserManagement-users">
-				<thead className="Users-thead">
-					<tr>
-						<th>Tag</th>
-						<th>Sermons</th>
-						<th>Relevance Weight</th>
-						<th>Source</th>
-						<th>Actions</th>
-					</tr>
-				</thead>
-
-				<tbody>
-					{tags.map(tag => (
-						<tr key={tag.id}>
-							<td>
-								<Tag variant="outline">{tag.name}</Tag>
-							</td>
-
-							<td>{tag.sermons}</td>
-
-							<td>
-								<ProgressBar percent={tag.weight} />
-							</td>
-
-							<td>
-								<Tag variant={tag.source === 'AI' ? 'blue' : 'outline'}>
-									{tag.source}
-								</Tag>
-							</td>
-
-							<td className="Users-actions">
-								<button
-									type="button"
-									className="Users-actionEdit u-button"
-									onClick={() => openEdit(tag)}
-								>
-									Edit
-								</button>
-
-								<button
-									type="button"
-									className="Users-actionRemove u-button"
-									onClick={() => openDelete(tag)}
-								>
-									Delete
-								</button>
-							</td>
+			<div className="UserManagement-tableWrap">
+				<table className="UserManagement-users">
+					<thead className="Users-thead">
+						<tr>
+							<th>Tag</th>
+							<th>Sermons</th>
+							<th>Relevance Weight</th>
+							<th>Source</th>
+							<th>Actions</th>
 						</tr>
-					))}
-				</tbody>
-			</table>
+					</thead>
+
+					<tbody>
+						{tags.map(tag => (
+							<tr key={tag.id}>
+								<td>
+									<Tag variant="outline">{tag.name}</Tag>
+								</td>
+
+								<td>{tag.sermons}</td>
+
+								<td>
+									<progress max={100} value={tag.weight} />
+								</td>
+
+								<td>
+									<Tag variant={tag.source === 'AI' ? 'blue' : 'outline'}>
+										{tag.source}
+									</Tag>
+								</td>
+
+								<td className="Users-actions">
+									<button
+										type="button"
+										className="Users-actionEdit u-button"
+										onClick={() => openEdit(tag)}
+									>
+										Edit
+									</button>
+
+									<button
+										type="button"
+										className="Users-actionRemove u-button"
+										onClick={() => openDelete(tag)}
+									>
+										Delete
+									</button>
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
 
 			{/* Delete Modal */}
 			{activeModal === 'delete' && selectedTag && (

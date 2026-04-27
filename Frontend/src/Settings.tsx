@@ -7,7 +7,6 @@ import Button from '$/components/Button';
 import { Card, CardHeader } from '$/components/Card';
 import { FormField } from '$/components/FormField';
 import { InfoBanner } from '$/components/InfoBanner';
-import ProgressBar from '$/components/ProgressBar';
 import Tag from '$/components/Tag';
 import { useToast } from '$/components/ToastContext';
 
@@ -519,11 +518,9 @@ export default function Settings() {
 									{hostingInfo.storageUsedGB} GB / {hostingInfo.storageTotalGB}{' '}
 									GB
 								</p>
-								<ProgressBar
-									percent={Math.round(
-										(hostingInfo.storageUsedGB / hostingInfo.storageTotalGB) *
-											100,
-									)}
+								<progress
+									max={hostingInfo.storageTotalGB}
+									value={hostingInfo.storageUsedGB}
 								/>
 								<p className="Settings-storageLabel">
 									{hostingInfo.storageUsedGB} GB of {hostingInfo.storageTotalGB}{' '}

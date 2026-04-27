@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { devices, expect, test } from '@playwright/test';
 
 test('navigation works', async ({ page }) => {
 	await page.goto('/');
@@ -10,7 +10,6 @@ test('navigation works', async ({ page }) => {
 		'AI Search',
 		'Import / Upload',
 		'Tags & Metadata',
-		'Transcripts',
 		'User Management',
 		'Notifications',
 		'Settings',
@@ -23,4 +22,36 @@ test('navigation works', async ({ page }) => {
 			).toBeVisible();
 		});
 	}
+});
+
+test('sidebar controls work on mobile', async ({ page }) => {
+	await page.setViewportSize(devices['iPhone XR'].viewport);
+	await page.goto('/');
+
+	const getSidebar = () => page.getByRole('heading', { name: 'Sermon Hub' });
+
+	await expect(getSidebar()).not.toBeInViewport();
+
+	await test.step('Open sidebar', async () => {
+		await page.getByTestId('sidebar-toggle-label').click();
+		await expect(getSidebar()).toBeInViewport();
+	});
+
+	await test.step('Navigate with links', async () => {
+		await page.getByRole('link', { name: 'Dashboard' }).click();
+		await expect(getSidebar()).toBeInViewport();
+
+		await page.getByRole('link', { name: 'AI Search' }).click();
+		await expect(getSidebar()).not.toBeInViewport();
+	});
+
+	await test.step('Close sidebar with X and backdrop', async () => {
+		await page.getByTestId('sidebar-toggle-label').click();
+		await page.getByTestId('sidebar-close').click();
+		await expect(getSidebar()).not.toBeInViewport();
+
+		await page.getByTestId('sidebar-toggle-label').click();
+		await page.getByTestId('sidebar-backdrop').click();
+		await expect(getSidebar()).not.toBeInViewport();
+	});
 });

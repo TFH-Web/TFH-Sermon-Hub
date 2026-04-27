@@ -14,16 +14,19 @@
 		oklch(from var(--cl-background) calc(l * 1.03) c h),
 		oklch(from var(--cl-background) calc(l * 1.7) c h)
 	);
-	--cl-outline: light-dark(
-		oklch(from var(--cl-accent) calc(l * 1.7) calc(c * 0.05) h),
-		oklch(from var(--cl-accent) calc(l * 0.5) calc(c * 0.05) h)
-	);
+	--cl-outline: oklch(from var(--cl-foreground) l c h / 0.1);
 
 	--cl-accent-container: light-dark(
 		oklch(from var(--cl-accent) calc(l * 1.2) c h),
 		oklch(from var(--cl-accent) calc(l * 0.8) calc(c * 0.9) h)
 	);
 	--cl-on-accent-container: oklch(from var(--cl-accent) 100% 0.02 h);
+
+	--cl-success: oklch(52% 0.05 135deg);
+	--cl-success-container: light-dark(
+		oklch(from var(--cl-success) 96% 0.02 h),
+		oklch(from var(--cl-success) 25% 0.05 h)
+	);
 
 	--cl-error: oklch(48% 0.15 25deg);
 	--cl-error-container: light-dark(
@@ -78,8 +81,13 @@
 	--shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
 	--shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.1);
 
+	--z-sidebar: 1000;
+	--z-sidebar-backdrop: 500;
+	--z-header: 500;
+
 	accent-color: var(--cl-accent);
 	cursor: auto;
+	interpolate-size: allow-keywords;
 }
 
 body {
@@ -101,7 +109,17 @@ button {
 	border-radius: 0.25rem;
 }
 
-.u-button {
+:where(input[type="text"]) {
+	font-family: inherit;
+	border: 1px solid var(--cl-outline);
+	border-radius: 0.5rem;
+
+	&:focus-visible {
+		outline-color: var(--cl-accent);
+	}
+}
+
+:where(.u-button) {
 	--hover-brightness-default: 1.3;
 	--active-brightness-default: 0.9;
 
@@ -124,12 +142,23 @@ button {
 	}
 }
 
-input[type="text"] {
-	font-family: inherit;
-	border: 1px solid var(--cl-outline);
-	border-radius: 0.5rem;
+progress {
+	color: var(--cl-accent);
+	background: var(--cl-outline);
+	border-radius: 0.2rem;
+}
 
-	&:focus-visible {
-		outline-color: var(--cl-accent);
-	}
+progress::-webkit-progress-value {
+	background: var(--cl-accent);
+	border-radius: 0.2rem;
+}
+
+progress::-webkit-progress-bar {
+	background: var(--cl-outline);
+	border-radius: 0.2rem;
+}
+
+progress::-moz-progress-bar {
+	background: var(--cl-accent);
+	border-radius: 0.2rem;
 }

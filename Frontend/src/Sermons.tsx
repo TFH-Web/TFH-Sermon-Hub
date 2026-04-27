@@ -1,236 +1,180 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import MainLayout from '$/components/MainLayout';
-import SermonCard from './components/SermonCard';
+import SermonCard from '$/components/SermonCard';
 import './Sermons.css';
+import clsx from 'clsx';
+import { sermons } from '$/data/sermons';
+import FloatingAddSermon from '$/modals/AddSermon';
+import { type Status, statuses } from '$/types/sermon';
 
-// Mock data for sermons, replace later with actual data fetching
-// Capatilize the tags to match the filter buttons
-const sermons = [
-	{
-		title: 'Under Grace',
-		speaker: 'Dave Patterson',
-		date: 'Feb 23, 2026',
-		time: '42:18',
-		tags: ['Grace', 'Faith'],
-		series: 'Living Your Best Life',
-	},
-	{
-		title: 'Walking in Freedom',
-		speaker: 'Dave Patterson',
-		date: 'Feb 16, 2026',
-		time: '38:24',
-		tags: ['Freedom', 'Faith'],
-		series: 'Living Your Best Life',
-	},
-	{
-		title: 'Anchored in Hope',
-		speaker: 'Guest Speaker',
-		date: 'Feb 9, 2026',
-		time: '44:10',
-		tags: ['Hope', 'Healing'],
-		series: 'Hope Rising',
-	},
-	{
-		title: 'Power of Community',
-		speaker: 'Dave Patterson',
-		date: 'Feb 2, 2026',
-		time: '35:52',
-		tags: ['Community'],
-		series: 'Together',
-	},
-	{
-		title: 'Worship as a Lifestyle',
-		speaker: 'Dave Patterson',
-		date: 'Jan 26, 2026',
-		time: '41:33',
-		tags: ['Worship', 'Prayer'],
-		series: 'Together',
-	},
-	{
-		title: 'Bold Faith',
-		speaker: 'Dave Patterson',
-		date: 'Jan 19, 2026',
-		time: '',
-		tags: ['Failed'],
-		series: 'Fearless',
-	},
-];
+const topics = ['Faith', 'Hope', 'Grace', 'Healing', 'Anxiety'] as const;
+type Topic = (typeof topics)[number];
+
+type SetElement<SetType> =
+	SetType extends Iterable<infer ElementType> ? ElementType : never;
+
+const speakers = new Set(sermons.map(s => s.speaker));
+type Speaker = SetElement<typeof speakers>;
+
+const seriess = new Set(sermons.map(s => s.series).filter(s => s !== null));
+type Series = SetElement<typeof seriess>;
+
+const sortCategories = ['Newest', 'Oldest', 'Relevance'] as const;
+type SortCategory = (typeof sortCategories)[number];
 
 export default function Sermons() {
-	// Tracks the currently selected sermon filter, defaults to "All"
-	const [selectedSermonFilter, setSelectedSermonFilter] = useState('All');
+	// Tracks the currently selected sermon filter, defaults to null
+	const [status, setStatus] = useState<Status | null>(null);
 
-	// Tracks the currently selected topic filter, defaults to "All"
-	const [selectedTopic, setSelectedTopic] = useState('All');
+	// Tracks the currently selected topic filter, defaults to null
+	const [topic, setTopic] = useState<Topic | null>(null);
 
-	// Tracks the currently selected speaker filter, defaults to "All"
-	const [selectedSpeaker, setSelectedSpeaker] = useState('All');
+	// Tracks the currently selected speaker filter, defaults to null
+	const [speaker, setSpeaker] = useState<Speaker | null>(null);
 
-	// Tracks the currently selected series filter, defaults to "All"
-	const [selectedSeries, setSelectedSeries] = useState('All');
+	// Tracks the currently selected series filter, defaults to null
+	const [series, setSeries] = useState<Series | null>(null);
 
 	// Tracks the currently selected "freshness" filter, defaults to "Newest"
-	const [_videoUploadRecency, setVideoUploadRecency] = useState('Newest');
+	const [sortCategory, setSortCategory] = useState<SortCategory>('Newest');
 
 	return (
-		<MainLayout title="Sermons">
+		<MainLayout title="Sermons" className="Sermons">
 			{/* Sermon Filter Buttons, clicks set as active and update the selectedSermonFilter state */}
-			<div className="sermon-tabs">
-				<button
-					type="button"
-					className={
-						selectedSermonFilter === 'All'
-							? 'active-sermon-filter'
-							: 'sermon-tab'
-					}
-					onClick={() => setSelectedSermonFilter('All')}
-				>
-					All Sermons
-				</button>
-				<button
-					type="button"
-					className={
-						selectedSermonFilter === 'Published'
-							? 'active-sermon-filter'
-							: 'sermon-tab'
-					}
-					onClick={() => setSelectedSermonFilter('Published')}
-				>
-					Published
-				</button>
-				<button
-					type="button"
-					className={
-						selectedSermonFilter === 'Processing'
-							? 'active-sermon-filter'
-							: 'sermon-tab'
-					}
-					onClick={() => setSelectedSermonFilter('Processing')}
-				>
-					Processing
-				</button>
-				<button
-					type="button"
-					className={
-						selectedSermonFilter === 'Draft'
-							? 'active-sermon-filter'
-							: 'sermon-tab'
-					}
-					onClick={() => setSelectedSermonFilter('Draft')}
-				>
-					Draft
-				</button>
-				<button
-					type="button"
-					className={
-						selectedSermonFilter === 'Failed'
-							? 'active-sermon-filter'
-							: 'sermon-tab'
-					}
-					onClick={() => setSelectedSermonFilter('Failed')}
-				>
-					Failed
-				</button>
+			<div className="Sermons-scrollContainer">
+				<fieldset className="Sermons-statuses">
+					{[null, ...statuses].map(s => (
+						<label
+							key={s ?? 'All'}
+							className={clsx(
+								'Sermons-status',
+								'u-button',
+								status === s && 'is-active',
+							)}
+						>
+							<input
+								type="radio"
+								name="status"
+								hidden={true}
+								value={s ?? 'All'}
+								checked={s === status}
+								onChange={e => {
+									return setStatus(
+										// @ts-expect-error 2345: value comes from iterating over an array marked as const
+										e.target.value === 'All' ? null : e.target.value,
+									);
+								}}
+							/>
+							{s ?? 'All'}
+						</label>
+					))}
+				</fieldset>
 			</div>
 
 			{/* Sermon Topic Buttons, clicks set as active and update the selectedTopic state */}
-			<div className="filters-container">
-				<div className="topic-filters">
-					<button
-						type="button"
-						className={
-							selectedTopic === 'All' ? 'active-topic-filter' : 'topic-pill'
-						}
-						onClick={() => setSelectedTopic('All')}
-					>
-						All
-					</button>
-					<button
-						type="button"
-						className={
-							selectedTopic === 'Faith' ? 'active-topic-filter' : 'topic-pill'
-						}
-						onClick={() => setSelectedTopic('Faith')}
-					>
-						Faith
-					</button>
-					<button
-						type="button"
-						className={
-							selectedTopic === 'Hope' ? 'active-topic-filter' : 'topic-pill'
-						}
-						onClick={() => setSelectedTopic('Hope')}
-					>
-						Hope
-					</button>
-					<button
-						type="button"
-						className={
-							selectedTopic === 'Grace' ? 'active-topic-filter' : 'topic-pill'
-						}
-						onClick={() => setSelectedTopic('Grace')}
-					>
-						Grace
-					</button>
-					<button
-						type="button"
-						className={
-							selectedTopic === 'Healing' ? 'active-topic-filter' : 'topic-pill'
-						}
-						onClick={() => setSelectedTopic('Healing')}
-					>
-						Healing
-					</button>
-					<button
-						type="button"
-						className={
-							selectedTopic === 'Anxiety' ? 'active-topic-filter' : 'topic-pill'
-						}
-						onClick={() => setSelectedTopic('Anxiety')}
-					>
-						Anxiety
-					</button>
-				</div>
+			<fieldset className="Sermons-controls">
+				<fieldset className="Sermons-topics">
+					{[null, ...topics].map(t => (
+						<label
+							key={t ?? 'All'}
+							className={clsx(
+								'Sermons-topic',
+								'u-button',
+								topic === t && 'is-active',
+							)}
+						>
+							<input
+								type="radio"
+								name="topic"
+								hidden={true}
+								value={t ?? 'All'}
+								checked={t === topic}
+								onChange={e => {
+									return setTopic(
+										// @ts-expect-error 2345: value comes from iterating over an array marked as const
+										e.target.value === 'All' ? null : e.target.value,
+									);
+								}}
+							/>
+							{t ?? 'All'}
+						</label>
+					))}
+				</fieldset>
 
 				{/* Sermon Speaker dropdown, selection updates the selectedSpeaker state */}
-				<div className="sermon-filters">
-					<select onChange={e => setSelectedSpeaker(e.target.value)}>
-						<option value="All">All Speakers</option>
-						<option value="Dave Patterson">Dave Patterson</option>
-						<option value="Guest Speaker">Guest Speaker</option>
+				<fieldset className="Sermons-dropdowns">
+					<select
+						className="Sermons-dropdown"
+						onChange={e =>
+							setSpeaker(
+								e.target.value === 'All Speakers' ? null : e.target.value,
+							)
+						}
+					>
+						{['All Speakers', ...speakers].map(s => (
+							<option key={s} value={s}>
+								{s}
+							</option>
+						))}
 					</select>
 
 					{/* Sermon Series dropdown, selection updates the selectedSeries state */}
-					<select onChange={e => setSelectedSeries(e.target.value)}>
-						<option value="All">All Series</option>
-						<option value="Living Your Best Life">Living Your Best Life</option>
-						<option value="Hope Rising">Hope Rising</option>
-						<option value="Together">Together</option>
+					<select
+						className="Sermons-dropdown"
+						onChange={e =>
+							setSeries(e.target.value === 'All Series' ? null : e.target.value)
+						}
+					>
+						{['All Series', ...seriess].map(s => (
+							<option key={s} value={s}>
+								{s}
+							</option>
+						))}
 					</select>
 
 					{/* Video Upload Recency dropdown, selection updates the videoUploadRecency state */}
-					<select onChange={e => setVideoUploadRecency(e.target.value)}>
-						<option value="Newest">Sort: Newest</option>
-						<option value="Oldest">Sort: Oldest</option>
-						<option value="Relevancy">Sort: Relevant</option>
+					<select
+						className="Sermons-dropdown"
+						onChange={e => {
+							// @ts-expect-error 2345: value comes from iterating over an array marked as const
+							return setSortCategory(e.target.value);
+						}}
+					>
+						{sortCategories.map(s => (
+							<option key={s} value={s}>
+								{s}
+							</option>
+						))}
 					</select>
-				</div>
-			</div>
+				</fieldset>
+			</fieldset>
 
-			<div className="sermon-grid">
+			<div className="Sermons-grid">
 				{sermons
-					.filter(
-						sermon =>
-							(selectedTopic === 'All' ||
-								sermon.tags.includes(selectedTopic)) &&
-							(selectedSpeaker === 'All' ||
-								sermon.speaker === selectedSpeaker) &&
-							(selectedSeries === 'All' || sermon.series === selectedSeries),
-					)
+					.filter(s => status === null || s.status === status)
+					.filter(s => topic === null || s.tags.includes(topic.toLowerCase()))
+					.filter(s => speaker === null || s.speaker === speaker)
+					.filter(s => series === null || s.series === series)
+					.toSorted((a, b) => {
+						switch (sortCategory) {
+							case 'Oldest':
+								return a.date.getTime() - b.date.getTime();
+							default:
+								return b.date.getTime() - a.date.getTime();
+						}
+					})
 					.map(sermon => (
-						<SermonCard key={sermon.title} sermon={sermon} />
+						<Link
+							key={sermon.id}
+							className="Sermons-cardLink"
+							to={`/sermons/${sermon.id}`}
+						>
+							<SermonCard sermon={sermon} />
+						</Link>
 					))}
 			</div>
+			<FloatingAddSermon />
 		</MainLayout>
 	);
 }

@@ -1,71 +1,71 @@
 import './RecentSermonsTable.css';
-import Tag, { type TagProps } from './Tag';
+import { formatDate } from '$/lib/date';
+import { linkTo, type Sermon, statusVariant } from '$/types/sermon';
+import Container from './Container';
+import Tag from './Tag';
 
-export type Sermon = {
-	id: string;
-	title: string;
-	speaker: string;
-	series: string;
-	date: string;
-	status: 'Published' | 'Processing' | 'Failed';
-};
+export interface RecentSermonsTableProps {
+	sermons: Sermon[];
+}
 
-const statusClass: Record<Sermon['status'], Pick<TagProps, 'variant'>> = {
-	Published: { variant: 'green' },
-	Processing: { variant: 'amber' },
-	Failed: { variant: 'red' },
-};
-
-function RecentSermonsCard({ sermons }: { sermons: Sermon[] }) {
+export default function RecentSermonsTable({
+	sermons,
+}: RecentSermonsTableProps) {
 	return (
-		<div className="RecentSermonsCard">
-			<div className="RecentSermonsCard-header">
-				<span className="RecentSermonsCard-title">Recent Sermons</span>
-				<a href="./sermons" className="RecentSermonsCard-viewAll">
+		<Container className="RecentSermonsTable">
+			<header className="RecentSermonsTable-header">
+				<h3 className="RecentSermonsTable-title">Recent Sermons</h3>
+				<a href="/sermons" className="RecentSermonsTable-viewAll">
 					View All →
 				</a>
-			</div>
+			</header>
 
-			<table className="RecentSermonsCard-table">
+			<table className="RecentSermonsTable-table">
 				<thead>
 					<tr>
-						<th className="RecentSermonsCard-colHeader RecentSermonsCard-colSermon">
-							SERMON
+						<th scope="column" className="RecentSermonsTable-colSermon">
+							Sermon
 						</th>
-						<th className="RecentSermonsCard-colHeader RecentSermonsCard-colSpeaker">
-							SPEAKER
+						<th scope="column" className="RecentSermonsTable-colSpeaker">
+							Speaker
 						</th>
-						<th className="RecentSermonsCard-colHeader RecentSermonsCard-colSeries">
-							SERIES
+						<th scope="column" className="RecentSermonsTable-colSeries">
+							Series
 						</th>
-						<th className="RecentSermonsCard-colHeader RecentSermonsCard-colDate">
-							DATE
+						<th scope="column" className="RecentSermonsTable-colDate">
+							Date
 						</th>
-						<th className="RecentSermonsCard-colHeader RecentSermonsCard-colStatus">
-							STATUS
+						<th scope="column" className="RecentSermonsTable-colStatus">
+							Status
 						</th>
 					</tr>
 				</thead>
 				<tbody>
 					{sermons.map(s => (
-						<tr key={s.id} className="RecentSermonsCard-row">
-							<td className="RecentSermonsCard-cell RecentSermonsCard-cell--title">
-								{s.title}
+						<tr key={s.id}>
+							<th scope="row">
+								<a href={linkTo(s)}>{s.title}</a>
+							</th>
+							<td>
+								<a href={linkTo(s)}>{s.speaker}</a>
 							</td>
-							<td className="RecentSermonsCard-cell">{s.speaker}</td>
-							<td className="RecentSermonsCard-cell">{s.series}</td>
-							<td className="RecentSermonsCard-cell">{s.date}</td>
-							<td className="RecentSermonsCard-cell">
-								<span>
-									<Tag {...statusClass[s.status]}>{s.status}</Tag>
-								</span>
+							<td>
+								<a href={linkTo(s)}>{s.series}</a>
+							</td>
+							<td>
+								<a href={linkTo(s)}>
+									{formatDate(s.date, { month: 'short', day: 'numeric' })}
+								</a>
+							</td>
+							<td>
+								<a href={linkTo(s)}>
+									<Tag variant={statusVariant(s.status)}>{s.status}</Tag>
+								</a>
 							</td>
 						</tr>
 					))}
 				</tbody>
 			</table>
-		</div>
+		</Container>
 	);
 }
-
-export default RecentSermonsCard;

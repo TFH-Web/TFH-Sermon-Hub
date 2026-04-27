@@ -1,57 +1,9 @@
-.ImportActivity {
-	padding: 24px 28px;
-	margin-top: 16px;
-	background: #fff;
-	border: 1px solid #eee;
-	border-radius: 12px;
-}
-
 .ImportActivity-title {
-	margin: 0 0 16px 0;
-	font-size: 16px;
-	font-weight: 700;
-	color: #111;
+	margin-block: 0 1em;
 }
 
-/* Lighten the ImportItem borders within this card */
-.ImportActivity .ImportItem {
-	border-color: #f0f0f0;
-}
-
-.ImportActivity-iconFailed {
-	color: #e67e22;
-}
-
-/* Progress bar + percentage shown side by side for active imports */
-.ImportActivity-progressWrap {
+.ImportActivity-imports {
 	display: flex;
-	gap: 8px;
-	align-items: center;
-}
-
-.ImportActivity-pct {
-	font-size: 13px;
-	font-weight: 600;
-	color: #555;
-	white-space: nowrap;
-}
-
-/* Status badges for complete and failed */
-.ImportActivity-badge {
-	padding: 4px 12px;
-	font-size: 12px;
-	font-weight: 600;
-	white-space: nowrap;
-	border-radius: 20px;
-}
-
-.ImportActivity-badge--complete {
-	color: #555;
-	background: #f0f0f0;
-}
-
-.ImportActivity-badge--failed {
-	font-weight: 700;
-	color: #c0392b;
-	background: transparent;
+	flex-direction: column;
+	gap: 1rem;
 }
