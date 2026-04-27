@@ -1,37 +1,33 @@
-import { type SubmitEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AISearchPreviewCard from '$/components/AISearchPreviewCard';
 import MainLayout from '$/components/MainLayout';
 import SearchBar from '$/components/SearchBar';
 import SearchFilters from '$/components/SearchFilters';
+import useAISearch from '$/hooks/useAISearch';
+import type { AISearchResultPreview } from '$/types/aiSearch';
 import './AISearch.css';
-
-type ContentType = 'all' | 'sermon' | 'transcript' | 'note';
-
-const contentOptions: { label: string; value: ContentType }[] = [
-	{ label: 'All', value: 'all' },
-	{ label: 'Sermons', value: 'sermon' },
-	{ label: 'Transcripts', value: 'transcript' },
-	{ label: 'Notes', value: 'note' },
-];
 
 export default function AISearch() {
 	const navigate = useNavigate();
-	const [query, setQuery] = useState('');
-	const [type, setType] = useState<ContentType>('all');
-	const [speaker, setSpeaker] = useState('any');
-	const [date, setDate] = useState('any');
 
-	function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
-		e.preventDefault();
+	const {
+		query,
+		setQuery,
+		type,
+		setType,
+		speaker,
+		setSpeaker,
+		date,
+		setDate,
+		showResults,
+		visibleResults,
+		handleSubmit,
+		contentOptions,
+		submittedQuery,
+	} = useAISearch();
 
-		const params = new URLSearchParams();
-
-		if (query.trim()) params.set('q', query.trim());
-		if (type !== 'all') params.set('type', type);
-		if (speaker !== 'any') params.set('speaker', speaker);
-		if (date !== 'any') params.set('date', date);
-
-		navigate(`/ai-search/results?${params.toString()}`);
+	function handleCardClick(item: AISearchResultPreview) {
+		navigate(item.redirectTo);
 	}
 
 	return (
@@ -43,7 +39,7 @@ export default function AISearch() {
 					Natural language search across transcripts, tags, speakers, and topics
 				</p>
 
-				<form onSubmit={handleSubmit} className="AISearch-form">
+				<form className="AISearch-form" onSubmit={handleSubmit}>
 					<SearchBar query={query} onQueryChange={setQuery} />
 
 					<SearchFilters
@@ -56,6 +52,25 @@ export default function AISearch() {
 						onDateChange={setDate}
 					/>
 				</form>
+
+				{showResults && (
+					<section aria-live="polite" className="AISearch-results">
+						<p className="AISearch-resultsMeta">
+							Found <strong>{visibleResults.length} results</strong> for "
+							{submittedQuery}" — ranked by relevance
+						</p>
+
+						<div className="AISearch-resultsList">
+							{visibleResults.map(item => (
+								<AISearchPreviewCard
+									key={item.id}
+									onOpen={handleCardClick}
+									result={item}
+								/>
+							))}
+						</div>
+					</section>
+				)}
 			</section>
 		</MainLayout>
 	);
