@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import './SermonDetail.css';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import Button from '$/components/Button';
 import MainLayout from '$/components/MainLayout';
 import { Card } from './components/Card.tsx';
