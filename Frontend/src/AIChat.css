@@ -29,7 +29,7 @@
 	width: 56px;
 	height: 56px;
 	margin: 0 auto 16px;
-	color: var(--cl-accent);
+	color: var(--cl-light);
 	background: var(--cl-accent-container);
 	border-radius: 50%;
 }
