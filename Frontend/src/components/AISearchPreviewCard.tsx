@@ -77,7 +77,16 @@ export default function AISearchPreviewCard({
 
 	function handleChatClick(e: MouseEvent<HTMLButtonElement>) {
 		e.stopPropagation();
-		navigate('/ai-chat');
+		const sermonId = result.redirectTo.split('/').pop();
+		const params = new URLSearchParams({
+			...(sermonId ? { sermonId } : {}),
+			title: result.title,
+			speaker: result.speaker,
+			date: result.date,
+			series: result.series,
+			snippet: result.snippet,
+		});
+		navigate(`/ai-chat?${params.toString()}`);
 	}
 
 	return (
