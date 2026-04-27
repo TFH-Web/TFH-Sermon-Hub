@@ -37,6 +37,14 @@
 	color: oklch(from var(--cl-on-surface-muted) calc(l * 0.92) c h);
 }
 
+.SearchResultCard-actions {
+	display: flex;
+	flex-shrink: 0;
+	flex-direction: column;
+	gap: 10px;
+	align-items: flex-end;
+}
+
 .SearchResultCard-score {
 	min-width: 120px;
 	font-size: 14px;
@@ -44,4 +52,22 @@
 	color: oklch(from var(--cl-accent) calc(l * 0.78) calc(c * 0.85) h);
 	text-align: right;
 	white-space: nowrap;
+}
+
+.SearchResultCard-chat {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	color: var(--cl-light);
+	cursor: pointer;
+	background: var(--cl-accent);
+	border: none;
+	border-radius: 50%;
+	transition: opacity 150ms ease;
+}
+
+.SearchResultCard-chat:hover {
+	opacity: 0.85;
 }
