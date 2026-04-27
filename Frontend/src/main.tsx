@@ -6,11 +6,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ErrorBoundary } from 'react-error-boundary';
 import { BrowserRouter, Route, Routes } from 'react-router';
-import MainLayout from '$/components/MainLayout.tsx';
-
 import AIChat from './AIChat.tsx';
 import AISearch from './AISearch.tsx';
 import AISearchResults from './AISearchResults.tsx';
+import MainLayout from './components/MainLayout.tsx';
 import { ToastProvider } from './components/ToastContext';
 import Dashboard from './Dashboard.tsx';
 import LoginPage from './LoginPage.tsx';

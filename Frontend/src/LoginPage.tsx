@@ -183,16 +183,16 @@ function MicrosoftIcon() {
 
 // Main page
 export default function LoginPage() {
-	const [scenario, setScenario] = useState<DemoScenario>('Default');
-
 	const navigate = useNavigate();
+
+	const [scenario, setScenario] = useState<DemoScenario>('Default');
 
 	// Current Scenario config
 	const s = SCENARIOS[scenario];
 
-	// TODO: Replace with actual MSAL redirect when authentication gets wired
-	// Currently simulates what would happen on successful authentication
+	// TODO: Replace with MSAL redirect when authentication gets wired
 	function handlePrimaryClick() {
+		alert(`[Demo] Outline action triggered - scenario: "${scenario}"`);
 		navigate('/');
 	}
 
