@@ -24,12 +24,14 @@
 .SermonCard-title {
 	grid-area: title;
 	margin-block: 1em 0;
+	text-wrap: balance;
 }
 
 .SermonCard-info {
 	grid-area: info;
 	margin-block-end: 1em;
 	font-size: 0.9rem;
+	text-wrap: balance;
 	opacity: 0.7;
 }
 

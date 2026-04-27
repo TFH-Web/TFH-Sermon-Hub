@@ -11,23 +11,31 @@
 	height: 56px;
 	padding: 0 18px;
 	font-size: 1rem;
-	color: #2b2b2b;
+	color: var(--ai-title, var(--cl-foreground));
 	outline: none;
-	background: #ffffff;
-	border: 1px solid #d8d8d8;
+	background: var(--ai-surface, var(--cl-surface));
+	border: 1px solid var(--ai-border, var(--cl-outline));
 	border-right: none;
 	border-top-left-radius: 12px;
 	border-bottom-left-radius: 12px;
+}
+
+.SearchBar-input::placeholder {
+	color: var(--ai-muted, var(--cl-on-surface-muted));
+}
+
+.SearchBar-input:focus-visible {
+	border-color: var(--ai-accent, var(--cl-accent));
 }
 
 .SearchBar-button {
 	width: 120px;
 	height: 56px;
 	font-weight: 700;
-	color: #ffffff;
+	color: var(--cl-on-accent);
 	cursor: pointer;
-	background: #7a9166;
-	border: 1px solid #7a9166;
+	background: var(--ai-accent, var(--cl-accent));
+	border: 1px solid var(--ai-accent, var(--cl-accent));
 	border-top-right-radius: 12px;
 	border-bottom-right-radius: 12px;
 }

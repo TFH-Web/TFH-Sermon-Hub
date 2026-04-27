@@ -1,5 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import MainLayout from '$/components/MainLayout';
 import SearchResultCard from '$/components/SearchResultCard';
@@ -15,16 +14,75 @@ export type SearchResult = {
 	ai_score: number;
 };
 
-async function fetchResults(
+const MOCK_RESULTS: SearchResult[] = [
+	{
+		id: 1,
+		title: 'Under Grace',
+		type: 'sermon',
+		speaker: 'Dave Patterson',
+		date: 'Feb 23, 2026',
+		summary:
+			'Exploring what it means to live under grace rather than law — Dave unpacks how grace reshapes identity, forgiveness, and everyday freedom.',
+		ai_score: 0.98,
+	},
+	{
+		id: 2,
+		title: 'Anchored in Hope',
+		type: 'sermon',
+		speaker: 'Guest Speaker',
+		date: 'Feb 9, 2026',
+		summary:
+			'Hope as an anchor for the soul — how to hold steady in uncertain seasons by grounding yourself in what does not move.',
+		ai_score: 0.87,
+	},
+	{
+		id: 3,
+		title: 'Walking in Freedom',
+		type: 'sermon',
+		speaker: 'Dave Patterson',
+		date: 'Feb 16, 2026',
+		summary:
+			'Freedom is not the absence of boundaries but living inside the right ones. A practical look at what walking free looks like day to day.',
+		ai_score: 0.81,
+	},
+	{
+		id: 4,
+		title: 'Power of Community',
+		type: 'sermon',
+		speaker: 'Dave Patterson',
+		date: 'Feb 2, 2026',
+		summary:
+			'Why we cannot grow alone — the shape and rhythm of biblical community, and how shared life carries us further than solo faith.',
+		ai_score: 0.74,
+	},
+	{
+		id: 5,
+		title: 'Bold Faith',
+		type: 'sermon',
+		speaker: 'Dave Patterson',
+		date: 'Jan 26, 2026',
+		summary:
+			'Faith that speaks up. Dave walks through what it looks like to take small, brave steps of trust when the outcome is unclear.',
+		ai_score: 0.69,
+	},
+];
+
+function matchesFilters(
+	result: SearchResult,
 	q: string,
 	type: string,
 	speaker: string,
-	date: string,
-): Promise<SearchResult[]> {
-	const res = await axios.get<SearchResult[]>('/api/search', {
-		params: { q, type, speaker, date },
-	});
-	return res.data;
+): boolean {
+	if (type !== 'all' && result.type !== type) return false;
+	if (speaker !== 'any' && result.speaker !== speaker) return false;
+
+	if (!q) return true;
+	const needle = q.toLowerCase();
+	return (
+		result.title.toLowerCase().includes(needle) ||
+		result.summary.toLowerCase().includes(needle) ||
+		result.speaker.toLowerCase().includes(needle)
+	);
 }
 
 export default function AISearchResults() {
@@ -35,10 +93,10 @@ export default function AISearchResults() {
 	const speaker = searchParams.get('speaker') ?? 'any';
 	const date = searchParams.get('date') ?? 'any';
 
-	const { data, isLoading, isError } = useQuery({
-		queryKey: ['search-results', q, type, speaker, date],
-		queryFn: () => fetchResults(q, type, speaker, date),
-	});
+	const data = useMemo(
+		() => MOCK_RESULTS.filter(r => matchesFilters(r, q, type, speaker)),
+		[q, type, speaker],
+	);
 
 	return (
 		<MainLayout title="AI Search Results">
@@ -52,27 +110,13 @@ export default function AISearchResults() {
 						Date: <strong>{date}</strong>
 					</p>
 
-					{isLoading && (
-						<div className="AISearchResults-stateCard">
-							<p className="AISearchResults-stateText">Loading results...</p>
-						</div>
-					)}
-
-					{isError && (
-						<div className="AISearchResults-stateCard">
-							<p className="AISearchResults-stateText AISearchResults-stateText--error">
-								Could not load results.
-							</p>
-						</div>
-					)}
-
-					{data && data.length === 0 && (
+					{data.length === 0 && (
 						<div className="AISearchResults-stateCard">
 							<p className="AISearchResults-stateText">No results found.</p>
 						</div>
 					)}
 
-					{data && data.length > 0 && (
+					{data.length > 0 && (
 						<div className="AISearchResults-list">
 							{data.map(item => (
 								<SearchResultCard key={item.id} result={item} />

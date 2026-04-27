@@ -1,0 +1,253 @@
+.AIChat {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	padding: 24px;
+}
+
+.AIChat-empty {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+}
+
+.AIChat-title {
+	margin: 0 0 8px;
+	font-size: 22px;
+	font-weight: 700;
+	color: var(--cl-foreground);
+	letter-spacing: -0.5px;
+}
+
+.AIChat-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 56px;
+	height: 56px;
+	margin: 0 auto 16px;
+	color: var(--cl-light);
+	background: var(--cl-accent-container);
+	border-radius: 50%;
+}
+
+.AIChat-subtitle {
+	max-width: 440px;
+	margin: 0 auto 20px;
+	font-size: 0.95rem;
+	line-height: 1.6;
+	color: var(--cl-foreground);
+	opacity: 0.55;
+}
+
+.AIChat-prompts {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	justify-content: center;
+}
+
+.AIChat-prompt {
+	padding: 9px 16px;
+	font-size: 13px;
+	color: var(--cl-foreground);
+	cursor: pointer;
+	background: var(--cl-surface);
+	border: 1.5px solid var(--cl-outline);
+	border-radius: 100px;
+	transition:
+		border-color 150ms ease,
+		color 150ms ease;
+}
+
+.AIChat-prompt:hover {
+	color: var(--cl-accent);
+	border-color: var(--cl-accent);
+}
+
+.AIChat-msgs {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 16px;
+	padding: 16px 0;
+	overflow-y: auto;
+}
+
+.AIChat-msg {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+}
+
+.AIChat-msg--user {
+	flex-direction: row-reverse;
+}
+
+.AIChat-avatar {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	font-size: 12px;
+	font-weight: 700;
+	border-radius: 50%;
+}
+
+.AIChat-avatar--ai {
+	color: var(--cl-accent);
+	background: var(--cl-accent-container);
+}
+
+.AIChat-avatar--user {
+	color: var(--cl-light);
+	background: var(--cl-accent);
+}
+
+.AIChat-bubble {
+	max-width: 78%;
+	padding: 12px 16px;
+	font-size: 14px;
+	line-height: 1.6;
+	border-radius: 12px;
+}
+
+.AIChat-bubble p {
+	margin: 0;
+}
+
+.AIChat-bubble--ai {
+	background: var(--cl-surface);
+	border: 1px solid var(--cl-outline);
+}
+
+.AIChat-bubble--user {
+	color: var(--cl-light);
+	background: var(--cl-accent);
+}
+
+.AIChat-bubble--typing {
+	font-style: italic;
+	color: var(--cl-on-surface-muted);
+}
+
+.AIChat-refs {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 12px;
+}
+
+.AIChat-ref {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	overflow: hidden;
+	background: var(--cl-background);
+	border: 1px solid var(--cl-outline);
+	border-radius: 8px;
+	transition: border-color 150ms ease;
+}
+
+.AIChat-ref:hover {
+	border-color: var(--cl-accent);
+}
+
+.AIChat-ref-info {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 3px;
+	min-width: 0;
+	padding: 10px 12px;
+	text-align: left;
+	cursor: pointer;
+	background: none;
+	border: none;
+}
+
+.AIChat-ref-title {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--cl-foreground);
+}
+
+.AIChat-ref-meta {
+	font-size: 12px;
+	color: var(--cl-on-surface-muted);
+}
+
+.AIChat-ref-match {
+	font-weight: 600;
+	color: var(--cl-accent);
+}
+
+.AIChat-ref-chat {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	margin-right: 8px;
+	color: var(--cl-light);
+	cursor: pointer;
+	background: var(--cl-accent);
+	border: none;
+	border-radius: 50%;
+	transition: opacity 150ms ease;
+}
+
+.AIChat-ref-chat:hover {
+	opacity: 0.85;
+}
+
+.AIChat-input-row {
+	display: flex;
+	gap: 10px;
+	align-self: center;
+	width: 100%;
+	max-width: 720px;
+	padding-top: 16px;
+	margin-top: auto;
+	border-top: 1px solid var(--cl-outline);
+}
+
+.AIChat-input {
+	flex: 1;
+	padding: 12px 16px;
+	font-size: 14px;
+	background: var(--cl-surface);
+	border: 1.5px solid var(--cl-outline);
+	border-radius: var(--border-radius-sm, 8px);
+	transition: border-color 200ms ease;
+}
+
+.AIChat-input:focus {
+	outline: none;
+	border-color: var(--cl-accent);
+}
+
+.AIChat-send {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+	padding: 12px 20px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--cl-on-accent);
+	cursor: pointer;
+	background: var(--cl-accent);
+	border: none;
+	border-radius: var(--border-radius-sm, 8px);
+	transition: opacity 150ms ease;
+}
+
+.AIChat-send:hover {
+	opacity: 0.85;
+}

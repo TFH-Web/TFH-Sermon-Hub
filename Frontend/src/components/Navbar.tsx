@@ -6,7 +6,17 @@ export default function Navbar() {
 		<nav className="Navbar">
 			<h2 className="Navbar-header">Main</h2>
 			<ul className="Navbar-list">
-				<NavbarItem icon="lucide:square-terminal" to="/dashboard">
+				<NavbarItem icon="lucide:stars" to="/ai-search">
+					AI Search
+				</NavbarItem>
+				<NavbarItem icon="lucide:message-circle" to="/ai-chat">
+					AI Chat
+				</NavbarItem>
+			</ul>
+
+			<h2 className="Navbar-header">Library</h2>
+			<ul className="Navbar-list">
+        <NavbarItem icon="lucide:square-terminal" to="/dashboard">
 					Dashboard
 				</NavbarItem>
 				<NavbarItem icon="lucide:video" to="/sermons">
@@ -17,9 +27,6 @@ export default function Navbar() {
 				</NavbarItem>
 				<NavbarItem icon="lucide:megaphone" to="/speakers">
 					Speakers
-				</NavbarItem>
-				<NavbarItem icon="lucide:stars" to="/ai-search">
-					AI Search
 				</NavbarItem>
 			</ul>
 

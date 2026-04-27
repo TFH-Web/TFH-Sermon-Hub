@@ -1,7 +1,7 @@
 .SearchResultCard {
 	padding: 20px;
-	background: #fff;
-	border: 1px solid #ddd;
+	background: var(--cl-surface);
+	border: 1px solid var(--cl-outline);
 	border-radius: 12px;
 }
 
@@ -21,27 +21,53 @@
 	margin: 0 0 8px 0;
 	font-size: 22px;
 	font-weight: 700;
-	color: #1f1f1f;
+	color: var(--cl-foreground);
 }
 
 .SearchResultCard-meta {
 	margin: 0 0 8px 0;
 	font-size: 14px;
-	color: #666;
+	color: var(--cl-on-surface-muted);
 }
 
 .SearchResultCard-summary {
 	margin: 0;
 	font-size: 14px;
 	line-height: 1.5;
-	color: #444;
+	color: oklch(from var(--cl-on-surface-muted) calc(l * 0.92) c h);
+}
+
+.SearchResultCard-actions {
+	display: flex;
+	flex-shrink: 0;
+	flex-direction: column;
+	gap: 10px;
+	align-items: flex-end;
 }
 
 .SearchResultCard-score {
 	min-width: 120px;
 	font-size: 14px;
 	font-weight: 700;
-	color: #6f865f;
+	color: oklch(from var(--cl-accent) calc(l * 0.78) calc(c * 0.85) h);
 	text-align: right;
 	white-space: nowrap;
+}
+
+.SearchResultCard-chat {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	color: var(--cl-light);
+	cursor: pointer;
+	background: var(--cl-accent);
+	border: none;
+	border-radius: 50%;
+	transition: opacity 150ms ease;
+}
+
+.SearchResultCard-chat:hover {
+	opacity: 0.85;
 }
