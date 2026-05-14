@@ -2,8 +2,6 @@
 
 <img src="docs/assets/logo.png" alt="TFH Sermon Hub Logo" width="300">
 
-# TFH Sermon Hub
-
 **A centralized sermon management and AI-powered search platform for The Father's House**
 
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev/)
@@ -24,15 +22,15 @@ TFH Sermon Hub is an internal web application built for The Father's House churc
 
 ## Features
 
-- **Dashboard** — At-a-glance stats for total sermons, series, speakers, and daily searches, alongside recent activity and import logs
-- **Sermon Management** — Browse, filter, and view detailed information on every sermon including transcripts, summaries, tags, and video links
-- **Series & Speaker Management** — Organize sermons by series and speaker with dedicated browsing views
-- **AI-Powered Search** — Natural language search across sermon transcripts, tags, speakers, and topics ranked by relevance
-- **AI Chat** — Conversational AI interface to ask questions about individual sermons or across the entire library
-- **Import & Upload** — Drag-and-drop file import workflow with status tracking (Draft, Processing, Published, Failed)
-- **Tags & Metadata** — View and manage AI-generated and manually added tags across all content
-- **User Management** — Role-based access control for church staff
-- **Notifications** — In-app notification system for import and processing updates
+- **Dashboard** : At-a-glance stats for total sermons, series, speakers, and daily searches, alongside recent activity and import logs
+- **Sermon Management** : Browse, filter, and view detailed information on every sermon including transcripts, summaries, tags, and video links
+- **Series & Speaker Management** : Organize sermons by series and speaker with dedicated browsing views
+- **AI-Powered Search** : Natural language search across sermon transcripts, tags, speakers, and topics ranked by relevance
+- **AI Chat** : Conversational AI interface to ask questions about individual sermons or across the entire library
+- **Import & Upload** : Drag-and-drop file import workflow with status tracking (Draft, Processing, Published, Failed)
+- **Tags & Metadata** : View and manage AI-generated and manually added tags across all content
+- **User Management** : Role-based access control for church staff
+- **Notifications** : In-app notification system for import and processing updates
 
 ---
 
