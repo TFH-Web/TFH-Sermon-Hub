@@ -19,7 +19,7 @@ def populate(app: Flask):
     )
 
     speaker_dave_patterson = Speaker(
-        id=None, first_name="Dave", last_name="Patterson"
+        id=None, first_name="Dave", last_name="Patterson", role="Lead Speaker"
     )
     db.session.add(speaker_dave_patterson)
 
