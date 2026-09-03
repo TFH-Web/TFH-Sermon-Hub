@@ -4,6 +4,7 @@ import { linkTo, type Sermon, statusVariant } from '$/types/sermon';
 import { getFullName } from '$/types/speaker';
 import Container from './Container';
 import Tag from './Tag';
+import { getFullName } from '$/types/speaker';
 
 export interface RecentSermonsTableProps {
 	sermons: Sermon[];
