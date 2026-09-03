@@ -5,11 +5,21 @@ from marshmallow import Schema, fields
 from tsh.models import TagSource, UploadStatus
 
 
+def camelcase(s):
+    parts = iter(s.split("_"))
+    return next(parts) + "".join(part.title() for part in parts)
+
+
+class CamelCaseSchema(Schema):
+    def on_bind_field(self, field_name, field_obj):
+        field_obj.data_key = camelcase(field_obj.data_key or field_name)
+
+
 def id_field():
     return fields.Integer(dump_only=True)
 
 
-class SeriesSchema(Schema):
+class SeriesSchema(CamelCaseSchema):
     id = id_field()
     title = fields.String(required=True)
 
@@ -18,7 +28,7 @@ series_schema = SeriesSchema()
 seriess_schema = SeriesSchema(many=True)
 
 
-class SpeakerSchema(Schema):
+class SpeakerSchema(CamelCaseSchema):
     id = id_field()
     first_name = fields.String(required=True)
     last_name = fields.String(required=True)
@@ -29,7 +39,7 @@ speaker_schema = SpeakerSchema()
 speakers_schema = SpeakerSchema(many=True)
 
 
-class TagSchema(Schema):
+class TagSchema(CamelCaseSchema):
     name = fields.String(required=True)
     source = fields.Enum(TagSource, required=True, by_value=True)
     count = fields.Integer(dump_only=True)
@@ -39,7 +49,7 @@ tag_schema = TagSchema()
 tags_schema = TagSchema(many=True)
 
 
-class SermonSchema(Schema):
+class SermonSchema(CamelCaseSchema):
     id = id_field()
     title = fields.String(required=True)
     video_link = fields.String(required=True)
