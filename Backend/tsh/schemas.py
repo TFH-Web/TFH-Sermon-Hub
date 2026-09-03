@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, post_load
 
-from tsh.models import TagSource, UploadStatus
+from tsh.models import Series, Speaker, Tag, TagSource, UploadStatus, Sermon
 
 
 def camelcase(s):
@@ -16,12 +16,16 @@ class CamelCaseSchema(Schema):
 
 
 def id_field():
-    return fields.Integer(dump_only=True)
+    return fields.Integer()
 
 
 class SeriesSchema(CamelCaseSchema):
     id = id_field()
     title = fields.String(required=True)
+
+    @post_load
+    def make_series(self, data, **kwargs) -> Series:
+        return Series(**data)
 
 
 series_schema = SeriesSchema()
@@ -34,6 +38,10 @@ class SpeakerSchema(CamelCaseSchema):
     last_name = fields.String(required=True)
     role = fields.String(required=True)
 
+    @post_load
+    def make_speaker(self, data, **kwargs) -> Speaker:
+        return Speaker(**data)
+
 
 speaker_schema = SpeakerSchema()
 speakers_schema = SpeakerSchema(many=True)
@@ -42,11 +50,30 @@ speakers_schema = SpeakerSchema(many=True)
 class TagSchema(CamelCaseSchema):
     name = fields.String(required=True)
     source = fields.Enum(TagSource, required=True, by_value=True)
-    count = fields.Integer(dump_only=True)
+
+    @post_load
+    def make_tag(self, data, **kwargs) -> Tag:
+        data['sermons'] = []
+        return Tag(**data)
 
 
 tag_schema = TagSchema()
 tags_schema = TagSchema(many=True)
+
+
+class CountedTagSchema(CamelCaseSchema):
+    name = fields.String(required=True)
+    source = fields.Enum(TagSource, required=True, by_value=True)
+    count = fields.Integer()
+
+    @post_load
+    def make_tag(self, data, **kwargs) -> Tag:
+        data['sermons'] = []
+        return Tag(**{k: v for k, v in data if k != "count"})
+
+
+counted_tag_schema = CountedTagSchema()
+counted_tags_schema = CountedTagSchema(many=True)
 
 
 class SermonSchema(CamelCaseSchema):
@@ -57,11 +84,17 @@ class SermonSchema(CamelCaseSchema):
     date = fields.Date(required=True)
     description = fields.String(required=True)
     tags = fields.Nested(TagSchema(many=True))
-    transcript = fields.String()
-    summary = fields.String()
+    transcript = fields.String(allow_none=True)
+    summary = fields.String(allow_none=True)
     speaker = fields.Nested(SpeakerSchema, required=True)
-    series = fields.Nested(SeriesSchema)
+    series = fields.Nested(SeriesSchema, allow_none=True)
     status = fields.Enum(UploadStatus, required=True, by_value=True)
+
+    @post_load
+    def make_sermon(self, data, **kwargs) -> Sermon:
+        data['speaker_id'] = data['speaker'].id
+        data['series_id'] = data['series'] and data['series'].id or None
+        return Sermon(**data)
 
 
 sermon_schema = SermonSchema()
