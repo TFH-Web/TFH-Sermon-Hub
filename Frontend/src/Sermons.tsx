@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import MainLayout from '$/components/MainLayout';
 import SermonCard from '$/components/SermonCard';
 import './Sermons.css';
@@ -165,13 +164,9 @@ export default function Sermons() {
 						}
 					})
 					.map(sermon => (
-						<Link
-							key={sermon.id}
-							className="Sermons-cardLink"
-							to={`/sermons/${sermon.id}`}
-						>
-							<SermonCard sermon={sermon} />
-						</Link>
+						<div key={sermon.id} className="Sermons-cardLink">
+							<SermonCard key={sermon.id} sermon={sermon} />
+						</div>
 					))}
 			</div>
 			<FloatingAddSermon />
