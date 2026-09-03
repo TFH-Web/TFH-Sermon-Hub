@@ -174,8 +174,8 @@ export default function AIChat() {
 					speaker: sermonSpeaker,
 					date: sermonDate ?? '',
 					snippet: sermonSnippet,
-					series: sermonSeries ?? canonicalSermon?.series,
-					tags: canonicalSermon?.tags,
+					series: sermonSeries ?? canonicalSermon?.series?.title,
+					tags: canonicalSermon?.tags.map(t => t.name),
 					duration: canonicalSermon?.duration,
 				});
 				setMessages(prev => [

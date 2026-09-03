@@ -3,14 +3,15 @@ import './SermonDetail.css';
 import { useNavigate, useParams } from 'react-router';
 import Button from '$/components/Button';
 import MainLayout from '$/components/MainLayout';
-import { Card } from './components/Card.tsx';
-import FileUploadButton from './components/FileUploadButton.tsx';
-import Tag from './components/Tag.tsx';
-import { useToast } from './components/ToastContext.tsx';
-import { sermons } from './data/sermons.ts';
-import DeleteSermonModal from './modals/DeleteSermonModal.tsx';
-import EditSermonModal from './modals/EditSermonModal.tsx';
-import { durationToString } from './types/sermon';
+import { Card } from '$/components/Card.tsx';
+import FileUploadButton from '$/components/FileUploadButton.tsx';
+import Tag from '$/components/Tag.tsx';
+import { useToast } from '$/components/ToastContext.tsx';
+import { sermons } from '$/data/sermons.ts';
+import DeleteSermonModal from '$/modals/DeleteSermonModal.tsx';
+import EditSermonModal from '$/modals/EditSermonModal.tsx';
+import { durationToString } from '$/types/sermon';
+import { getFullName } from '$/types/speaker.ts';
 
 // TODO: Add missing fields to sermon type when we're integrating w/ backend
 const mockSermon = {
@@ -91,11 +92,11 @@ export default function SermonDetail() {
 						</div>
 						<div className="SermonDetail-info">
 							{sermon.series && (
-								<p className="SermonDetail-series">{sermon.series} Series</p>
+								<p className="SermonDetail-series">{sermon.series.title} Series</p>
 							)}
 							<h1 className="SermonDetail-title">{sermon.title}</h1>
 							<p className="SermonDetail-meta">
-								{sermon.speaker}
+								{getFullName(sermon.speaker)}
 								{' • '}
 								{sermon.date.toLocaleDateString('en-US', {
 									month: 'short',
@@ -108,8 +109,8 @@ export default function SermonDetail() {
 							</p>
 							<div className="SermonDetail-tags">
 								{sermon.tags.map(tag => (
-									<Tag key={tag} variant="solid">
-										{tag}
+									<Tag key={tag.name} variant="solid">
+										{tag.name}
 									</Tag>
 								))}
 							</div>
@@ -168,7 +169,7 @@ export default function SermonDetail() {
 					<div className="SermonDetail-transcript-container">
 						{mockTranscript.map(paragraph => (
 							<p key={paragraph} className="SermonDetail-transcript-paragraph">
-								{highlightKeywords(paragraph, sermon.tags)}
+								{highlightKeywords(paragraph, sermon.tags.map(t => t.name))}
 							</p>
 						))}
 					</div>
@@ -229,7 +230,7 @@ export default function SermonDetail() {
 					</div>
 					<div className="SermonDetail-metadata-body">
 						<span className="SermonDetail-metadata-label">Series</span>
-						<span className="SermonDetail-metadata-value">{sermon.series}</span>
+						<span className="SermonDetail-metadata-value">{sermon.series?.title ?? '–'}</span>
 
 						<span className="SermonDetail-metadata-label">Series Index</span>
 						<span className="SermonDetail-metadata-value">
@@ -238,7 +239,7 @@ export default function SermonDetail() {
 
 						<span className="SermonDetail-metadata-label">Speaker</span>
 						<span className="SermonDetail-metadata-value">
-							{sermon.speaker}
+							{getFullName(sermon.speaker)}
 						</span>
 
 						<span className="SermonDetail-metadata-label">Date</span>
