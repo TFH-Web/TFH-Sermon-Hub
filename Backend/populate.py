@@ -1,13 +1,14 @@
 #!/usr/bin/env -S poetry run python3
 from datetime import date
-from tsh.database import db
+
 from tsh.app import create_app
+from tsh.database import db
 
 
 def main():
-    from tsh.models import Series, Speaker, Tag, TagSource, Sermon, UploadStatus
+    from tsh.models import Series, Sermon, Speaker, Tag, TagSource, UploadStatus
 
-    app = create_app('testing.cfg')
+    app = create_app("testing.cfg")
     with app.app_context():
         series_live_your_best_life = Series(id=None, title="Live Your Best Life")
         series_hope_rising = Series(id=None, title="Hope Rising")
