@@ -16,24 +16,32 @@ type SetElement<SetType> =
 const speakers = new Set(sermons.map(s => s.speaker));
 type Speaker = SetElement<typeof speakers>;
 
-const seriess = new Set(sermons.map(s => s.series).filter(s => s !== null));
+const seriess = new Set(
+	sermons
+		.map(s => s.series)
+		.filter(s => s !== null && s !== undefined)
+		.map(s => s.title),
+);
 type Series = SetElement<typeof seriess>;
+
+interface Filters {
+	status: Status | null;
+	topic: Topic | null;
+	speaker: Speaker | null;
+	series: Series | null;
+}
 
 const sortCategories = ['Newest', 'Oldest', 'Relevance'] as const;
 type SortCategory = (typeof sortCategories)[number];
 
 export default function Sermons() {
-	// Tracks the currently selected sermon filter, defaults to null
-	const [status, setStatus] = useState<Status | null>(null);
 
-	// Tracks the currently selected topic filter, defaults to null
-	const [topic, setTopic] = useState<Topic | null>(null);
-
-	// Tracks the currently selected speaker filter, defaults to null
-	const [speaker, setSpeaker] = useState<Speaker | null>(null);
-
-	// Tracks the currently selected series filter, defaults to null
-	const [series, setSeries] = useState<Series | null>(null);
+	const [filters, setFilters] = useState<Filters>({
+		status: null,
+		topic: null,
+		speaker: null,
+		series: null,
+	});
 
 	// Tracks the currently selected "freshness" filter, defaults to "Newest"
 	const [sortCategory, setSortCategory] = useState<SortCategory>('Newest');
@@ -49,7 +57,7 @@ export default function Sermons() {
 							className={clsx(
 								'Sermons-status',
 								'u-button',
-								status === s && 'is-active',
+								filters.status === s && 'is-active',
 							)}
 						>
 							<input
@@ -57,12 +65,13 @@ export default function Sermons() {
 								name="status"
 								hidden={true}
 								value={s ?? 'All'}
-								checked={s === status}
+								checked={s === filters.status}
 								onChange={e => {
-									return setStatus(
+									return setFilters({
+										...filters,
 										// @ts-expect-error 2345: value comes from iterating over an array marked as const
-										e.target.value === 'All' ? null : e.target.value,
-									);
+										status: e.target.value === 'All' ? null : e.target.value,
+									});
 								}}
 							/>
 							{s ?? 'All'}
@@ -80,7 +89,7 @@ export default function Sermons() {
 							className={clsx(
 								'Sermons-topic',
 								'u-button',
-								topic === t && 'is-active',
+								filters.topic === t && 'is-active',
 							)}
 						>
 							<input
@@ -88,12 +97,13 @@ export default function Sermons() {
 								name="topic"
 								hidden={true}
 								value={t ?? 'All'}
-								checked={t === topic}
+								checked={t === filters.topic}
 								onChange={e => {
-									return setTopic(
+									return setFilters({
+										...filters,
 										// @ts-expect-error 2345: value comes from iterating over an array marked as const
-										e.target.value === 'All' ? null : e.target.value,
-									);
+										topic: e.target.value === 'All' ? null : e.target.value,
+									});
 								}}
 							/>
 							{t ?? 'All'}
@@ -106,9 +116,11 @@ export default function Sermons() {
 					<select
 						className="Sermons-dropdown"
 						onChange={e =>
-							setSpeaker(
-								e.target.value === 'All Speakers' ? null : e.target.value,
-							)
+							setFilters({
+								...filters,
+								speaker:
+									e.target.value === 'All Speakers' ? null : e.target.value,
+							})
 						}
 					>
 						{['All Speakers', ...speakers].map(s => (
@@ -122,7 +134,10 @@ export default function Sermons() {
 					<select
 						className="Sermons-dropdown"
 						onChange={e =>
-							setSeries(e.target.value === 'All Series' ? null : e.target.value)
+							setFilters({
+								...filters,
+								series: e.target.value === 'All Series' ? null : e.target.value,
+							})
 						}
 					>
 						{['All Series', ...seriess].map(s => (
@@ -151,10 +166,16 @@ export default function Sermons() {
 
 			<div className="Sermons-grid">
 				{sermons
-					.filter(s => status === null || s.status === status)
-					.filter(s => topic === null || s.tags.includes(topic.toLowerCase()))
-					.filter(s => speaker === null || s.speaker === speaker)
-					.filter(s => series === null || s.series === series)
+					.filter(s => filters.status === null || s.status === filters.status)
+					.filter(
+						s =>
+							filters.topic === null ||
+							s.tags.includes(filters.topic.toLowerCase()),
+					)
+					.filter(
+						s => filters.speaker === null || s.speaker === filters.speaker,
+					)
+					.filter(s => filters.series === null || s.series === filters.series)
 					.toSorted((a, b) => {
 						switch (sortCategory) {
 							case 'Oldest':
