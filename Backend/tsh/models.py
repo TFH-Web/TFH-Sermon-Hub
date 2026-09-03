@@ -1,18 +1,24 @@
+from __future__ import annotations
+
 from dataclasses import asdict
-from enum import Enum
 from datetime import date
-from tsh.database import db
+from enum import Enum
+from typing import Any, Iterable, List, Optional
+
 from sqlalchemy import (
-    String,
-    UniqueConstraint,
-    ForeignKey,
     Column,
     FetchedValue,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+)
+from sqlalchemy import (
     Enum as SAEnum,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, query_expression
 from sqlalchemy.util.typing import Annotated
-from typing import Optional, List, Any, Iterable
+
+from tsh.database import db
 
 intpk = Annotated[int, mapped_column(primary_key=True, server_default=FetchedValue())]
 str32 = Annotated[str, mapped_column(String(32))]
@@ -56,6 +62,10 @@ class Tag(db.Model):  # ty: ignore[unsupported-base]
     source: Mapped[TagSource] = mapped_column(
         SAEnum(TagSource, create_constraint=True, validate_strings=True)
     )
+    sermons: Mapped[List[Sermon]] = relationship(
+        secondary=sermon_tag_m2m, back_populates="tags"
+    )
+    count: Mapped[int] = query_expression()
 
 
 class UploadStatus(Enum):
@@ -72,7 +82,9 @@ class Sermon(db.Model):  # ty: ignore[unsupported-base]
     duration: Mapped[int]
     date: Mapped[date]
     description: Mapped[str]
-    tags: Mapped[List[Tag]] = relationship(secondary=sermon_tag_m2m)
+    tags: Mapped[List[Tag]] = relationship(
+        secondary=sermon_tag_m2m, back_populates="sermons"
+    )
     transcript: Mapped[Optional[str]]
     summary: Mapped[Optional[str]]
     speaker_id: Mapped[int] = mapped_column(
@@ -87,19 +99,3 @@ class Sermon(db.Model):  # ty: ignore[unsupported-base]
         SAEnum(UploadStatus, create_constraint=True, validate_strings=True),
         default=UploadStatus.DRAFT,
     )
-
-
-def serialize_to_dict(obj: Any) -> dict:
-    def dict_enum_factory(data):
-        def convert_value(obj):
-            if isinstance(obj, Enum):
-                return obj.value
-            return obj
-
-        return {k: convert_value(v) for k, v in data}
-
-    return asdict(obj, dict_factory=dict_enum_factory)
-
-
-def serialize_many_to_dicts(objs: Iterable[Any]) -> List[dict]:
-    return [serialize_to_dict(obj) for obj in objs]
