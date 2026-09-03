@@ -67,6 +67,12 @@ export default function Sermons() {
 	// Tracks the currently selected "freshness" filter, defaults to "Newest"
 	const [sortCategory, setSortCategory] = useState<SortCategory>('Newest');
 
+	// TODO: error state at error
+	if (query.isError) return;
+
+	// TODO: loading state while pending
+	if (query.isPending) return;
+
 	return (
 		<MainLayout title="Sermons" className="Sermons">
 			{/* Sermon Filter Buttons, clicks set as active and update the selectedSermonFilter state */}
@@ -186,7 +192,7 @@ export default function Sermons() {
 			</fieldset>
 
 			<div className="Sermons-grid">
-				{sermons
+				{query.data
 					.filter(s => filters.status === null || s.status === filters.status)
 					.filter(
 						s =>

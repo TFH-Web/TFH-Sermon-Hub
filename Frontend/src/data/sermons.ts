@@ -7,7 +7,7 @@ export const sermons: Sermon[] = [
 	{
 		id: 1,
 		title: 'The Messy Family of God',
-		video_link: 'https://youtube.com/',
+		videoLink: 'https://youtube.com/',
 		duration: 2524,
 		date: new Date('Apr 19 2026'),
 		description: 'Lorem ipsum',
@@ -19,7 +19,7 @@ export const sermons: Sermon[] = [
 	{
 		id: 2,
 		title: 'A Different Gospel',
-		video_link: 'https://youtube.com/',
+		videoLink: 'https://youtube.com/',
 		description: 'Lorem ipsum',
 		speaker: speakers[1],
 		series: series[0],
@@ -31,7 +31,7 @@ export const sermons: Sermon[] = [
 	{
 		id: 3,
 		title: 'A Generous Church',
-		video_link: 'https://youtube.com/',
+		videoLink: 'https://youtube.com/',
 		speaker: speakers[2],
 		description: 'Lorem ipsum',
 		series: series[1],
@@ -43,7 +43,7 @@ export const sermons: Sermon[] = [
 	{
 		id: 4,
 		title: 'The Guard of Peace',
-		video_link: 'https://youtube.com/',
+		videoLink: 'https://youtube.com/',
 		speaker: speakers[0],
 		series: series[1],
 		date: new Date('Mar 22 2026'),
@@ -55,7 +55,7 @@ export const sermons: Sermon[] = [
 	{
 		id: 5,
 		title: "Press On, Don't Look Back",
-		video_link: 'https://youtube.com/',
+		videoLink: 'https://youtube.com/',
 		speaker: speakers[3],
 		series: series[1],
 		description: 'Lorem ipsum',
@@ -67,7 +67,7 @@ export const sermons: Sermon[] = [
 	{
 		id: 6,
 		title: 'Live Like Epaphroditus',
-		video_link: 'https://youtube.com/',
+		videoLink: 'https://youtube.com/',
 		speaker: speakers[0],
 		series: series[1],
 		description: 'Lorem ipsum',
@@ -79,7 +79,7 @@ export const sermons: Sermon[] = [
 	{
 		id: 7,
 		title: "God's Kindness in Suffering",
-		video_link: 'https://youtube.com/',
+		videoLink: 'https://youtube.com/',
 		speaker: speakers[4],
 		series: series[1],
 		description: 'Lorem ipsum',
@@ -91,7 +91,7 @@ export const sermons: Sermon[] = [
 	{
 		id: 8,
 		title: 'Strong and Courageous',
-		video_link: 'https://youtube.com/',
+		videoLink: 'https://youtube.com/',
 		speaker: speakers[0],
 		series: series[2],
 		description: 'Lorem ipsum',
@@ -103,7 +103,7 @@ export const sermons: Sermon[] = [
 	{
 		id: 9,
 		title: 'New Ground',
-		video_link: 'https://youtube.com/',
+		videoLink: 'https://youtube.com/',
 		speaker: speakers[0],
 		series: series[2],
 		date: new Date('Jan 4 2026'),
@@ -115,7 +115,7 @@ export const sermons: Sermon[] = [
 	{
 		id: 10,
 		title: 'Family Matters',
-		video_link: 'https://youtube.com/',
+		videoLink: 'https://youtube.com/',
 		speaker: speakers[0],
 		description: 'Lorem ipsum',
 		series: series[3],
@@ -127,7 +127,7 @@ export const sermons: Sermon[] = [
 	{
 		id: 11,
 		title: 'Relate Like Jesus',
-		video_link: 'https://youtube.com/',
+		videoLink: 'https://youtube.com/',
 		speaker: speakers[0],
 		description: 'Lorem ipsum',
 		series: series[3],
@@ -139,7 +139,7 @@ export const sermons: Sermon[] = [
 	{
 		id: 12,
 		title: 'Supernatural Power',
-		video_link: 'https://youtube.com/',
+		videoLink: 'https://youtube.com/',
 		speaker: speakers[0],
 		series: series[4],
 		date: new Date('Oct 5 2025'),

@@ -22,8 +22,11 @@ import Settings from './Settings.tsx';
 import Speakers from './Speakers.tsx';
 import TagsAndMetadata from './TagsAndMetadata.tsx';
 import UserManagement from './UserManagement.tsx';
+import axios from 'axios';
 
 const queryClient = new QueryClient();
+
+axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
 // biome-ignore lint/style/noNonNullAssertion: we'd want to throw anyways
 createRoot(document.getElementById('root')!).render(
