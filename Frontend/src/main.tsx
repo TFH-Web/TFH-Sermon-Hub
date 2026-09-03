@@ -2,6 +2,7 @@ import 'sanitize.css';
 import './index.css';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import axios from 'axios';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -22,7 +23,6 @@ import Settings from './Settings.tsx';
 import Speakers from './Speakers.tsx';
 import TagsAndMetadata from './TagsAndMetadata.tsx';
 import UserManagement from './UserManagement.tsx';
-import axios from 'axios';
 
 const queryClient = new QueryClient();
 

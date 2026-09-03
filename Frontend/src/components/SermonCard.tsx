@@ -8,9 +8,9 @@ import {
 	linkTo,
 	type Sermon,
 } from '$/types/sermon';
+import { getFullName } from '$/types/speaker';
 import Container from './Container';
 import Tag from './Tag';
-import { getFullName } from '$/types/speaker';
 
 export interface SermonCardProps {
 	sermon: Sermon;

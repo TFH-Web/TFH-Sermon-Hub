@@ -1,4 +1,4 @@
-import type { CountedSpeaker } from "$/types/speaker";
+import type { CountedSpeaker } from '$/types/speaker';
 
 export const speakers: CountedSpeaker[] = [
 	{

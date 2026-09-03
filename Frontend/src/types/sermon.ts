@@ -1,30 +1,28 @@
-import type { TagVariant } from '$/components/Tag';
 import z from 'zod';
+import type { TagVariant } from '$/components/Tag';
 import { Series } from './series';
-import { Tag } from './tag';
 import { Speaker } from './speaker';
+import { Tag } from './tag';
 
 /* This file defines the interface for the sermon data structures used in the Sermons component. It includes properties such as title, speaker, series, date, time, and tags. */
 export const statuses = ['Published', 'Processing', 'Draft', 'Failed'] as const;
 export const Status = z.enum(statuses);
 export type Status = z.infer<typeof Status>;
 
-export const Sermon = z.object(
-	{
-		id: z.number(),
-		title: z.string().nonempty(),
-		videoLink: z.httpUrl(),
-		duration: z.number().nonnegative(),
-		date: z.coerce.date(),
-		description: z.string().nonempty(),
-		tags: Tag.array(),
-		transcript: z.string().nullish(),
-		summary: z.string().nullish(),
-		speaker: Speaker,
-		series: Series.nullish(),
-		status: Status,
-	}
-)
+export const Sermon = z.object({
+	id: z.number(),
+	title: z.string().nonempty(),
+	videoLink: z.httpUrl(),
+	duration: z.number().nonnegative(),
+	date: z.coerce.date(),
+	description: z.string().nonempty(),
+	tags: Tag.array(),
+	transcript: z.string().nullish(),
+	summary: z.string().nullish(),
+	speaker: Speaker,
+	series: Series.nullish(),
+	status: Status,
+});
 export type Sermon = z.infer<typeof Sermon>;
 
 export function linkTo(sermon: Sermon): string {

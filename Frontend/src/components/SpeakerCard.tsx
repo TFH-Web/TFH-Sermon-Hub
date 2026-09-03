@@ -1,8 +1,8 @@
 import {
 	type CountedSpeaker,
+	getFullName,
 	getInitials,
 	speakerHue,
-	getFullName,
 } from '$/types/speaker';
 import './SpeakerCard.css';
 

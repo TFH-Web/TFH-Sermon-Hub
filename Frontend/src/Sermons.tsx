@@ -2,13 +2,13 @@ import { useState } from 'react';
 import MainLayout from '$/components/MainLayout';
 import SermonCard from '$/components/SermonCard';
 import './Sermons.css';
-import clsx from 'clsx';
-import { sermons } from '$/data/sermons';
-import FloatingAddSermon from '$/modals/AddSermon';
-import { type Status, statuses, Sermon } from '$/types/sermon';
 import { QueryCache, QueryClient, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
+import clsx from 'clsx';
 import { useToast } from '$/components/ToastContext';
+import { sermons } from '$/data/sermons';
+import FloatingAddSermon from '$/modals/AddSermon';
+import { Sermon, type Status, statuses } from '$/types/sermon';
 import { getFullName } from '$/types/speaker';
 
 const topics = ['Faith', 'Hope', 'Grace', 'Healing', 'Anxiety'] as const;
