@@ -8,7 +8,8 @@ import FloatingAddSermon from '$/modals/AddSermon';
 import { type Status, statuses, Sermon } from '$/types/sermon';
 import { QueryCache, QueryClient, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { useToast } from './components/ToastContext';
+import { useToast } from '$/components/ToastContext';
+import { getFullName } from '$/types/speaker';
 
 const topics = ['Faith', 'Hope', 'Grace', 'Healing', 'Anxiety'] as const;
 type Topic = (typeof topics)[number];
@@ -16,14 +17,11 @@ type Topic = (typeof topics)[number];
 type SetElement<SetType> =
 	SetType extends Iterable<infer ElementType> ? ElementType : never;
 
-const speakers = new Set(sermons.map(s => s.speaker));
+const speakers = new Set(sermons.map(s => getFullName(s.speaker)));
 type Speaker = SetElement<typeof speakers>;
 
 const seriess = new Set(
-	sermons
-		.map(s => s.series)
-		.filter(s => s !== null && s !== undefined)
-		.map(s => s.title),
+	sermons.map(s => s.series?.title).filter(s => s !== null && s !== undefined),
 );
 type Series = SetElement<typeof seriess>;
 
@@ -42,7 +40,8 @@ export default function Sermons() {
 
 	const queryClient = new QueryClient({
 		queryCache: new QueryCache({
-			onError: error => showToast(`Something went wrong: ${error.message}`, 'error'),
+			onError: error =>
+				showToast(`Something went wrong: ${error.message}`, 'error'),
 		}),
 	});
 	const query = useQuery(
@@ -192,12 +191,16 @@ export default function Sermons() {
 					.filter(
 						s =>
 							filters.topic === null ||
-							s.tags.includes(filters.topic.toLowerCase()),
+							s.tags.map(t => t.name).includes(filters.topic.toLowerCase()),
 					)
 					.filter(
-						s => filters.speaker === null || s.speaker === filters.speaker,
+						s =>
+							filters.speaker === null ||
+							getFullName(s.speaker) === filters.speaker,
 					)
-					.filter(s => filters.series === null || s.series === filters.series)
+					.filter(
+						s => filters.series === null || s.series?.title === filters.series,
+					)
 					.toSorted((a, b) => {
 						switch (sortCategory) {
 							case 'Oldest':

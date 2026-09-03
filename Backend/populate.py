@@ -54,7 +54,7 @@ def main():
         tag_anxiety = Tag(name="anxiety", source=TagSource.MANUAL, sermons=[])
         db.session.add_all([tag_faith, tag_hope, tag_healing, tag_grace, tag_anxiety])
 
-        video_link = "https://youtu.be/asdfasdf"
+        video_link = "https://youtube.com/"
         sermon_under_grace = Sermon(
             id=None,
             title="Under Grace",

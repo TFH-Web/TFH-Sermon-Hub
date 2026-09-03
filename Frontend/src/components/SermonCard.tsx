@@ -10,6 +10,7 @@ import {
 } from '$/types/sermon';
 import Container from './Container';
 import Tag from './Tag';
+import { getFullName } from '$/types/speaker';
 
 export interface SermonCardProps {
 	sermon: Sermon;
@@ -28,7 +29,7 @@ export default function SermonCard({ className, sermon }: SermonCardProps) {
 			<h3 className="SermonCard-title">{sermon.title}</h3>
 
 			<div className="SermonCard-info">
-				<p className="SermonCard-speaker">{sermon.speaker}</p>
+				<p className="SermonCard-speaker">{getFullName(sermon.speaker)}</p>
 				<time className="SermonCard-date" dateTime={sermon.date.toISOString()}>
 					{formatDate(sermon.date)}
 				</time>
@@ -62,11 +63,13 @@ export default function SermonCard({ className, sermon }: SermonCardProps) {
 			</div>
 
 			<div className="SermonCard-tags">
-				{sermon.tags.map(tag => (
-					<Tag key={tag} variant="solid">
-						{tag}
-					</Tag>
-				))}
+				{sermon.tags
+					.map(t => t.name)
+					.map(tag => (
+						<Tag key={tag} variant="solid">
+							{tag}
+						</Tag>
+					))}
 			</div>
 		</Container>
 	);
