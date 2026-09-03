@@ -67,10 +67,20 @@ export default function Sermons() {
 	const [sortCategory, setSortCategory] = useState<SortCategory>('Newest');
 
 	// TODO: error state at error
-	if (query.isError) return <MainLayout title="Sermons" className="Sermons"><h1>Error!</h1></MainLayout>;
+	if (query.isError)
+		return (
+			<MainLayout title="Sermons" className="Sermons">
+				<h1>Error!</h1>
+			</MainLayout>
+		);
 
 	// TODO: loading state while pending
-	if (query.isPending) return <MainLayout title="Sermons" className="Sermons"><h1>Loading...</h1></MainLayout>;
+	if (query.isPending)
+		return (
+			<MainLayout title="Sermons" className="Sermons">
+				<h1>Loading...</h1>
+			</MainLayout>
+		);
 
 	return (
 		<MainLayout title="Sermons" className="Sermons">
