@@ -66,6 +66,11 @@ class Tag(db.Model):  # ty: ignore[unsupported-base]
     )
     count: Mapped[int] = query_expression()
 
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Tag):
+            return False
+        return self.name == other.name and self.source == other.source
+
 
 class UploadStatus(Enum):
     DRAFT = "Draft"
