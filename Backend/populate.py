@@ -1,4 +1,4 @@
-#!/usr/bin/env poetry run python3
+#!/usr/bin/env -S poetry run python3
 from datetime import date
 from tsh.database import db
 from tsh.app import create_app
