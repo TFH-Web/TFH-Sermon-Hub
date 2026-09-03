@@ -22,6 +22,7 @@ class SpeakerSchema(Schema):
     id = id_field()
     first_name = fields.String(required=True)
     last_name = fields.String(required=True)
+    role = fields.String(required=True)
     full_name = fields.Method("format_name", dump_only=True)
 
     def format_name(self, author):

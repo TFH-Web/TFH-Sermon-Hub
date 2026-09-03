@@ -24,15 +24,34 @@ def main():
         )
 
         speaker_dave_patterson = Speaker(
-            id=None, first_name="Dave", last_name="Patterson"
+            id=None, first_name="Dave", last_name="Patterson", role="Lead Speaker"
         )
-        db.session.add(speaker_dave_patterson)
-
-        tag_faith = Tag(name="faith", source=TagSource.AI)
-        tag_hope = Tag(name="hope", source=TagSource.AI)
-        tag_healing = Tag(name="healing", source=TagSource.AI)
-        tag_grace = Tag(name="grace", source=TagSource.AI)
-        tag_anxiety = Tag(name="anxiety", source=TagSource.MANUAL)
+        speaker_jon_laurenzo = Speaker(
+            id=None, first_name="Jon", last_name="Laurenzo", role="Guest Speaker"
+        )
+        speaker_hilary_harris = Speaker(
+            id=None, first_name="Hilary", last_name="Harris", role="Guest Speaker"
+        )
+        speaker_tosha_zwanziger = Speaker(
+            id=None, first_name="Tosha", last_name="Zwanziger", role="Guest Speaker"
+        )
+        speaker_rich_harris = Speaker(
+            id=None, first_name="Rich", last_name="Harris", role="Guest Speaker"
+        )
+        db.session.add_all(
+            [
+                speaker_dave_patterson,
+                speaker_jon_laurenzo,
+                speaker_hilary_harris,
+                speaker_tosha_zwanziger,
+                speaker_rich_harris,
+            ]
+        )
+        tag_faith = Tag(name="faith", source=TagSource.AI, sermons=[])
+        tag_hope = Tag(name="hope", source=TagSource.AI, sermons=[])
+        tag_healing = Tag(name="healing", source=TagSource.AI, sermons=[])
+        tag_grace = Tag(name="grace", source=TagSource.AI, sermons=[])
+        tag_anxiety = Tag(name="anxiety", source=TagSource.MANUAL, sermons=[])
         db.session.add_all([tag_faith, tag_hope, tag_healing, tag_grace, tag_anxiety])
 
         video_link = "https://youtu.be/asdfasdf"
@@ -73,7 +92,7 @@ def main():
             title="Anchored in Hope",
             video_link=video_link,
             duration=2650,
-            speaker=speaker_dave_patterson,
+            speaker=speaker_jon_laurenzo,
             speaker_id=None,
             series_id=None,
             series=None,
@@ -91,7 +110,7 @@ def main():
             duration=2152,
             speaker_id=None,
             series_id=None,
-            speaker=speaker_dave_patterson,
+            speaker=speaker_hilary_harris,
             series=series_together,
             date=date(2026, 2, 2),
             description="Lorem ipsum dolor sit amet",
@@ -107,7 +126,7 @@ def main():
             duration=2493,
             speaker_id=None,
             series_id=None,
-            speaker=speaker_dave_patterson,
+            speaker=speaker_tosha_zwanziger,
             series=series_fearless,
             date=date(2026, 1, 26),
             description="Lorem ipsum dolor sit amet",
