@@ -1,6 +1,7 @@
 #!/usr/bin/env -S poetry run python3
 from tests.populate import populate
 from tsh.app import create_app
+from tsh.database import db
 
 
 def main():
