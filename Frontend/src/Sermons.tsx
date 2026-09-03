@@ -55,7 +55,6 @@ export default function Sermons() {
 		},
 		queryClient,
 	);
-	console.log(query);
 
 	const [filters, setFilters] = useState<Filters>({
 		status: null,
