@@ -2,9 +2,9 @@ import { useState } from 'react';
 import './SermonDetail.css';
 import { useNavigate, useParams } from 'react-router';
 import Button from '$/components/Button';
-import MainLayout from '$/components/MainLayout';
 import { Card } from '$/components/Card.tsx';
 import FileUploadButton from '$/components/FileUploadButton.tsx';
+import MainLayout from '$/components/MainLayout';
 import Tag from '$/components/Tag.tsx';
 import { useToast } from '$/components/ToastContext.tsx';
 import { sermons } from '$/data/sermons.ts';
@@ -92,7 +92,9 @@ export default function SermonDetail() {
 						</div>
 						<div className="SermonDetail-info">
 							{sermon.series && (
-								<p className="SermonDetail-series">{sermon.series.title} Series</p>
+								<p className="SermonDetail-series">
+									{sermon.series.title} Series
+								</p>
 							)}
 							<h1 className="SermonDetail-title">{sermon.title}</h1>
 							<p className="SermonDetail-meta">
@@ -169,7 +171,10 @@ export default function SermonDetail() {
 					<div className="SermonDetail-transcript-container">
 						{mockTranscript.map(paragraph => (
 							<p key={paragraph} className="SermonDetail-transcript-paragraph">
-								{highlightKeywords(paragraph, sermon.tags.map(t => t.name))}
+								{highlightKeywords(
+									paragraph,
+									sermon.tags.map(t => t.name),
+								)}
 							</p>
 						))}
 					</div>
@@ -230,7 +235,9 @@ export default function SermonDetail() {
 					</div>
 					<div className="SermonDetail-metadata-body">
 						<span className="SermonDetail-metadata-label">Series</span>
-						<span className="SermonDetail-metadata-value">{sermon.series?.title ?? '–'}</span>
+						<span className="SermonDetail-metadata-value">
+							{sermon.series?.title ?? '–'}
+						</span>
 
 						<span className="SermonDetail-metadata-label">Series Index</span>
 						<span className="SermonDetail-metadata-value">
