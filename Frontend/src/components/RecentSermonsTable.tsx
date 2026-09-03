@@ -3,6 +3,7 @@ import { formatDate } from '$/lib/date';
 import { linkTo, type Sermon, statusVariant } from '$/types/sermon';
 import Container from './Container';
 import Tag from './Tag';
+import { getFullName } from '$/types/speaker';
 
 export interface RecentSermonsTableProps {
 	sermons: Sermon[];
@@ -47,10 +48,10 @@ export default function RecentSermonsTable({
 								<a href={linkTo(s)}>{s.title}</a>
 							</th>
 							<td>
-								<a href={linkTo(s)}>{s.speaker}</a>
+								<a href={linkTo(s)}>{getFullName(s.speaker)}</a>
 							</td>
 							<td>
-								<a href={linkTo(s)}>{s.series}</a>
+								<a href={linkTo(s)}>{s.series?.title ?? '–'}</a>
 							</td>
 							<td>
 								<a href={linkTo(s)}>
