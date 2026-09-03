@@ -69,10 +69,10 @@ class Tag(db.Model):  # ty: ignore[unsupported-base]
 
 
 class UploadStatus(Enum):
-    DRAFT = "draft"
-    PROCESSING = "processing"
-    PUBLISHED = "published"
-    FAILED = "failed"
+    DRAFT = "Draft"
+    PROCESSING = "Processing"
+    PUBLISHED = "Published"
+    FAILED = "Failed"
 
 
 class Sermon(db.Model):  # ty: ignore[unsupported-base]
