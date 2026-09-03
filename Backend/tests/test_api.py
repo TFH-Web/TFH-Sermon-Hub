@@ -1,5 +1,3 @@
-import json
-
 import pytest  # noqa: F401
 from flask.testing import FlaskClient
 from syrupy.data import Snapshot
@@ -49,7 +47,7 @@ def test_sermons(client, snapshot):
 
     for sermon in sermons:
         res = client.get(f"/api/sermons/{sermon.id}")
-        res_sermon: Sermon = sermon_schema.loads(res.data())
+        res_sermon: Sermon = sermon_schema.loads(res.data)
         assert res_sermon == sermon
 
 
