@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from marshmallow import Schema, fields
 
-from tsh.models import Series, TagSource, UploadStatus
+from tsh.models import TagSource, UploadStatus
 
 
 def id_field():
@@ -23,10 +23,6 @@ class SpeakerSchema(Schema):
     first_name = fields.String(required=True)
     last_name = fields.String(required=True)
     role = fields.String(required=True)
-    full_name = fields.Method("format_name", dump_only=True)
-
-    def format_name(self, author):
-        return f"{author.first_name}, {author.last_name}"
 
 
 speaker_schema = SpeakerSchema()

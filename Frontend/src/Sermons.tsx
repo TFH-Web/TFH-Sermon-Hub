@@ -5,7 +5,10 @@ import './Sermons.css';
 import clsx from 'clsx';
 import { sermons } from '$/data/sermons';
 import FloatingAddSermon from '$/modals/AddSermon';
-import { type Status, statuses } from '$/types/sermon';
+import { type Status, statuses, Sermon } from '$/types/sermon';
+import { QueryCache, QueryClient, useQuery } from '@tanstack/react-query';
+import axios from 'axios';
+import { useToast } from './components/ToastContext';
 
 const topics = ['Faith', 'Hope', 'Grace', 'Healing', 'Anxiety'] as const;
 type Topic = (typeof topics)[number];
@@ -35,6 +38,25 @@ const sortCategories = ['Newest', 'Oldest', 'Relevance'] as const;
 type SortCategory = (typeof sortCategories)[number];
 
 export default function Sermons() {
+	const { showToast } = useToast();
+
+	const queryClient = new QueryClient({
+		queryCache: new QueryCache({
+			onError: error => showToast(`Something went wrong: ${error.message}`, 'error'),
+		}),
+	});
+	const query = useQuery(
+		{
+			queryKey: ['sermons'],
+			queryFn: async () => {
+				const res = await axios.get('/sermons');
+				const sermons = await Sermon.array().parseAsync(res.data);
+				return sermons;
+			},
+		},
+		queryClient,
+	);
+	console.log(query);
 
 	const [filters, setFilters] = useState<Filters>({
 		status: null,

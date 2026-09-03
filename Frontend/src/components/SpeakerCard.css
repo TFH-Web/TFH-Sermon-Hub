@@ -16,8 +16,8 @@
 	height: 60px;
 	margin: 8px auto 8px;
 	font-size: 20px;
-	color: white;
-	background-color: red;
+	color: var(--cl-light);
+	background-color: oklch(50% 0.2 var(--h));
 	border-radius: 50%;
 }
 
