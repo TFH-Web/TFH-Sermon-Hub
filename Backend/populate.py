@@ -28,11 +28,11 @@ def main():
         )
         db.session.add(speaker_dave_patterson)
 
-        tag_faith = Tag(name="faith", source=TagSource.AI)
-        tag_hope = Tag(name="hope", source=TagSource.AI)
-        tag_healing = Tag(name="healing", source=TagSource.AI)
-        tag_grace = Tag(name="grace", source=TagSource.AI)
-        tag_anxiety = Tag(name="anxiety", source=TagSource.MANUAL)
+        tag_faith = Tag(name="faith", source=TagSource.AI, sermons=[])
+        tag_hope = Tag(name="hope", source=TagSource.AI, sermons=[])
+        tag_healing = Tag(name="healing", source=TagSource.AI, sermons=[])
+        tag_grace = Tag(name="grace", source=TagSource.AI, sermons=[])
+        tag_anxiety = Tag(name="anxiety", source=TagSource.MANUAL, sermons=[])
         db.session.add_all([tag_faith, tag_hope, tag_healing, tag_grace, tag_anxiety])
 
         video_link = "https://youtu.be/asdfasdf"
