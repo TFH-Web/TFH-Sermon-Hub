@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query'; // tool to ask the server for data or if its broken or still waiting
+import axios from 'axios'; // Sends the HTTP request to the backend
+import { useState } from 'react'; // Allows the page remember things that changed like if something was enabled or disabled
+
 import './SermonDetail.css';
 import { useNavigate, useParams } from 'react-router';
 import Button from '$/components/Button';
@@ -7,10 +10,9 @@ import FileUploadButton from '$/components/FileUploadButton.tsx';
 import MainLayout from '$/components/MainLayout';
 import Tag from '$/components/Tag.tsx';
 import { useToast } from '$/components/ToastContext.tsx';
-import { sermons } from '$/data/sermons.ts';
 import DeleteSermonModal from '$/modals/DeleteSermonModal.tsx';
 import EditSermonModal from '$/modals/EditSermonModal.tsx';
-import { durationToString } from '$/types/sermon';
+import { durationToString, Sermon } from '$/types/sermon';
 import { getFullName } from '$/types/speaker.ts';
 
 // TODO: Add missing fields to sermon type when we're integrating w/ backend
@@ -61,15 +63,39 @@ function highlightKeywords(text: string, keywords: string[]) {
 }
 
 export default function SermonDetail() {
-	const { showToast } = useToast();
-	const [_transcript, setTranscript] = useState('');
-	const [_summary, setSummary] = useState(mockSummary.join(' '));
-	const { id } = useParams();
-	const sermon = sermons.find(s => s.id.toString() === id);
-	const [isEditingSummary, setIsEditingSummary] = useState(false);
-	const [editSermonOpen, setEditSermonOpen] = useState(false);
-	const [deleteSermonOpen, setDeleteSermonOpen] = useState(false);
-	const navigate = useNavigate();
+	const { showToast } = useToast(); // let's up pop up a little message at the corner of the screen
+	const [_transcript, setTranscript] = useState(''); // remembers a transcript the user uploads from their computer
+	const [_summary, setSummary] = useState(mockSummary.join(' ')); // remembers the summary text while its being edited
+	const { id } = useParams(); // reads the number of the web address, so /sermons/5 gives us 5
+	const [isEditingSummary, setIsEditingSummary] = useState(false); // Remembers if the summary edit box is open
+	const [editSermonOpen, setEditSermonOpen] = useState(false); //	Remembers if the Edit popup is open
+	const [deleteSermonOpen, setDeleteSermonOpen] = useState(false); // Remembers if the Delete popup is open
+	const navigate = useNavigate(); // Lets us send the user to a different page
+
+	// What it does: go ask the server for this one sermon's information
+	const query = useQuery({
+		// Cache label. The id is included so each sermon is stored separately and not get mixed up
+		queryKey: ['sermon', id],
+		queryFn: async () => {
+			// Ask the server: "give me the sermon with this number"
+			const res = await axios.get(`/api/sermons/${id}`);
+			// Make sure the server sent what we expect, and turn its date text into a real date the page can display
+			return await Sermon.parseAsync(res.data);
+		},
+	});
+
+	// The server takes a moment to answer. Until it is done, show a loading message instead of crashing
+	if (query.isPending) {
+		return <MainLayout title="Sermon">Loading...</MainLayout>;
+	}
+
+	// If the server never answered, or send back something broken, say error instead of an empty page
+	if (query.isError) {
+		return <MainLayout title="Sermon">Could not load this sermon.</MainLayout>;
+	}
+
+	// We got the sermon data.
+	const sermon = query.data;
 
 	if (!sermon) {
 		throw new Error('Not found');
