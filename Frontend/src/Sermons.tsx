@@ -48,7 +48,7 @@ export default function Sermons() {
 		{
 			queryKey: ['sermons'],
 			queryFn: async () => {
-				const res = await axios.get('/sermons');
+				const res = await axios.get('/api/sermons');
 				const sermons = await Sermon.array().parseAsync(res.data);
 				return sermons;
 			},
