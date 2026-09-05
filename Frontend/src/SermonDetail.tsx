@@ -15,13 +15,11 @@ import EditSermonModal from '$/modals/EditSermonModal.tsx';
 import { durationToString, Sermon } from '$/types/sermon';
 import { getFullName } from '$/types/speaker.ts';
 
-// TODO: Add missing fields to sermon type when we're integrating w/ backend
+// TODO(Sprint 6): seriesIndex and seriesTotal are the only two things on this page that backend cannot give us.
+// The database has no column saying which number a sermon is inside its series, so we still fake those two.
 const mockSermon = {
 	seriesIndex: 4,
 	seriesTotal: 6,
-	videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-	transcriptStatus: 'Generated',
-	summaryStatus: 'Generated',
 };
 
 // TODO: add transcript to sermon type when we're integrating w/ backend
@@ -96,10 +94,6 @@ export default function SermonDetail() {
 
 	// We got the sermon data.
 	const sermon = query.data;
-
-	if (!sermon) {
-		throw new Error('Not found');
-	}
 
 	return (
 		<MainLayout title={sermon.title}>
@@ -290,25 +284,37 @@ export default function SermonDetail() {
 						</span>
 
 						<span className="SermonDetail-metadata-label">Video</span>
+						{/* The real video address from the server, shown without the https:// */}
 						<span className="SermonDetail-metadata-value">
 							<a
-								href={mockSermon.videoUrl}
+								href={sermon.videoLink}
 								target="_blank"
 								rel="noreferrer"
 								className="SermonDetail-metadata-link"
 							>
-								{mockSermon.videoUrl.replace('https://', '')}
+								{sermon.videoLink.replace('https://', '')}
 							</a>
 						</span>
 
 						<span className="SermonDetail-metadata-label">Transcript</span>
+						{/* Only say "Generated" if a transcript really exists.
+						Most sermons in the database do not have one yet. */}
 						<span className="SermonDetail-metadata-value">
-							<Tag variant="green">{mockSermon.transcriptStatus}</Tag>
+							{sermon.transcript ? (
+								<Tag variant="green">Generated</Tag>
+							) : (
+								<Tag variant="amber">Not generated</Tag>
+							)}
 						</span>
 
 						<span className="SermonDetail-metadata-label">Summary</span>
+						{/* Same idea for the summary */}
 						<span className="SermonDetail-metadata-value">
-							<Tag variant="green">{mockSermon.summaryStatus}</Tag>
+							{sermon.summary ? (
+								<Tag variant="green">Generated</Tag>
+							) : (
+								<Tag variant="amber">Not generated</Tag>
+							)}
 						</span>
 
 						<span className="SermonDetail-metadata-label">Tags</span>
