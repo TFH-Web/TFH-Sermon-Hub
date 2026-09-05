@@ -22,20 +22,14 @@ const mockSermon = {
 	seriesTotal: 6,
 };
 
-// TODO: add transcript to sermon type when we're integrating w/ backend
-const mockTranscript = [
-	"Good morning everyone. I'm so glad you're here today. We're continuing our series \"Live Your Best Life\" and today we're talking about something that is at the foundation of everything — grace.",
-	"A lot of people misunderstand what grace really means. It's not just a theological concept. Grace is the operating system of the Kingdom of God.",
-	'Let me read from Ephesians 2:8-9. "For it is by grace you have been saved, through faith — and this is not from yourselves, it is the gift of God."',
-	'Three things about living under grace: grace is not earned, grace changes your identity, and grace empowers your purpose ...',
-];
-
-// TODO: add summary to sermon type when we're integrating w/ backend
-const mockSummary = [
-	'Pastor Dave Patterson explores grace as the foundation of Christian living.',
-	' The sermon covers three main points: grace cannot be earned, grace transforms identity, and grace empowers believers to fulfill their purpose. ',
-	'Drawing from Ephesians 2:8-9, Patterson emphasizes that understanding grace should change how we relate to God and each other.',
-];
+// The server sends the transcript and summary as one long piece of text, but the page shows separate paragraphs.
+// A blank line is the only thing marking where a paragraph ends, so split on those and throw away the empty pieces.
+function toParagraphs(text: string) {
+	return text
+		.split(/\n\s*\n/)
+		.map(paragraph => paragraph.trim())
+		.filter(paragraph => paragraph.length > 0);
+}
 
 function highlightKeywords(text: string, keywords: string[]) {
 	const escaped = keywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
@@ -63,7 +57,9 @@ function highlightKeywords(text: string, keywords: string[]) {
 export default function SermonDetail() {
 	const { showToast } = useToast(); // let's up pop up a little message at the corner of the screen
 	const [_transcript, setTranscript] = useState(''); // remembers a transcript the user uploads from their computer
-	const [_summary, setSummary] = useState(mockSummary.join(' ')); // remembers the summary text while its being edited
+
+	const [_summary, setSummary] = useState<string | null>(null); // Starts as nothing. It only holds text once the user types their own summary.
+
 	const { id } = useParams(); // reads the number of the web address, so /sermons/5 gives us 5
 	const [isEditingSummary, setIsEditingSummary] = useState(false); // Remembers if the summary edit box is open
 	const [editSermonOpen, setEditSermonOpen] = useState(false); //	Remembers if the Edit popup is open
@@ -94,6 +90,13 @@ export default function SermonDetail() {
 
 	// We got the sermon data.
 	const sermon = query.data;
+
+	// The server sends one long block of text. Cut it into separate paragraphs so the page can show them one under the other.
+	// If the sermon has no transcript or summary saved, we end up with nothing to show.
+	const transcriptParagraphs = sermon.transcript
+		? toParagraphs(sermon.transcript)
+		: [];
+	const summaryParagraphs = sermon.summary ? toParagraphs(sermon.summary) : [];
 
 	return (
 		<MainLayout title={sermon.title}>
@@ -189,7 +192,8 @@ export default function SermonDetail() {
 					</div>
 
 					<div className="SermonDetail-transcript-container">
-						{mockTranscript.map(paragraph => (
+						{/* Show each paragraph on its own, with the sermon's tags highlighted */}
+						{transcriptParagraphs.map(paragraph => (
 							<p key={paragraph} className="SermonDetail-transcript-paragraph">
 								{highlightKeywords(
 									paragraph,
@@ -218,7 +222,12 @@ export default function SermonDetail() {
 						</div>
 					</div>
 					<div className="SermonDetail-summary-container">
-						<p className="SermonDetail-summary-paragraph">{mockSummary}</p>
+						{/* Same as the transcript, but no highlighting on the summary */}
+						{summaryParagraphs.map(paragraph => (
+							<p key={paragraph} className="SermonDetail-summary-paragraph">
+								{paragraph}
+							</p>
+						))}
 					</div>
 					<div className="SermonDetail-summary-edit-container">
 						{isEditingSummary ? (
@@ -232,7 +241,7 @@ export default function SermonDetail() {
 								</Button>
 								<textarea
 									className="SermonDetail-summary-textarea"
-									value={_summary}
+									value={_summary ?? sermon.summary ?? ''}
 									onChange={e => setSummary(e.target.value)}
 								/>
 							</div>
