@@ -54,6 +54,11 @@ function highlightKeywords(text: string, keywords: string[]) {
 	});
 }
 
+// A 404 from the server means "no sermon has that id". We treat that differently from a real failure.
+function isNotFound(error: unknown): boolean {
+	return axios.isAxiosError(error) && error.response?.status === 404;
+}
+
 export default function SermonDetail() {
 	const { showToast } = useToast(); // let's up pop up a little message at the corner of the screen
 	const [_transcript, setTranscript] = useState(''); // remembers a transcript the user uploads from their computer
@@ -76,11 +81,29 @@ export default function SermonDetail() {
 			// Make sure the server sent what we expect, and turn its date text into a real date the page can display
 			return await Sermon.parseAsync(res.data);
 		},
+		// A sermon that does not exist will still not exist on the third try, so only keep trying for real failures like the server being down.
+		retry: (failureCount, error) => !isNotFound(error) && failureCount < 3,
 	});
 
 	// The server takes a moment to answer. Until it is done, show a loading message instead of crashing
 	if (query.isPending) {
 		return <MainLayout title="Sermon">Loading...</MainLayout>;
+	}
+
+	// Handled here rather than thrown, so the app-wide error screen in main.tsx does not take over and blank out the whole page.
+	if (isNotFound(query.error)) {
+		return (
+			<MainLayout title="Sermon not found">
+				<button
+					type="button"
+					className="SermonDetail-back"
+					onClick={() => navigate('/sermons')}
+				>
+					← Back to Sermons
+				</button>
+				<p>There is no sermon with that id {id}.</p>
+			</MainLayout>
+		);
 	}
 
 	// If the server never answered, or send back something broken, say error instead of an empty page
@@ -192,15 +215,24 @@ export default function SermonDetail() {
 					</div>
 
 					<div className="SermonDetail-transcript-container">
-						{/* Show each paragraph on its own, with the sermon's tags highlighted */}
-						{transcriptParagraphs.map(paragraph => (
-							<p key={paragraph} className="SermonDetail-transcript-paragraph">
-								{highlightKeywords(
-									paragraph,
-									sermon.tags.map(t => t.name),
-								)}
+						{/* Some Sermons have no transcript saved yet. Show a short message instead of leaving it empty grey box. */}
+						{transcriptParagraphs.length > 0 ? (
+							transcriptParagraphs.map(paragraph => (
+								<p
+									key={paragraph}
+									className="SermonDetail-transcript-paragraph"
+								>
+									{highlightKeywords(
+										paragraph,
+										sermon.tags.map(t => t.name),
+									)}
+								</p>
+							))
+						) : (
+							<p className="SermonDetail-transcript-paragraph">
+								No transcript yet. Upload one or generate it with AI.
 							</p>
-						))}
+						)}
 					</div>
 				</Card>
 
@@ -222,12 +254,18 @@ export default function SermonDetail() {
 						</div>
 					</div>
 					<div className="SermonDetail-summary-container">
-						{/* Same as the transcript, but no highlighting on the summary */}
-						{summaryParagraphs.map(paragraph => (
-							<p key={paragraph} className="SermonDetail-summary-paragraph">
-								{paragraph}
+						{/* Same idea as the transcript. Say there is no summary rather than showing an empty panel. */}
+						{summaryParagraphs.length > 0 ? (
+							summaryParagraphs.map(paragraph => (
+								<p key={paragraph} className="SermonDetail-summary-paragraph">
+									{paragraph}
+								</p>
+							))
+						) : (
+							<p className="SermonDetail-summary-paragraph">
+								No summary yet. Generate one with AI.
 							</p>
-						))}
+						)}
 					</div>
 					<div className="SermonDetail-summary-edit-container">
 						{isEditingSummary ? (
