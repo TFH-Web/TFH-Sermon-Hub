@@ -25,3 +25,9 @@
 	font-weight: bold;
 	color: var(--cl-accent);
 }
+
+.StatCard-caption {
+	margin-block: 0;
+	font-size: 0.70rem;
+	opacity: 0.6;
+}

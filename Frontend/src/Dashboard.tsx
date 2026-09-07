@@ -60,7 +60,11 @@ export default function Dashboard() {
 				<StatCard label="Total Sermons" value={sermonsQuery.data.length} />
 				<StatCard label="Series" value={seriesQuery.data.length} />
 				<StatCard label="Speakers" value={speakersQuery.data.length} />
-				<StatCard label="Searches Today" value={89} trend="23%" />
+				<StatCard
+					label="Searches Today"
+					value="–"
+					caption="Search tracking not available yet"
+				/>
 			</section>
 
 			{/* Bottom: main content + right sidebar */}
