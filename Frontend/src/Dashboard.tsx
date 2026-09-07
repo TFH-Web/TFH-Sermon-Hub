@@ -7,8 +7,8 @@ import PopularTags from '$/components/PopularTags';
 import RecentActivity from '$/components/RecentActivity';
 import RecentSermonsTable from '$/components/RecentSermonsTable';
 import StatCard from '$/components/StatCard';
-import { Sermon } from '$/types/sermon';
 import { Series } from '$/types/series';
+import { Sermon } from '$/types/sermon';
 import { Speaker } from '$/types/speaker';
 
 const RECENT_SERMONS_COUNT = 5;

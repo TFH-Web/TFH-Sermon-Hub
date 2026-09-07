@@ -68,11 +68,7 @@ export default function RecentSermonsTable({
 						</tr>
 					) : isLoading ? (
 						SKELETON_ROW_KEYS.map(key => (
-							<tr
-								key={key}
-								className="RecentSermonsTable-skeletonRow"
-								aria-hidden="true"
-							>
+							<tr key={key} className="RecentSermonsTable-skeletonRow">
 								<th scope="row">
 									<span className="RecentSermonsTable-skeletonBar" />
 								</th>
