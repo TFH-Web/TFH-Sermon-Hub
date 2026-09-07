@@ -2,15 +2,24 @@ import './RecentSermonsTable.css';
 import { formatDate } from '$/lib/date';
 import { linkTo, type Sermon, statusVariant } from '$/types/sermon';
 import { getFullName } from '$/types/speaker';
+import Button from './Button';
 import Container from './Container';
 import Tag from './Tag';
 
+const SKELETON_ROW_KEYS = ['sk-1', 'sk-2', 'sk-3', 'sk-4', 'sk-5'] as const;
+
 export interface RecentSermonsTableProps {
 	sermons: Sermon[];
+	isLoading?: boolean;
+	isError?: boolean;
+	onRetry?: () => void;
 }
 
 export default function RecentSermonsTable({
 	sermons,
+	isLoading = false,
+	isError = false,
+	onRetry,
 }: RecentSermonsTableProps) {
 	return (
 		<Container className="RecentSermonsTable">
@@ -42,29 +51,70 @@ export default function RecentSermonsTable({
 					</tr>
 				</thead>
 				<tbody>
-					{sermons.map(s => (
-						<tr key={s.id}>
-							<th scope="row">
-								<a href={linkTo(s)}>{s.title}</a>
-							</th>
-							<td>
-								<a href={linkTo(s)}>{getFullName(s.speaker)}</a>
-							</td>
-							<td>
-								<a href={linkTo(s)}>{s.series?.title ?? '–'}</a>
-							</td>
-							<td>
-								<a href={linkTo(s)}>
-									{formatDate(s.date, { month: 'short', day: 'numeric' })}
-								</a>
-							</td>
-							<td>
-								<a href={linkTo(s)}>
-									<Tag variant={statusVariant(s.status)}>{s.status}</Tag>
-								</a>
+					{isError ? (
+						<tr>
+							<td colSpan={5}>
+								<div className="RecentSermonsTable-status">
+									<p className="RecentSermonsTable-statusText">
+										Couldn't load recent sermons.
+									</p>
+									{onRetry && (
+										<Button variant="secondary" size="sm" onClick={onRetry}>
+											Retry
+										</Button>
+									)}
+								</div>
 							</td>
 						</tr>
-					))}
+					) : isLoading ? (
+						SKELETON_ROW_KEYS.map(key => (
+							<tr
+								key={key}
+								className="RecentSermonsTable-skeletonRow"
+								aria-hidden="true"
+							>
+								<th scope="row">
+									<span className="RecentSermonsTable-skeletonBar" />
+								</th>
+								<td>
+									<span className="RecentSermonsTable-skeletonBar" />
+								</td>
+								<td>
+									<span className="RecentSermonsTable-skeletonBar" />
+								</td>
+								<td>
+									<span className="RecentSermonsTable-skeletonBar RecentSermonsTable-skeletonBar--sm" />
+								</td>
+								<td>
+									<span className="RecentSermonsTable-skeletonBar RecentSermonsTable-skeletonBar--sm" />
+								</td>
+							</tr>
+						))
+					) : (
+						sermons.map(s => (
+							<tr key={s.id}>
+								<th scope="row">
+									<a href={linkTo(s)}>{s.title}</a>
+								</th>
+								<td>
+									<a href={linkTo(s)}>{getFullName(s.speaker)}</a>
+								</td>
+								<td>
+									<a href={linkTo(s)}>{s.series?.title ?? '–'}</a>
+								</td>
+								<td>
+									<a href={linkTo(s)}>
+										{formatDate(s.date, { month: 'short', day: 'numeric' })}
+									</a>
+								</td>
+								<td>
+									<a href={linkTo(s)}>
+										<Tag variant={statusVariant(s.status)}>{s.status}</Tag>
+									</a>
+								</td>
+							</tr>
+						))
+					)}
 				</tbody>
 			</table>
 		</Container>

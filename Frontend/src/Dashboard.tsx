@@ -40,7 +40,8 @@ export default function Dashboard() {
 			return speakers;
 		},
 	});
-	const recentSermons = sermonsQuery.data
+
+	const recentSermons = (sermonsQuery.data ?? [])
 		.toSorted((a, b) => b.date.getTime() - a.date.getTime())
 		.slice(0, RECENT_SERMONS_COUNT);
 
@@ -55,11 +56,33 @@ export default function Dashboard() {
 			 * Once the lists get large, this wastes bandwidth shipping full
 			 * records just to count them; Sprint 6 will add a proper stats
 			 * route that returns counts computed server-side.
+			 *
+			 * Three independent requests feed this page (sermons, series,
+			 * speakers), so each card/section renders its own loading and
+			 * error state from its own query.
 			 */}
 			<section className="Dashboard-stats">
-				<StatCard label="Total Sermons" value={sermonsQuery.data.length} />
-				<StatCard label="Series" value={seriesQuery.data.length} />
-				<StatCard label="Speakers" value={speakersQuery.data.length} />
+				<StatCard
+					label="Total Sermons"
+					value={sermonsQuery.data?.length}
+					isLoading={sermonsQuery.isPending}
+					isError={sermonsQuery.isError}
+					onRetry={() => sermonsQuery.refetch()}
+				/>
+				<StatCard
+					label="Series"
+					value={seriesQuery.data?.length}
+					isLoading={seriesQuery.isPending}
+					isError={seriesQuery.isError}
+					onRetry={() => seriesQuery.refetch()}
+				/>
+				<StatCard
+					label="Speakers"
+					value={speakersQuery.data?.length}
+					isLoading={speakersQuery.isPending}
+					isError={speakersQuery.isError}
+					onRetry={() => speakersQuery.refetch()}
+				/>
 				<StatCard
 					label="Searches Today"
 					value="–"
@@ -71,7 +94,12 @@ export default function Dashboard() {
 			<div className="Dashboard-body">
 				{/* Left: recent sermons table + import activity */}
 				<div className="DashboardBody-main">
-					<RecentSermonsTable sermons={recentSermons} />
+					<RecentSermonsTable
+						sermons={recentSermons}
+						isLoading={sermonsQuery.isPending}
+						isError={sermonsQuery.isError}
+						onRetry={() => sermonsQuery.refetch()}
+					/>
 					<ImportActivity />
 				</div>
 
