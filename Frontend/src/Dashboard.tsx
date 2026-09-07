@@ -1,13 +1,43 @@
 import './Dashboard.css';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
 import ImportActivity from '$/components/ImportActivity';
 import MainLayout from '$/components/MainLayout';
 import PopularTags from '$/components/PopularTags';
 import RecentActivity from '$/components/RecentActivity';
 import RecentSermonsTable from '$/components/RecentSermonsTable';
 import StatCard from '$/components/StatCard';
-import { sermons } from '$/data/sermons';
+import { Sermon } from '$/types/sermon';
+import { Series } from '$/types/series';
+import { Speaker } from '$/types/speaker';
 
 export default function Dashboard() {
+	const sermonsQuery = useQuery({
+		queryKey: ['sermons'],
+		queryFn: async () => {
+			const res = await axios.get('/api/sermons');
+			const sermons = await Sermon.array().parseAsync(res.data);
+			return sermons;
+		},
+	});
+
+	const seriesQuery = useQuery({
+		queryKey: ['series'],
+		queryFn: async () => {
+			const res = await axios.get('/api/series');
+			const series = await Series.array().parseAsync(res.data);
+			return series;
+		},
+	});
+
+	const speakersQuery = useQuery({
+		queryKey: ['speakers'],
+		queryFn: async () => {
+			const res = await axios.get('/api/speakers');
+			const speakers = await Speaker.array().parseAsync(res.data);
+			return speakers;
+		},
+	});
 	return (
 		<MainLayout title="Dashboard">
 			{/* Top row: 4 stat cards */}
