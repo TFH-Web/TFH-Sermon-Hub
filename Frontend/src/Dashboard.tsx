@@ -41,10 +41,19 @@ export default function Dashboard() {
 	return (
 		<MainLayout title="Dashboard">
 			{/* Top row: 4 stat cards */}
+			{/*
+			 * Counts below are derived client-side (array .length) from the full
+			 * /api/sermons, /api/series, and /api/speakers lists we already fetch
+			 * for this page. That's deliberate for now — the backend has no
+			 * dedicated stats endpoint, and the current data volumes are small.
+			 * Once the lists get large, this wastes bandwidth shipping full
+			 * records just to count them; Sprint 6 will add a proper stats
+			 * route that returns counts computed server-side.
+			 */}
 			<section className="Dashboard-stats">
-				<StatCard label="Total Sermons" value={2437} trend="12 this month" />
-				<StatCard label="Series" value={124} trend="2 new" />
-				<StatCard label="Speakers" value={28} />
+				<StatCard label="Total Sermons" value={sermonsQuery.data.length} />
+				<StatCard label="Series" value={seriesQuery.data.length} />
+				<StatCard label="Speakers" value={speakersQuery.data.length} />
 				<StatCard label="Searches Today" value={89} trend="23%" />
 			</section>
 
