@@ -11,6 +11,8 @@ import { Sermon } from '$/types/sermon';
 import { Series } from '$/types/series';
 import { Speaker } from '$/types/speaker';
 
+const RECENT_SERMONS_COUNT = 5;
+
 export default function Dashboard() {
 	const sermonsQuery = useQuery({
 		queryKey: ['sermons'],
@@ -38,6 +40,10 @@ export default function Dashboard() {
 			return speakers;
 		},
 	});
+	const recentSermons = sermonsQuery.data
+		.toSorted((a, b) => b.date.getTime() - a.date.getTime())
+		.slice(0, RECENT_SERMONS_COUNT);
+
 	return (
 		<MainLayout title="Dashboard">
 			{/* Top row: 4 stat cards */}
@@ -61,7 +67,7 @@ export default function Dashboard() {
 			<div className="Dashboard-body">
 				{/* Left: recent sermons table + import activity */}
 				<div className="DashboardBody-main">
-					<RecentSermonsTable sermons={sermons} />
+					<RecentSermonsTable sermons={recentSermons} />
 					<ImportActivity />
 				</div>
 
