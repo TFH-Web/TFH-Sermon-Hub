@@ -1,5 +1,7 @@
+from flask import Flask, jsonify
 from flask_cors import CORS
-from flask import Flask
+from werkzeug.exceptions import HTTPException, InternalServerError
+
 from tsh.views import api
 
 
@@ -14,6 +16,23 @@ def create_app(config_path: str) -> Flask:
     from tsh.auth import jwt
     jwt.init_app(app)
 
+    @app.errorhandler(404)
+    def handle_not_found(e):
+        message = getattr(e, "description", "Not found") or "Not found"
+        return jsonify({"error": message, "message": message}), 404
+
+    @app.errorhandler(500)
+    @app.errorhandler(InternalServerError)
+    def handle_internal_server_error(e):
+        return jsonify({"error": "Internal server error", "message": "Internal server error"}), 500
+
+    @app.errorhandler(Exception)
+    def handle_unexpected_error(e):
+        if isinstance(e, HTTPException):
+            return e
+        return jsonify({"error": "Internal server error", "message": "Internal server error"}), 500
+
     app.register_blueprint(api)
 
     return app
+
