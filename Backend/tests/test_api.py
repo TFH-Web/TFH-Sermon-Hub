@@ -51,7 +51,7 @@ def test_sermons(client, snapshot):
         assert res_sermon == sermon
 
 
-def test_get_id_404(client):
+def test_get_id_404(client: FlaskClient):
     slugs = [
         "series",
         "speakers",
@@ -61,3 +61,29 @@ def test_get_id_404(client):
     for slug in slugs:
         res = client.get(f"/api/{slug}/10000")
         assert res.status == "404 NOT FOUND"
+        assert res.is_json
+        assert "10000 not found" in res.json["error"]
+        assert res.json["message"] == res.json["error"]
+
+
+def test_404_mistyped_url(client: FlaskClient):
+    res = client.get("/api/nonexistent-route")
+    assert res.status_code == 404
+    assert res.is_json
+    assert "error" in res.json
+    # Distinguish mistyped URL from missing sermon
+    assert "sermon" not in res.json["error"].lower()
+
+
+def test_error_500(app, client: FlaskClient):
+    from flask import abort
+
+    app.add_url_rule("/api/test-500", "test_500", lambda: abort(500))
+    res = client.get("/api/test-500")
+    assert res.status_code == 500
+    assert res.is_json
+    assert res.json == {
+        "error": "Internal server error",
+        "message": "Internal server error",
+    }
+
