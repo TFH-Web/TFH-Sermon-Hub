@@ -69,7 +69,7 @@ class CountedTagSchema(CamelCaseSchema):
     @post_load
     def make_tag(self, data, **kwargs) -> Tag:
         data['sermons'] = []
-        return Tag(**{k: v for k, v in data if k != "count"})
+        return Tag(**{k: v for k, v in data.items() if k != "count"})
 
 
 counted_tag_schema = CountedTagSchema()
