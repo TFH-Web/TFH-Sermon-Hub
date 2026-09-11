@@ -6,9 +6,10 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import clsx from 'clsx';
 import FloatingAddSermon from '$/modals/AddSermon';
+import type { Series } from '$/types/series';
 import { Sermon, type Status, statuses } from '$/types/sermon';
 import { getFullName, type Speaker } from '$/types/speaker';
-import type { Series } from '$/types/series';
+import Loading from '$/components/Loading';
 
 const topics = ['Faith', 'Hope', 'Grace', 'Healing', 'Anxiety'] as const;
 type Topic = (typeof topics)[number];
@@ -51,11 +52,78 @@ export default function Sermons() {
 			</MainLayout>
 		);
 
-	// TODO: loading state while pending
 	if (query.isPending)
 		return (
 			<MainLayout title="Sermons" className="Sermons">
-				<h1>Loading...</h1>
+				<div className="Sermons-scrollContainer">
+					<fieldset disabled={true} className="Sermons-statuses">
+						{[null, ...statuses].map(s => (
+							<label
+								key={s ?? 'All'}
+								className={clsx(
+									'Sermons-status',
+									'u-button',
+									filters.status === s && 'is-active',
+								)}
+							>
+								<input
+									type="radio"
+									name="status"
+									hidden={true}
+									value={s ?? 'All'}
+								/>
+								{s ?? 'All'}
+							</label>
+						))}
+					</fieldset>
+				</div>
+
+				<fieldset className="Sermons-controls">
+					<fieldset className="Sermons-topics" disabled={true}>
+						{[null, ...topics].map(t => (
+							<label
+								key={t ?? 'All'}
+								className={clsx(
+									'Sermons-topic',
+									'u-button',
+									filters.topic === t && 'is-active',
+								)}
+							>
+								<input
+									type="radio"
+									name="topic"
+									hidden={true}
+									value={t ?? 'All'}
+								/>
+								{t ?? 'All'}
+							</label>
+						))}
+					</fieldset>
+
+					{/* Sermon Speaker dropdown, selection updates the selectedSpeaker state */}
+					<fieldset className="Sermons-dropdowns">
+						<select className="Sermons-dropdown" disabled={true}>
+							<option>All Speakers</option>
+						</select>
+
+						{/* Sermon Series dropdown, selection updates the selectedSeries state */}
+						<select className="Sermons-dropdown" disabled={true}>
+							<option>All Series</option>
+						</select>
+
+						{/* Video Upload Recency dropdown, selection updates the videoUploadRecency state */}
+						<select className="Sermons-dropdown" disabled={true}>
+							{sortCategories.map(s => (
+								<option key={s} value={s}>
+									{s}
+								</option>
+							))}
+						</select>
+					</fieldset>
+				</fieldset>
+
+				<Loading vertical />
+				<FloatingAddSermon />
 			</MainLayout>
 		);
 

@@ -15,6 +15,14 @@
 /* Sermons.css, transparent background by default when not selected. !important was to override global styles */
 .Sermons-statuses {
 	display: flex;
+
+	&:disabled {
+		filter: grayscale(1);
+
+		.Sermons-status {
+			cursor: not-allowed;
+		}
+	}
 }
 
 .Sermons-status {
@@ -55,13 +63,6 @@
 	margin-block-end: 2rem;
 }
 
-.Sermons-topics {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.5rem;
-	min-width: 0;
-}
-
 .Sermons-topic {
 	--hover-brightness: 0.95;
 
@@ -85,6 +86,21 @@
 	}
 }
 
+.Sermons-topics {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	min-width: 0;
+
+	&:disabled {
+		filter: grayscale(1);
+
+		.Sermons-topic {
+			cursor: not-allowed;
+		}
+	}
+}
+
 .Sermons-dropdowns {
 	display: flex;
 	flex-wrap: wrap;
@@ -95,7 +111,6 @@
 .Sermons-dropdown {
 	padding: 0.25em 0.5em;
 	font: inherit;
-	cursor: pointer;
 	border: 2px solid var(--cl-outline);
 	border-radius: 0.25rem;
 }
