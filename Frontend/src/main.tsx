@@ -39,8 +39,6 @@ const queryClient = new QueryClient({
 
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
-axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
-
 // biome-ignore lint/style/noNonNullAssertion: we'd want to throw anyways
 createRoot(document.getElementById('root')!).render(
 	<StrictMode>

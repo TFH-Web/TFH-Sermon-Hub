@@ -5,7 +5,6 @@ import './Sermons.css';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import clsx from 'clsx';
-import { useToast } from '$/components/ToastContext';
 import { sermons } from '$/data/sermons';
 import FloatingAddSermon from '$/modals/AddSermon';
 import { Sermon, type Status, statuses } from '$/types/sermon';
