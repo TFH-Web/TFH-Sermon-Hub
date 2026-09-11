@@ -12,19 +12,6 @@
 	overflow-inline: auto;
 }
 
-/* Sermons.css, transparent background by default when not selected. !important was to override global styles */
-.Sermons-statuses {
-	display: flex;
-
-	&:disabled {
-		filter: grayscale(1);
-
-		.Sermons-status {
-			cursor: not-allowed;
-		}
-	}
-}
-
 .Sermons-status {
 	position: relative;
 	padding: 1em 1.5em;
@@ -49,6 +36,18 @@
 
 		&::after {
 			background-color: var(--cl-accent);
+		}
+	}
+}
+
+.Sermons-statuses {
+	display: flex;
+
+	&:disabled {
+		filter: grayscale(1);
+
+		.Sermons-status {
+			cursor: not-allowed;
 		}
 	}
 }
