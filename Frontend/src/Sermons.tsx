@@ -5,30 +5,19 @@ import './Sermons.css';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import clsx from 'clsx';
-import { sermons } from '$/data/sermons';
 import FloatingAddSermon from '$/modals/AddSermon';
 import { Sermon, type Status, statuses } from '$/types/sermon';
-import { getFullName } from '$/types/speaker';
+import { getFullName, type Speaker } from '$/types/speaker';
+import type { Series } from '$/types/series';
 
 const topics = ['Faith', 'Hope', 'Grace', 'Healing', 'Anxiety'] as const;
 type Topic = (typeof topics)[number];
 
-type SetElement<SetType> =
-	SetType extends Iterable<infer ElementType> ? ElementType : never;
-
-const speakers = new Set(sermons.map(s => getFullName(s.speaker)));
-type Speaker = SetElement<typeof speakers>;
-
-const seriess = new Set(
-	sermons.map(s => s.series?.title).filter(s => s !== null && s !== undefined),
-);
-type Series = SetElement<typeof seriess>;
-
 interface Filters {
 	status: Status | null;
 	topic: Topic | null;
-	speaker: Speaker | null;
-	series: Series | null;
+	speakerID: number | null;
+	seriesID: number | null;
 }
 
 const sortCategories = ['Newest', 'Oldest', 'Relevance'] as const;
@@ -47,8 +36,8 @@ export default function Sermons() {
 	const [filters, setFilters] = useState<Filters>({
 		status: null,
 		topic: null,
-		speaker: null,
-		series: null,
+		speakerID: null,
+		seriesID: null,
 	});
 
 	// Tracks the currently selected "freshness" filter, defaults to "Newest"
@@ -69,6 +58,60 @@ export default function Sermons() {
 				<h1>Loading...</h1>
 			</MainLayout>
 		);
+
+	const allSpeakers = query.data
+		.map(sermon => sermon.speaker)
+		.reduce<Map<number, Speaker>>((acc, speaker) => {
+			acc.set(speaker.id, speaker);
+			return acc;
+		}, new Map());
+	const speakerOptions = Array.from(allSpeakers.values())
+		.toSorted((a, b) => a.id - b.id)
+		.map(s => (
+			<option key={s.id} value={s.id}>
+				{getFullName(s)}
+			</option>
+		));
+
+	const allSeries = query.data
+		.map(sermon => sermon.series)
+		.filter(s => s !== null && s !== undefined)
+		.reduce<Map<number, Series>>((acc, series) => {
+			acc.set(series.id, series);
+			return acc;
+		}, new Map());
+	const seriesOptions = Array.from(allSeries.values())
+		.toSorted((a, b) => a.id - b.id)
+		.map(s => (
+			<option key={s.id} value={s.id}>
+				{s.title}
+			</option>
+		));
+
+	const sermonCards = query.data
+		.filter(s => filters.status === null || s.status === filters.status)
+		.filter(
+			s =>
+				filters.topic === null ||
+				s.tags.map(t => t.name).includes(filters.topic.toLowerCase()),
+		)
+		.filter(
+			s => filters.speakerID === null || s.speaker.id === filters.speakerID,
+		)
+		.filter(s => filters.seriesID === null || s.series?.id === filters.seriesID)
+		.toSorted((a, b) => {
+			switch (sortCategory) {
+				case 'Oldest':
+					return a.date.getTime() - b.date.getTime();
+				default:
+					return b.date.getTime() - a.date.getTime();
+			}
+		})
+		.map(sermon => (
+			<div key={sermon.id} className="Sermons-cardLink">
+				<SermonCard key={sermon.id} sermon={sermon} />
+			</div>
+		));
 
 	return (
 		<MainLayout title="Sermons" className="Sermons">
@@ -142,16 +185,15 @@ export default function Sermons() {
 						onChange={e =>
 							setFilters({
 								...filters,
-								speaker:
-									e.target.value === 'All Speakers' ? null : e.target.value,
+								speakerID:
+									e.target.value === 'All Speakers'
+										? null
+										: parseInt(e.target.value, 10),
 							})
 						}
 					>
-						{['All Speakers', ...speakers].map(s => (
-							<option key={s} value={s}>
-								{s}
-							</option>
-						))}
+						<option>All Speakers</option>
+						{speakerOptions}
 					</select>
 
 					{/* Sermon Series dropdown, selection updates the selectedSeries state */}
@@ -160,15 +202,15 @@ export default function Sermons() {
 						onChange={e =>
 							setFilters({
 								...filters,
-								series: e.target.value === 'All Series' ? null : e.target.value,
+								seriesID:
+									e.target.value === 'All Series'
+										? null
+										: parseInt(e.target.value, 10),
 							})
 						}
 					>
-						{['All Series', ...seriess].map(s => (
-							<option key={s} value={s}>
-								{s}
-							</option>
-						))}
+						<option>All Series</option>
+						{seriesOptions}
 					</select>
 
 					{/* Video Upload Recency dropdown, selection updates the videoUploadRecency state */}
@@ -188,36 +230,7 @@ export default function Sermons() {
 				</fieldset>
 			</fieldset>
 
-			<div className="Sermons-grid">
-				{query.data
-					.filter(s => filters.status === null || s.status === filters.status)
-					.filter(
-						s =>
-							filters.topic === null ||
-							s.tags.map(t => t.name).includes(filters.topic.toLowerCase()),
-					)
-					.filter(
-						s =>
-							filters.speaker === null ||
-							getFullName(s.speaker) === filters.speaker,
-					)
-					.filter(
-						s => filters.series === null || s.series?.title === filters.series,
-					)
-					.toSorted((a, b) => {
-						switch (sortCategory) {
-							case 'Oldest':
-								return a.date.getTime() - b.date.getTime();
-							default:
-								return b.date.getTime() - a.date.getTime();
-						}
-					})
-					.map(sermon => (
-						<div key={sermon.id} className="Sermons-cardLink">
-							<SermonCard key={sermon.id} sermon={sermon} />
-						</div>
-					))}
-			</div>
+			<div className="Sermons-grid">{sermonCards}</div>
 			<FloatingAddSermon />
 		</MainLayout>
 	);
