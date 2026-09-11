@@ -44,13 +44,13 @@ export default function Sermons() {
 	// Tracks the currently selected "freshness" filter, defaults to "Newest"
 	const [sortCategory, setSortCategory] = useState<SortCategory>('Newest');
 
-	// TODO: error state at error
-	if (query.isError)
+	if (query.isError) {
 		return (
-			<MainLayout title="Sermons" className="Sermons">
-				<h1>Error!</h1>
-			</MainLayout>
+			<SermonShell>
+				<h2>Error!</h2>
+			</SermonShell>
 		);
+	}
 
 	if (query.isPending) {
 		return (
