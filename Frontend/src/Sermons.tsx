@@ -5,11 +5,11 @@ import './Sermons.css';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import clsx from 'clsx';
+import Loading from '$/components/Loading';
 import FloatingAddSermon from '$/modals/AddSermon';
 import type { Series } from '$/types/series';
 import { Sermon, type Status, statuses } from '$/types/sermon';
 import { getFullName, type Speaker } from '$/types/speaker';
-import Loading from '$/components/Loading';
 import ErrorBox from './components/ErrorBox';
 
 const topics = ['Faith', 'Hope', 'Grace', 'Healing', 'Anxiety'] as const;
