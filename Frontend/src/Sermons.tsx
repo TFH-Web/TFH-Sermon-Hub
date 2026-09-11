@@ -52,80 +52,13 @@ export default function Sermons() {
 			</MainLayout>
 		);
 
-	if (query.isPending)
+	if (query.isPending) {
 		return (
-			<MainLayout title="Sermons" className="Sermons">
-				<div className="Sermons-scrollContainer">
-					<fieldset disabled={true} className="Sermons-statuses">
-						{[null, ...statuses].map(s => (
-							<label
-								key={s ?? 'All'}
-								className={clsx(
-									'Sermons-status',
-									'u-button',
-									filters.status === s && 'is-active',
-								)}
-							>
-								<input
-									type="radio"
-									name="status"
-									hidden={true}
-									value={s ?? 'All'}
-								/>
-								{s ?? 'All'}
-							</label>
-						))}
-					</fieldset>
-				</div>
-
-				<fieldset className="Sermons-controls">
-					<fieldset className="Sermons-topics" disabled={true}>
-						{[null, ...topics].map(t => (
-							<label
-								key={t ?? 'All'}
-								className={clsx(
-									'Sermons-topic',
-									'u-button',
-									filters.topic === t && 'is-active',
-								)}
-							>
-								<input
-									type="radio"
-									name="topic"
-									hidden={true}
-									value={t ?? 'All'}
-								/>
-								{t ?? 'All'}
-							</label>
-						))}
-					</fieldset>
-
-					{/* Sermon Speaker dropdown, selection updates the selectedSpeaker state */}
-					<fieldset className="Sermons-dropdowns">
-						<select className="Sermons-dropdown" disabled={true}>
-							<option>All Speakers</option>
-						</select>
-
-						{/* Sermon Series dropdown, selection updates the selectedSeries state */}
-						<select className="Sermons-dropdown" disabled={true}>
-							<option>All Series</option>
-						</select>
-
-						{/* Video Upload Recency dropdown, selection updates the videoUploadRecency state */}
-						<select className="Sermons-dropdown" disabled={true}>
-							{sortCategories.map(s => (
-								<option key={s} value={s}>
-									{s}
-								</option>
-							))}
-						</select>
-					</fieldset>
-				</fieldset>
-
+			<SermonShell>
 				<Loading vertical />
-				<FloatingAddSermon />
-			</MainLayout>
+			</SermonShell>
 		);
+	}
 
 	const allSpeakers = query.data
 		.map(sermon => sermon.speaker)
@@ -299,6 +232,75 @@ export default function Sermons() {
 			</fieldset>
 
 			<div className="Sermons-grid">{sermonCards}</div>
+			<FloatingAddSermon />
+		</MainLayout>
+	);
+}
+
+// biome-ignore lint/complexity/noBannedTypes: we actually need an empty object here
+function SermonShell({ children }: React.PropsWithChildren<{}>) {
+	return (
+		<MainLayout title="Sermons" className="Sermons">
+			<div className="Sermons-scrollContainer">
+				<fieldset disabled={true} className="Sermons-statuses">
+					{[null, ...statuses].map(s => (
+						<label
+							key={s ?? 'All'}
+							className={clsx('Sermons-status', 'u-button')}
+						>
+							<input
+								type="radio"
+								name="status"
+								hidden={true}
+								value={s ?? 'All'}
+							/>
+							{s ?? 'All'}
+						</label>
+					))}
+				</fieldset>
+			</div>
+
+			<fieldset className="Sermons-controls">
+				<fieldset className="Sermons-topics" disabled={true}>
+					{[null, ...topics].map(t => (
+						<label
+							key={t ?? 'All'}
+							className={clsx('Sermons-topic', 'u-button')}
+						>
+							<input
+								type="radio"
+								name="topic"
+								hidden={true}
+								value={t ?? 'All'}
+							/>
+							{t ?? 'All'}
+						</label>
+					))}
+				</fieldset>
+
+				{/* Sermon Speaker dropdown, selection updates the selectedSpeaker state */}
+				<fieldset className="Sermons-dropdowns">
+					<select className="Sermons-dropdown" disabled={true}>
+						<option>All Speakers</option>
+					</select>
+
+					{/* Sermon Series dropdown, selection updates the selectedSeries state */}
+					<select className="Sermons-dropdown" disabled={true}>
+						<option>All Series</option>
+					</select>
+
+					{/* Video Upload Recency dropdown, selection updates the videoUploadRecency state */}
+					<select className="Sermons-dropdown" disabled={true}>
+						{sortCategories.map(s => (
+							<option key={s} value={s}>
+								{s}
+							</option>
+						))}
+					</select>
+				</fieldset>
+			</fieldset>
+
+			{children}
 			<FloatingAddSermon />
 		</MainLayout>
 	);
