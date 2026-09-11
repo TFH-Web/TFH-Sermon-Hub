@@ -1,0 +1,16 @@
+.Loading {
+	display: flex;
+	flex-direction: row-reverse;
+	gap: 1rem;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+
+	&.is-vertical {
+		flex-direction: column;
+	}
+}
+
+.Loading-icon {
+	font-size: 2em;
+}
