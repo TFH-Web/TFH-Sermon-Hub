@@ -5,10 +5,22 @@ from werkzeug.exceptions import HTTPException, InternalServerError
 from tsh.views import api
 
 
-def create_app(config_path: str) -> Flask:
+def create_app(
+    config_path: str = "testing.cfg",
+    settings: dict | None = None,
+    test_config: dict | None = None,
+    **kwargs,
+) -> Flask:
     app = Flask(__name__)
     CORS(app, origins=['http://localhost:5173'])
-    app.config.from_pyfile(config_path)
+    if config_path:
+        app.config.from_pyfile(config_path)
+    if settings:
+        app.config.update(settings)
+    if test_config:
+        app.config.update(test_config)
+    if kwargs:
+        app.config.update(kwargs)
 
     from tsh.database import db
     db.init_app(app)
