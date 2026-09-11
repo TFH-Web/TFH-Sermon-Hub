@@ -10,6 +10,7 @@ import type { Series } from '$/types/series';
 import { Sermon, type Status, statuses } from '$/types/sermon';
 import { getFullName, type Speaker } from '$/types/speaker';
 import Loading from '$/components/Loading';
+import ErrorBox from './components/ErrorBox';
 
 const topics = ['Faith', 'Hope', 'Grace', 'Healing', 'Anxiety'] as const;
 type Topic = (typeof topics)[number];
@@ -47,7 +48,7 @@ export default function Sermons() {
 	if (query.isError) {
 		return (
 			<SermonShell>
-				<h2>Error!</h2>
+				<ErrorBox message="Failed to load sermons. Refresh the page and try again." />
 			</SermonShell>
 		);
 	}
