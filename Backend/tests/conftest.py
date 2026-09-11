@@ -7,12 +7,12 @@ import pytest
 
 @pytest.fixture()
 def app():
-    app = create_app("testing.cfg")
-    app.config.update(
-        {
+    app = create_app(
+        "testing.cfg",
+        settings={
             "TESTING": True,
             "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
-        }
+        },
     )
 
     with app.app_context():
