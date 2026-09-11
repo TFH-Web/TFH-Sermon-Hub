@@ -2,7 +2,7 @@ import { useState } from 'react';
 import MainLayout from '$/components/MainLayout';
 import SermonCard from '$/components/SermonCard';
 import './Sermons.css';
-import { QueryCache, QueryClient, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import clsx from 'clsx';
 import { useToast } from '$/components/ToastContext';
@@ -36,25 +36,14 @@ const sortCategories = ['Newest', 'Oldest', 'Relevance'] as const;
 type SortCategory = (typeof sortCategories)[number];
 
 export default function Sermons() {
-	const { showToast } = useToast();
-
-	const queryClient = new QueryClient({
-		queryCache: new QueryCache({
-			onError: error =>
-				showToast(`Something went wrong: ${error.message}`, 'error'),
-		}),
-	});
-	const query = useQuery(
-		{
-			queryKey: ['sermons'],
-			queryFn: async () => {
-				const res = await axios.get('/sermons');
-				const sermons = await Sermon.array().parseAsync(res.data);
-				return sermons;
-			},
+	const query = useQuery({
+		queryKey: ['sermons'],
+		queryFn: async () => {
+			const res = await axios.get('/api/sermons');
+			const sermons = await Sermon.array().parseAsync(res.data);
+			return sermons;
 		},
-		queryClient,
-	);
+	});
 
 	const [filters, setFilters] = useState<Filters>({
 		status: null,

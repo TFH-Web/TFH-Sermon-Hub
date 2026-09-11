@@ -7,9 +7,11 @@ from tsh.models import (
     Series,
     Sermon,
     Speaker,
-    Tag, sermon_tag_m2m,
+    Tag,
+    sermon_tag_m2m,
 )
 from tsh.schemas import (
+    counted_tags_schema,
     series_schema,
     seriess_schema,
     sermon_schema,
@@ -72,7 +74,7 @@ def get_tags():
         .group_by(Tag.name)
         .options(with_expression(Tag.count, func.count(Tag.name)))
     ).scalars()
-    result = tags_schema.dump(tags)
+    result = counted_tags_schema.dump(tags)
     return result
 
 

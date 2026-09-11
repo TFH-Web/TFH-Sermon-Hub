@@ -14,7 +14,7 @@ export const Sermon = z.object({
 	title: z.string().nonempty(),
 	videoLink: z.httpUrl(),
 	duration: z.number().nonnegative(),
-	date: z.coerce.date(),
+	date: z.coerce.date(), // FIXME: timezones => if before UTC, then dates will show as one day before since times are assumed midnight
 	description: z.string().nonempty(),
 	tags: Tag.array(),
 	transcript: z.string().nullish(),
