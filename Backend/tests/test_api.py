@@ -87,3 +87,56 @@ def test_error_500(app, client: FlaskClient):
         "message": "Internal server error",
     }
 
+
+def test_health(client: FlaskClient):
+    res = client.get("/api/health")
+    assert res.status_code == 200
+    assert res.is_json
+    assert res.json == {"status": "ok"}
+
+
+def test_tags(client: FlaskClient):
+    from tsh.schemas import counted_tags_schema
+
+    res = client.get("/api/tags")
+    assert res.status_code == 200
+    assert res.is_json
+    tags = counted_tags_schema.loads(res.data)
+    assert len(tags) > 0
+    tag_names = [t.name for t in tags]
+    assert "faith" in tag_names
+    assert "grace" in tag_names
+
+
+def test_dev_database_untouched(app):
+    import os
+    import sqlite3
+    from tsh.database import db
+
+    # Verify test database is in-memory
+    assert app.config["SQLALCHEMY_DATABASE_URI"] == "sqlite:///:memory:"
+    assert db.engine.url.database == ":memory:"
+
+    # Verify development database file exists and is untouched
+    dev_db_path = os.path.join(app.instance_path, "testing.db")
+    if os.path.exists(dev_db_path):
+        conn = sqlite3.connect(dev_db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT count(*) FROM series")
+        count_before = cursor.fetchone()[0]
+        conn.close()
+
+        # Adding data to test database does not affect development database
+        from tsh.models import Series
+        with app.app_context():
+            db.session.add(Series(id=None, title="Temporary Test Series"))
+            db.session.commit()
+
+        conn = sqlite3.connect(dev_db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT count(*) FROM series")
+        count_after = cursor.fetchone()[0]
+        conn.close()
+
+        assert count_before == count_after
+
