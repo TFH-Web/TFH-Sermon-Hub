@@ -1,18 +1,22 @@
-from dataclasses import asdict
-from enum import Enum
+from __future__ import annotations
+
 from datetime import date
-from tsh.database import db
+from enum import Enum
+
 from sqlalchemy import (
-    String,
-    UniqueConstraint,
-    ForeignKey,
     Column,
     FetchedValue,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+)
+from sqlalchemy import (
     Enum as SAEnum,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, query_expression, relationship
 from sqlalchemy.util.typing import Annotated
-from typing import Optional, List, Any, Iterable
+
+from tsh.database import db
 
 intpk = Annotated[int, mapped_column(primary_key=True, server_default=FetchedValue())]
 str32 = Annotated[str, mapped_column(String(32))]
@@ -21,13 +25,14 @@ str64 = Annotated[str, mapped_column(String(64))]
 
 class Series(db.Model):  # ty: ignore[unsupported-base]
     id: Mapped[intpk]
-    title: Mapped[Optional[str32]] = mapped_column(unique=True)
+    title: Mapped[str32] = mapped_column(unique=True)
 
 
 class Speaker(db.Model):  # ty: ignore[unsupported-base]
     id: Mapped[intpk]
-    first_name: Mapped[Optional[str64]]
-    last_name: Mapped[Optional[str64]]
+    first_name: Mapped[str64]
+    last_name: Mapped[str64]
+    role: Mapped[str64] = mapped_column(default='Guest Speaker')
     __table_args__ = (UniqueConstraint("first_name", "last_name"),)
 
 
@@ -56,13 +61,22 @@ class Tag(db.Model):  # ty: ignore[unsupported-base]
     source: Mapped[TagSource] = mapped_column(
         SAEnum(TagSource, create_constraint=True, validate_strings=True)
     )
+    sermons: Mapped[list[Sermon]] = relationship(
+        secondary=sermon_tag_m2m, back_populates="tags"
+    )
+    count: Mapped[int] = query_expression()
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Tag):
+            return False
+        return self.name == other.name and self.source == other.source
 
 
 class UploadStatus(Enum):
-    DRAFT = "draft"
-    PROCESSING = "processing"
-    PUBLISHED = "published"
-    FAILED = "failed"
+    DRAFT = "Draft"
+    PROCESSING = "Processing"
+    PUBLISHED = "Published"
+    FAILED = "Failed"
 
 
 class Sermon(db.Model):  # ty: ignore[unsupported-base]
@@ -72,34 +86,20 @@ class Sermon(db.Model):  # ty: ignore[unsupported-base]
     duration: Mapped[int]
     date: Mapped[date]
     description: Mapped[str]
-    tags: Mapped[List[Tag]] = relationship(secondary=sermon_tag_m2m)
-    transcript: Mapped[Optional[str]]
-    summary: Mapped[Optional[str]]
+    tags: Mapped[list[Tag]] = relationship(
+        secondary=sermon_tag_m2m, back_populates="sermons"
+    )
+    transcript: Mapped[str | None]
+    summary: Mapped[str | None]
     speaker_id: Mapped[int] = mapped_column(
         ForeignKey(Speaker.id, onupdate="CASCADE", ondelete="RESTRICT")
     )
     speaker: Mapped[Speaker] = relationship()
-    series_id: Mapped[Optional[int]] = mapped_column(
+    series_id: Mapped[int | None] = mapped_column(
         ForeignKey(Series.id, onupdate="CASCADE", ondelete="RESTRICT")
     )
-    series: Mapped[Optional[Series]] = relationship()
+    series: Mapped[Series | None] = relationship()
     status: Mapped[UploadStatus] = mapped_column(
         SAEnum(UploadStatus, create_constraint=True, validate_strings=True),
         default=UploadStatus.DRAFT,
     )
-
-
-def serialize_to_dict(obj: Any) -> dict:
-    def dict_enum_factory(data):
-        def convert_value(obj):
-            if isinstance(obj, Enum):
-                return obj.value
-            return obj
-
-        return {k: convert_value(v) for k, v in data}
-
-    return asdict(obj, dict_factory=dict_enum_factory)
-
-
-def serialize_many_to_dicts(objs: Iterable[Any]) -> List[dict]:
-    return [serialize_to_dict(obj) for obj in objs]

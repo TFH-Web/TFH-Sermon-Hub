@@ -1,7 +1,12 @@
 import 'sanitize.css';
 import './index.css';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+	QueryCache,
+	QueryClient,
+	QueryClientProvider,
+} from '@tanstack/react-query';
+import axios from 'axios';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -10,7 +15,7 @@ import AIChat from './AIChat.tsx';
 import AISearch from './AISearch.tsx';
 import AISearchResults from './AISearchResults.tsx';
 import MainLayout from './components/MainLayout.tsx';
-import { ToastProvider } from './components/ToastContext';
+import { ToastProvider, useToast } from './components/ToastContext';
 import Dashboard from './Dashboard.tsx';
 import LoginPage from './LoginPage.tsx';
 import Notifications from './Notifications.tsx';
@@ -23,7 +28,16 @@ import Speakers from './Speakers.tsx';
 import TagsAndMetadata from './TagsAndMetadata.tsx';
 import UserManagement from './UserManagement.tsx';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+	queryCache: new QueryCache({
+		onError: (error: Error) => {
+			const { showToast } = useToast();
+			showToast(`Something went wrong: ${error.message}`, 'error');
+		},
+	}),
+});
+
+axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
 // biome-ignore lint/style/noNonNullAssertion: we'd want to throw anyways
 createRoot(document.getElementById('root')!).render(

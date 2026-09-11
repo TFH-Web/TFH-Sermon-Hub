@@ -11,6 +11,9 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 
 let toastId = 0;
 
+const clamp = (min: number, val: number, max: number) =>
+	Math.min(Math.max(min, val), max);
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
 	const [toasts, setToasts] = useState<ToastData[]>([]);
 
@@ -22,7 +25,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 		(message: string, type: ToastData['type'] = 'success') => {
 			const id = `toast-${++toastId}`;
 			setToasts(prev => [...prev, { id, message, type }]);
-			setTimeout(() => removeToast(id), 5000);
+
+			// don't auto hide error toasts
+			if (type !== 'error') {
+				setTimeout(
+					() => removeToast(id),
+					clamp(5000, 50 * message.length, 12500),
+				);
+			}
 		},
 		[removeToast],
 	);

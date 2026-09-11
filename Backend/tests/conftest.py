@@ -6,7 +6,7 @@ import pytest
 
 
 @pytest.fixture()
-def app() -> Flask:
+def app():
     app = create_app("testing.cfg")
     app.config.update(
         {

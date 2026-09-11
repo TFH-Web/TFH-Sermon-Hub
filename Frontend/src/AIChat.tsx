@@ -135,7 +135,7 @@ export default function AIChat() {
 	// biome-ignore lint/correctness/useExhaustiveDependencies: only reset conversation when the sermon context changes
 	useEffect(() => {
 		if (sermonId && sermonTitle && sermonSpeaker) {
-			const series = sermonSeries ?? canonicalSermon?.series ?? null;
+			const series = sermonSeries ?? canonicalSermon?.series?.title ?? null;
 			const snippet = sermonSnippet ?? null;
 			setMessages([
 				{
@@ -174,8 +174,8 @@ export default function AIChat() {
 					speaker: sermonSpeaker,
 					date: sermonDate ?? '',
 					snippet: sermonSnippet,
-					series: sermonSeries ?? canonicalSermon?.series,
-					tags: canonicalSermon?.tags,
+					series: sermonSeries ?? canonicalSermon?.series?.title,
+					tags: canonicalSermon?.tags.map(t => t.name),
 					duration: canonicalSermon?.duration,
 				});
 				setMessages(prev => [

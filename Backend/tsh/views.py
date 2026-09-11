@@ -1,57 +1,81 @@
-from tsh.models import (
-    Sermon,
-    serialize_to_dict,
-    Speaker,
-    serialize_many_to_dicts,
-    Series,
-    Tag,
-)
-from flask import jsonify, request, Blueprint
-from tsh.database import db
+from flask import Blueprint, request
+from sqlalchemy import func
+from sqlalchemy.orm import with_expression
 
-api = Blueprint("api", __name__)
+from tsh.database import db
+from tsh.models import (
+    Series,
+    Sermon,
+    Speaker,
+    Tag,
+    sermon_tag_m2m,
+)
+from tsh.schemas import (
+    counted_tags_schema,
+    series_schema,
+    seriess_schema,
+    sermon_schema,
+    sermons_schema,
+    speaker_schema,
+    speakers_schema,
+    tags_schema,
+)
+
+api = Blueprint("api", __name__, url_prefix="/api")
 
 
 @api.route("/series")
 def get_all_series():
     series = db.session.execute(db.select(Series)).scalars()
-    return jsonify(serialize_many_to_dicts(series))
+    result = seriess_schema.dump(series)
+    return result
 
 
 @api.route("/series/<int:id>")
 def get_series(id: int):
     series = db.get_or_404(Series, id)
-    return jsonify(serialize_to_dict(series))
+    result = series_schema.dump(series)
+    return result
 
 
 @api.route("/speakers")
 def get_speakers():
     speakers = db.session.execute(db.select(Speaker)).scalars()
-    return jsonify(serialize_many_to_dicts(speakers))
+    result = speakers_schema.dump(speakers)
+    return result
 
 
 @api.route("/speakers/<int:id>")
 def get_speaker(id: int):
     speaker = db.get_or_404(Speaker, id)
-    return jsonify(serialize_to_dict(speaker))
+    result = speaker_schema.dump(speaker)
+    return result
 
 
 @api.route("/sermons")
 def get_sermons():
     sermons = db.session.execute(db.select(Sermon)).scalars()
-    return jsonify(serialize_many_to_dicts(sermons))
+    result = sermons_schema.dump(sermons)
+    return result
 
 
 @api.route("/sermons/<int:id>")
 def get_sermon(id: int):
     sermon = db.get_or_404(Sermon, id)
-    return jsonify(serialize_to_dict(sermon))
+    result = sermon_schema.dump(sermon)
+    return result
 
 
 @api.route("/tags")
 def get_tags():
-    tags = db.session.execute(db.select(Tag)).scalars()
-    return jsonify(serialize_many_to_dicts(tags))
+    tags = db.session.execute(
+        db.select(Tag)
+        .join(sermon_tag_m2m)
+        .group_by(Tag.name)
+        .options(with_expression(Tag.count, func.count(Tag.name)))
+    ).scalars()
+    result = counted_tags_schema.dump(tags)
+    return result
 
 
 @api.route("/")
@@ -61,7 +85,7 @@ def hello_world():
 
 @api.get("/health")
 def health():
-    return jsonify({"status": "ok"})
+    return {"status": "ok"}
 
 
 @api.get("/search")
@@ -132,4 +156,4 @@ def search():
 
     filtered.sort(key=lambda item: item["ai_score"], reverse=True)
 
-    return jsonify(filtered)
+    return filtered
