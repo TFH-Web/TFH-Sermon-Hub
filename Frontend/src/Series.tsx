@@ -6,6 +6,7 @@ import axios from "axios";
 import { Series } from "$/types/series";
 import { Sermon } from "$/types/sermon";
 import { Speaker } from "$/types/speaker";
+import MurmurHash3 from 'imurmurhash';
 import "./Series.css";
 
 // Mock data for sermon series, each series will have a unique gradient color for the banner
@@ -108,15 +109,38 @@ export default function Seriess() {
     startYear: number;
     endYear: number;
     speakers: Speaker[];
+    banner: string
   };
 
   const statsBySeriesId = new Map<number, SeriesStats>();
-
+  const seriesById = new Map<number, Series>(
+    seriess.map((item) => [item.id, item])
+  )
   //now that we have both the series and sermon data, we can display the page
   if (seriesQuery.isSuccess && sermonQuery.isSuccess) {
     // console.log("setting up stats");
     //mapping stats for each series in one pass corresponding to series.id
     console.log(`looking through ${sermons.length} sermons`);
+
+    //initialize series stats
+    seriess.forEach((series : Series) => {
+      const hue = seriesHue(series.id, series.title ?? '')
+        statsBySeriesId.set(series.id, {
+          count: 0,
+          startYear: Number.MAX_SAFE_INTEGER,
+          endYear: Number.MIN_SAFE_INTEGER,
+          speakers: [],
+          banner: `linear-gradient(
+            135deg, 
+            hsl(${hue}, 40%, 30%) 0%, 
+            hsl(${hue}, 40%, 60%) 100%
+            )`
+        });
+
+    });
+
+
+    //update data with sermons
     sermons.forEach((sermon: Sermon) => {
       let seriesId = sermon.series?.id as number;
 
@@ -124,14 +148,20 @@ export default function Seriess() {
         seriesId = -1; //if no series, then use -1 for ungrouped sermons
       }
 
-      //create new key if this is the first time adding to a series
+      //create new key if series is completely new or has no category
       if (!statsBySeriesId.has(seriesId)) {
-        console.log(`new series: ${seriesId}`);
+        //console.log(`new series: ${seriesId}`);
+        const hue = seriesHue(seriesId, seriesById.get(seriesId)?.title ?? '')
         statsBySeriesId.set(seriesId, {
           count: 0,
           startYear: Number.MAX_SAFE_INTEGER,
           endYear: Number.MIN_SAFE_INTEGER,
           speakers: [],
+          banner: `linear-gradient(
+            135deg, 
+            hsl(${hue}, 40%, 30%) 0%, 
+            hsl(${hue}, 40%, 60%) 100%
+            )`
         });
       }
       const currentStats = statsBySeriesId.get(seriesId);
@@ -174,7 +204,8 @@ export default function Seriess() {
             <div key={series.id} className="series-card">
               <div
                 className="series-banner"
-                // style={{ background: series.banner }}
+                style={{ background: statsBySeriesId.get(series.id)?.banner}}
+
               >
                 <span className="series-banner-title">{series.title}</span>
               </div>
@@ -183,20 +214,22 @@ export default function Seriess() {
                 <div className="series-meta-data">
 
                   {(statsBySeriesId.get(series.id)?.count ?? 0) != 1
-                    ? `${statsBySeriesId.get(series.id)?.count ?? 0} sermons`
-                    : `1 sermon`}
+                    ? `${statsBySeriesId.get(series.id)?.count ?? 0} Sermons`
+                    : `1 Sermon`}
 
-                  {` • series ID ${series.id}`}
+                  {` • Series ID ${series.id}`}
 
-                  {statsBySeriesId.get(series.id)?.startYear === statsBySeriesId.get(series.id)?.endYear
-                    ? ` • date ${statsBySeriesId.get(series.id)?.startYear ?? `unknown`}`
-                    : ` • date ${statsBySeriesId.get(series.id)?.startYear ?? `unknown`} - ${statsBySeriesId.get(series.id)?.endYear ?? `unknown`}`}
+                  {(statsBySeriesId.get(series.id)?.count ?? 0) == 0
+                    ? ``
+                    : statsBySeriesId.get(series.id)?.startYear === statsBySeriesId.get(series.id)?.endYear
+                      ? ` • Date ${statsBySeriesId.get(series.id)?.startYear ?? `Unknown`}`
+                      : ` • Date ${statsBySeriesId.get(series.id)?.startYear ?? `Unknown`} - ${statsBySeriesId.get(series.id)?.endYear ?? `Unknown`}`}
 
                   {statsBySeriesId.get(series.id)?.speakers.length === 0
-                    ? (` • no speakers`)
+                    ? (` • 0 Speakers`)
                     : statsBySeriesId.get(series.id)?.speakers.length === 1
                       ? (` • ${statsBySeriesId.get(series.id)?.speakers[0].lastName}`)
-                      : (` • multiple speakers`)}
+                      : (` • Multiple speakers`)}
                 </div>
               </div>
             </div>
@@ -211,4 +244,11 @@ export default function Seriess() {
       </MainLayout>
     );
   }
+}
+
+//function to create a hue based on the series id and title
+export function seriesHue(sId: number, sTitle : string): number {
+	const digest = sId + sTitle;
+	const hue = MurmurHash3(digest).result() % 360;
+	return hue;
 }
