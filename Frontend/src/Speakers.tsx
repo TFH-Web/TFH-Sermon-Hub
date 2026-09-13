@@ -4,7 +4,6 @@ import SpeakerCard from './components/SpeakerCard';
 import './Speakers.css';
 import MainLayout from '$/components/MainLayout';
 
-
 /* Temp data no longer utilized, delete if needed
 // temporary dummy data just for testing displaying speakers
 const speakers = [
@@ -38,26 +37,13 @@ type Speaker = {
 	sermoncount: number;
 };
 
-
 type SpeakerCardData = {
 	id: string;
 	name: string;
 	role: string;
-	sermonCount: number;
+	sermoncount: string;
 	color: string;
 };
-function fetchSpeakers() {
-	return useQuery<Speaker[]>({
-		queryKey: ['speakers'],
-		queryFn: async () => {
-			const response = await fetch ('/api/speakers');
-			if (!response.ok) 
-				throw new Error('Network response was not ok');
-			return response.json();
-		}
-	});
-}
-
 // Fetch speakers from the API
 function useSpeakers() {
 	return useQuery<Speaker[]>({
@@ -93,23 +79,6 @@ function GenSpeakerCard(speakers: Speaker[]): SpeakerCardData[] {
 // displays grid of SpeakerCard components from given list of speakers
 export default function Speakers() {
 	// Fetch speakers using React Query
-	const { data: speakers, isLoading, error } = fetchSpeakers();
-	
-	if (isLoading) {
-		return ( 
-			<MainLayout title="Speakers">
-				<div>Loading speakers...</div>
-			</MainLayout> 
-		);
-	}
-	if (error) {
-		return (
-			<MainLayout title="Speakers">
-				<div>Error loading speakers: {error.message}</div>
-			</MainLayout>
-		);
-	}
-	
 	const { data: speakers, isLoading, error } = useSpeakers();
 	// Loading, error, and empty states, and rendering the speaker cards
 	if (isLoading) {
