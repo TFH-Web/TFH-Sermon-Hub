@@ -81,7 +81,7 @@ export default function Seriess() {
 		seriess = [];
 		return (
 			<MainLayout title="Series" className="Series">
-				<h1>Error! Series Not Found!</h1>
+				<h1>Error!</h1>
 			</MainLayout>
 		);
 	}
@@ -90,7 +90,7 @@ export default function Seriess() {
 		setSermons([]);
 		return (
 			<MainLayout title="Series" className="Series">
-				<h1>Error! Sermon Data Not Found!</h1>
+				<h1>Error!</h1>
 			</MainLayout>
 		);
 	}
@@ -99,7 +99,7 @@ export default function Seriess() {
 	if (seriesQuery.isPending || sermonQuery.isPending)
 		return (
 			<MainLayout title="Series" className="Series">
-				<h1>Loading Series...</h1>
+				<h1>Loading...</h1>
 			</MainLayout>
 		);
 
