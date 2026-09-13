@@ -4,7 +4,7 @@ import NewSeriesModal from "$/modals/NewSeriesModal";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { Series } from "$/types/series";
-import { Sermon } from '$/types/sermon';
+import { Sermon } from "$/types/sermon";
 import "./Series.css";
 
 // Mock data for sermon series, each series will have a unique gradient color for the banner
@@ -46,9 +46,7 @@ import "./Series.css";
 // 	},
 // ];
 
-
-let seriess : Series[];
-// const [seriess, setSeriess] = useState<Sermon[]>([]);
+let seriess: Series[]; //stores all officially recognized series into an array
 
 // Component to display the list of sermon series
 export default function Seriess() {
@@ -59,17 +57,16 @@ export default function Seriess() {
     queryKey: ["series"],
     queryFn: async () => {
       const res = await axios.get("/api/series");
-      seriess = await Series.array().parseAsync(res.data);
+      seriess = await Series.array().parseAsync(res.data); //stores queried data into seriess
       return seriess;
     },
   });
 
-
-  const [sermons, setSermons] = useState<Sermon[]>([]);
+  const [sermons, setSermons] = useState<Sermon[]>([]); //using useState in order to use forEach loop
 
   //querying for sermon data (id, title, videoLink, duration, date, description, tags, transcript, summary, speaker, series, status)
   const sermonQuery = useQuery({
-    queryKey: ["series"],
+    queryKey: ["sermons"],
     queryFn: async () => {
       const res = await axios.get("/api/sermons");
       setSermons(await Sermon.array().parseAsync(res.data));
@@ -104,175 +101,106 @@ export default function Seriess() {
       </MainLayout>
     );
 
-
-
-
-  // //getting stats for each series in one pass
-  // //create type to store stats
+  //create type to store stats
   type SeriesStats = {
     count: number;
     startYear: number;
     endYear: number;
     speakers: number[];
-  }
-  
+  };
 
+  const statsBySeriesId = new Map<number, SeriesStats>();
 
-const statsBySeriesId = new Map<number, SeriesStats>();
-  
-if (seriesQuery.isSuccess && sermonQuery.isSuccess) {
-  //map stats with key corresponding to series.id
-  sermons.forEach((sermon : Sermon) => {
-    const seriesId = (sermon.series?.id as number);
-    const currentStats = statsBySeriesId.get(seriesId);
+  //now that we have both the series and sermon data, we can display the page
+  if (seriesQuery.isSuccess && sermonQuery.isSuccess) {
+    // console.log("setting up stats");
+    //mapping stats for each series in one pass corresponding to series.id
+    console.log(`looking through ${sermons.length} sermons`);
+    sermons.forEach((sermon: Sermon) => {
+      let seriesId = sermon.series?.id as number;
 
-    if (currentStats) {
-      currentStats.count++;
-      currentStats.startYear = Math.min(currentStats.startYear, sermon.date.getFullYear());
-      currentStats.endYear = Math.min(currentStats.startYear, sermon.date.getFullYear());
-      if (!currentStats.speakers.includes(sermon.speaker.id)) {
-        currentStats.speakers.push(sermon.speaker.id);
+      if (seriesId == undefined) {
+        seriesId = -1; //if no series, then use -1 for ungrouped sermons
       }
-    }
+
+      //create new key if this is the first time adding to a series
+      if (!statsBySeriesId.has(seriesId)) {
+        console.log(`new series: ${seriesId}`);
+        statsBySeriesId.set(seriesId, {
+          count: 0,
+          startYear: sermon.date.getFullYear(),
+          endYear: sermon.date.getFullYear(),
+          speakers: [],
+        });
+      }
+      const currentStats = statsBySeriesId.get(seriesId);
+
+      if (currentStats) {
+        currentStats.count++;
+        currentStats.startYear = Math.min(
+          currentStats.startYear,
+          sermon.date.getFullYear(),
+        );
+        currentStats.endYear = Math.max(
+          currentStats.endYear,
+          sermon.date.getFullYear(),
+        );
+        if (!currentStats.speakers.includes(sermon.speaker.id)) {
+          currentStats.speakers.push(sermon.speaker.id);
+        }
+      }
+    });
+
+    // console.log("loading main series page");
+    return (
+      <MainLayout title="Series">
+        {/* Top Right New Series Button */}
+        <div className="series-header">
+          {/* Title for page */}
+          <p className="series-section-title">Sermon Series</p>
+          {/* Wired up NewSeriesModal from TFH-299 */}
+          <button
+            type="button"
+            className="new-series-button"
+            onClick={() => setNewSeriesOpen(true)}
+          >
+            + New Series
+          </button>
+        </div>
+
+        <div className="series-grid">
+          {seriess.map((series) => (
+            <div key={series.id} className="series-card">
+              <div
+                className="series-banner"
+                // style={{ background: series.banner }}
+              >
+                <span className="series-banner-title">{series.title}</span>
+              </div>
+              <div className="series-info">
+                <div className="series-name">{series.title}</div>
+                <div className="series-meta-data">
+                  {(statsBySeriesId.get(series.id)?.count ?? 0) != 1
+                    ? `${statsBySeriesId.get(series.id)?.count ?? 0} sermons`
+                    : `1 sermon`}
+                  {` • series ID ${series.id}`}
+                  {` • `}
+                  {statsBySeriesId.get(series.id)?.startYear ==
+                  statsBySeriesId.get(series.id)?.endYear
+                    ? `date ${statsBySeriesId.get(series.id)?.startYear ?? `unknown`}`
+                    : `date ${statsBySeriesId.get(series.id)?.startYear ?? `unknown`} - ${statsBySeriesId.get(series.id)?.endYear ?? `unknown`}`}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* New Series Modal, opens when the New Series button is clicked */}
+        <NewSeriesModal
+          isOpen={newSeriesOpen}
+          onClose={() => setNewSeriesOpen(false)}
+        />
+      </MainLayout>
+    );
   }
-  );
-
-  return (
-     <MainLayout title="Series">
-      {/* Top Right New Series Button */}
-      <div className="series-header">
-        {/* Title for page */}
-        <p className="series-section-title">Sermon Series</p>
-        {/* Wired up NewSeriesModal from TFH-299 */}
-        <button
-          type="button"
-          className="new-series-button"
-          onClick={() => setNewSeriesOpen(true)}
-        >
-          + New Series
-        </button>
-      </div>
-
-      {/* Series List as a Grid */}
-      {/* <div className="series-grid">
-        {series.map((series) => (
-          <div key={series.title} className="series-card">
-            <div
-              className="series-banner"
-              style={{ background: series.banner }}
-            >
-              <span className="series-banner-title">{series.title}</span>
-            </div>
-            <div className="series-info">
-              <div className="series-name">{series.title}</div>
-              <div className="series-meta-data">
-                {series.sermonCount} sermons • {series.speaker} • {series.year}
-              </div>
-            </div>
-          </div>
-        ))} */}
-
-
-
-
-      <div className="series-grid">
-        {seriess.map((series) => (
-          <div key={series.id} className="series-card">
-            <div
-              className="series-banner"
-              // style={{ background: series.banner }}
-            >
-              <span className="series-banner-title">{series.title}</span>
-            </div>
-            <div className="series-info">
-              <div className="series-name">{series.title}</div>
-              <div className="series-meta-data">
-                {statsBySeriesId.get(series.id)?.count ?? 0} sermons • sermon ID {series.id} 
-                </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-                {/* • {statsBySeriesId.get(series.id)?.startYear == statsBySeriesId.get(series.id)?.endYear ? statsBySeriesId.get(series.id)?.startYear : '${statsBySeriesId.get(series.id)?.startYear} - ${statsBySeriesId.get(series.id)?.endYear}'} */}
-
-
-
-      {/* New Series Modal, opens when the New Series button is clicked */}
-      <NewSeriesModal
-        isOpen={newSeriesOpen}
-        onClose={() => setNewSeriesOpen(false)}
-      />
-    </MainLayout>
-  )
-}
-
-  return (
-    <MainLayout title="Series">
-      {/* Top Right New Series Button */}
-      <div className="series-header">
-        {/* Title for page */}
-        <p className="series-section-title">Sermon Series</p>
-        {/* Wired up NewSeriesModal from TFH-299 */}
-        <button
-          type="button"
-          className="new-series-button"
-          onClick={() => setNewSeriesOpen(true)}
-        >
-          + New Series
-        </button>
-      </div>
-
-      {/* Series List as a Grid */}
-      {/* <div className="series-grid">
-        {series.map((series) => (
-          <div key={series.title} className="series-card">
-            <div
-              className="series-banner"
-              style={{ background: series.banner }}
-            >
-              <span className="series-banner-title">{series.title}</span>
-            </div>
-            <div className="series-info">
-              <div className="series-name">{series.title}</div>
-              <div className="series-meta-data">
-                {series.sermonCount} sermons • {series.speaker} • {series.year}
-              </div>
-            </div>
-          </div>
-        ))} */}
-
-
-
-
-      <div className="series-grid">
-        {seriess.map((series) => (
-          <div key={series.id} className="series-card">
-            <div
-              className="series-banner"
-              // style={{ background: series.banner }}
-            >
-              <span className="series-banner-title">{series.title}</span>
-            </div>
-            <div className="series-info">
-              <div className="series-name">{series.title}</div>
-              <div className="series-meta-data">
-                {statsBySeriesId.get(series.id)?.count ?? 0} sermons • sermon ID {series.id} 
-                </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-                {/* • {statsBySeriesId.get(series.id)?.startYear == statsBySeriesId.get(series.id)?.endYear ? statsBySeriesId.get(series.id)?.startYear : '${statsBySeriesId.get(series.id)?.startYear} - ${statsBySeriesId.get(series.id)?.endYear}'} */}
-
-
-
-      {/* New Series Modal, opens when the New Series button is clicked */}
-      <NewSeriesModal
-        isOpen={newSeriesOpen}
-        onClose={() => setNewSeriesOpen(false)}
-      />
-    </MainLayout>
-  );
 }
