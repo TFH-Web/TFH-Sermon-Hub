@@ -9,45 +9,6 @@ import { Sermon } from '$/types/sermon';
 import type { Speaker } from '$/types/speaker';
 import './Series.css';
 
-// Mock data for sermon series, each series will have a unique gradient color for the banner
-// const series = [
-// 	{
-// 		title: 'A Life of Freedom',
-// 		speaker: 'Multiple Speakers',
-// 		year: 2026,
-// 		sermonCount: 2,
-// 		banner: 'linear-gradient(135deg, #4a6741 0%, #3a5232 100%)',
-// 	},
-// 	{
-// 		title: 'A Study in the Book of Philippians',
-// 		speaker: 'Multiple Speakers',
-// 		year: 2026,
-// 		sermonCount: 5,
-// 		banner: 'linear-gradient(135deg, #1e2f40 0%, #162430 100%)',
-// 	},
-// 	{
-// 		title: 'New Ground',
-// 		speaker: 'Dave Patterson',
-// 		year: 2026,
-// 		sermonCount: 2,
-// 		banner: 'linear-gradient(135deg, #7a6030 0%, #5e4920 100%)',
-// 	},
-// 	{
-// 		title: 'I Can Relate',
-// 		speaker: 'Dave Patterson',
-// 		year: 2025,
-// 		sermonCount: 2,
-// 		banner: 'linear-gradient(135deg, #3d5c3a 0%, #2d4529 100%)',
-// 	},
-// 	{
-// 		title: 'New Testament Believer',
-// 		speaker: 'Dave Patterson',
-// 		year: 2025,
-// 		sermonCount: 1,
-// 		banner: 'linear-gradient(135deg, #5b4a7a 0%, #46385f 100%)',
-// 	},
-// ];
-
 let seriess: Series[]; //stores all officially recognized series into an array
 
 // Component to display the list of sermon series
