@@ -1,11 +1,9 @@
-<<<<<<< HEAD
-=======
-// import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query'; // React Query for data fetching
->>>>>>> 0a7c1d6 (Fetch the speaker list from the backend and show it)
+import { useQuery } from '@tanstack/react-query';
+import MurmurHash3 from 'imurmurhash';
 import SpeakerCard from './components/SpeakerCard';
 import './Speakers.css';
 import MainLayout from '$/components/MainLayout';
+
 
 /* Temp data no longer utilized, delete if needed
 // temporary dummy data just for testing displaying speakers
@@ -31,27 +29,15 @@ const speakers = [
 		color: 'orange',
 		id: '3',
 	},
-	{
-		name: 'Tosha Zwanziger',
-		role: 'Guest Speaker',
-		sermoncount: '1',
-		color: 'green',
-		id: '4',
-	},
-	{
-		name: 'Rich Harris',
-		role: 'Guest Speaker',
-		sermoncount: '1',
-		color: 'blue',
-		id: '5',
-	},
 ];
 */ // Fetch Data
 type Speaker = {
 	id: string;
 	firstName: string;
 	lastName: string;
-}
+	sermoncount: number;
+};
+
 
 type SpeakerCardData = {
 	id: string;
@@ -68,19 +54,40 @@ function fetchSpeakers() {
 			if (!response.ok) 
 				throw new Error('Network response was not ok');
 			return response.json();
+		}
+	});
+}
+
+// Fetch speakers from the API
+function useSpeakers() {
+	return useQuery<Speaker[]>({
+		queryKey: ['speakers'],
+		queryFn: async () => {
+			const response = await fetch('/api/speakers');
+			if (!response.ok) throw new Error('Network response was not ok');
+			return response.json();
 		},
 	});
 }
 
+// Generate SpeakerCards from Speaker data
 function GenSpeakerCard(speakers: Speaker[]): SpeakerCardData[] {
-	return speakers.map(speaker => ({
-		id: speaker.id,
-		name: `${speaker.firstName} ${speaker.lastName}`,
-		// Default values that can be replaced by actual data if available
-		role: 'Speaker',
-		sermonCount: 0,
-		color: 'blue',
-	}));
+	return speakers.map(speaker => {
+		//Combine first and last name
+		const fullName = `${speaker.firstName} ${speaker.lastName}`;
+
+		// Same hashing approach as userHue() in user.ts
+		const digest = speaker.id + fullName;
+		const hue = MurmurHash3(digest).result() % 360;
+
+		return {
+			id: speaker.id,
+			name: fullName,
+			role: 'Speaker',
+			sermoncount: String(speaker.sermoncount),
+			color: `hsl(${hue}, 70%, 50%)`,
+		};
+	});
 }
 
 // displays grid of SpeakerCard components from given list of speakers
@@ -103,16 +110,38 @@ export default function Speakers() {
 		);
 	}
 	
+	const { data: speakers, isLoading, error } = useSpeakers();
+	// Loading, error, and empty states, and rendering the speaker cards
+	if (isLoading) {
+		return (
+			<MainLayout title="Speakers">
+				<div className="speaker-grid">Loading speakers...</div>
+			</MainLayout>
+		);
+	}
+
+	if (error) {
+		return (
+			<MainLayout title="Speakers">
+				<div className="speaker-grid">Unable to load speakers.</div>
+			</MainLayout>
+		);
+	}
+
+	if (!speakers || speakers.length === 0) {
+		return (
+			<MainLayout title="Speakers">
+				<div className="speaker-grid">No speakers found.</div>
+			</MainLayout>
+		);
+	}
+
 	const speakerCards = GenSpeakerCard(speakers);
 
 	return (
 		<MainLayout title="Speakers">
 			<div className="speaker-grid">
-<<<<<<< HEAD
-				{speakers.map(speaker => (
-=======
 				{speakerCards.map(speaker => (
->>>>>>> 0a7c1d6 (Fetch the speaker list from the backend and show it)
 					<SpeakerCard key={speaker.id} speaker={speaker} />
 				))}
 			</div>
