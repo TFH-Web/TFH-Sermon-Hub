@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { Series } from "$/types/series";
 import { Sermon } from "$/types/sermon";
+import { Speaker } from "$/types/speaker";
 import "./Series.css";
 
 // Mock data for sermon series, each series will have a unique gradient color for the banner
@@ -106,7 +107,7 @@ export default function Seriess() {
     count: number;
     startYear: number;
     endYear: number;
-    speakers: number[];
+    speakers: Speaker[];
   };
 
   const statsBySeriesId = new Map<number, SeriesStats>();
@@ -128,8 +129,8 @@ export default function Seriess() {
         console.log(`new series: ${seriesId}`);
         statsBySeriesId.set(seriesId, {
           count: 0,
-          startYear: sermon.date.getFullYear(),
-          endYear: sermon.date.getFullYear(),
+          startYear: Number.MAX_SAFE_INTEGER,
+          endYear: Number.MIN_SAFE_INTEGER,
           speakers: [],
         });
       }
@@ -145,8 +146,8 @@ export default function Seriess() {
           currentStats.endYear,
           sermon.date.getFullYear(),
         );
-        if (!currentStats.speakers.includes(sermon.speaker.id)) {
-          currentStats.speakers.push(sermon.speaker.id);
+        if (!currentStats.speakers.includes(sermon.speaker)) {
+          currentStats.speakers.push(sermon.speaker);
         }
       }
     });
@@ -180,15 +181,22 @@ export default function Seriess() {
               <div className="series-info">
                 <div className="series-name">{series.title}</div>
                 <div className="series-meta-data">
+
                   {(statsBySeriesId.get(series.id)?.count ?? 0) != 1
                     ? `${statsBySeriesId.get(series.id)?.count ?? 0} sermons`
                     : `1 sermon`}
+
                   {` • series ID ${series.id}`}
-                  {` • `}
-                  {statsBySeriesId.get(series.id)?.startYear ==
-                  statsBySeriesId.get(series.id)?.endYear
-                    ? `date ${statsBySeriesId.get(series.id)?.startYear ?? `unknown`}`
-                    : `date ${statsBySeriesId.get(series.id)?.startYear ?? `unknown`} - ${statsBySeriesId.get(series.id)?.endYear ?? `unknown`}`}
+
+                  {statsBySeriesId.get(series.id)?.startYear === statsBySeriesId.get(series.id)?.endYear
+                    ? ` • date ${statsBySeriesId.get(series.id)?.startYear ?? `unknown`}`
+                    : ` • date ${statsBySeriesId.get(series.id)?.startYear ?? `unknown`} - ${statsBySeriesId.get(series.id)?.endYear ?? `unknown`}`}
+
+                  {statsBySeriesId.get(series.id)?.speakers.length === 0
+                    ? (` • no speakers`)
+                    : statsBySeriesId.get(series.id)?.speakers.length === 1
+                      ? (` • ${statsBySeriesId.get(series.id)?.speakers[0].lastName}`)
+                      : (` • multiple speakers`)}
                 </div>
               </div>
             </div>
