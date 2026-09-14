@@ -22,13 +22,6 @@ interface Filters {
 	seriesID: number | null;
 }
 
-interface Filters {
-	status: Status | null;
-	topic: Topic | null;
-	speaker: Speaker | null;
-	series: Series | null;
-}
-
 const sortCategories = ['Newest', 'Oldest', 'Relevance'] as const;
 type SortCategory = (typeof sortCategories)[number];
 
