@@ -272,6 +272,28 @@ def test_sermon_schema_load_null_series():
     assert sermon.status == UploadStatus.DRAFT
 
 
+def test_sermon_schema_load_missing_series():
+    data = {
+        "id": 3,
+        "title": "No Series Key",
+        "videoLink": "https://youtu.be/noseries",
+        "duration": 1200,
+        "date": "2026-02-08",
+        "description": "Sermon sent without a series field",
+        "tags": [],
+        "speaker": {
+            "id": 1,
+            "firstName": "Dave",
+            "lastName": "Patterson",
+            "role": "Lead Speaker",
+        },
+        "status": "Draft",
+    }
+    sermon = sermon_schema.load(data)
+    assert sermon.series is None
+    assert sermon.series_id is None
+
+
 def test_sermon_schema_validation():
     with pytest.raises(ValidationError) as exc_info:
         sermon_schema.load({"title": "Incomplete"})
