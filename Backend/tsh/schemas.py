@@ -92,8 +92,11 @@ class SermonSchema(CamelCaseSchema):
 
     @post_load
     def make_sermon(self, data, **kwargs) -> Sermon:
+        data.setdefault('transcript', None)
+        data.setdefault('summary', None)
+        data.setdefault('series', None)
         data['speaker_id'] = data['speaker'].id
-        data['series_id'] = data['series'] and data['series'].id or None
+        data['series_id'] = data['series'].id if data['series'] else None
         return Sermon(**data)
 
 
