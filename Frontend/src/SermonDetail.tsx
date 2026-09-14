@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query'; // tool to ask the server for data or if its broken or still waiting
+import axios from 'axios'; // Sends the HTTP request to the backend
+import { useState } from 'react'; // Allows the page remember things that changed like if something was enabled or disabled
+
 import './SermonDetail.css';
 import { useNavigate, useParams } from 'react-router';
 import Button from '$/components/Button';
@@ -7,35 +10,26 @@ import FileUploadButton from '$/components/FileUploadButton.tsx';
 import MainLayout from '$/components/MainLayout';
 import Tag from '$/components/Tag.tsx';
 import { useToast } from '$/components/ToastContext.tsx';
-import { sermons } from '$/data/sermons.ts';
 import DeleteSermonModal from '$/modals/DeleteSermonModal.tsx';
 import EditSermonModal from '$/modals/EditSermonModal.tsx';
-import { durationToString } from '$/types/sermon';
+import { durationToString, Sermon } from '$/types/sermon';
 import { getFullName } from '$/types/speaker.ts';
 
-// TODO: Add missing fields to sermon type when we're integrating w/ backend
+// TODO(Sprint 6): seriesIndex and seriesTotal are the only two things on this page that backend cannot give us.
+// The database has no column saying which number a sermon is inside its series, so we still fake those two.
 const mockSermon = {
 	seriesIndex: 4,
 	seriesTotal: 6,
-	videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-	transcriptStatus: 'Generated',
-	summaryStatus: 'Generated',
 };
 
-// TODO: add transcript to sermon type when we're integrating w/ backend
-const mockTranscript = [
-	"Good morning everyone. I'm so glad you're here today. We're continuing our series \"Live Your Best Life\" and today we're talking about something that is at the foundation of everything — grace.",
-	"A lot of people misunderstand what grace really means. It's not just a theological concept. Grace is the operating system of the Kingdom of God.",
-	'Let me read from Ephesians 2:8-9. "For it is by grace you have been saved, through faith — and this is not from yourselves, it is the gift of God."',
-	'Three things about living under grace: grace is not earned, grace changes your identity, and grace empowers your purpose ...',
-];
-
-// TODO: add summary to sermon type when we're integrating w/ backend
-const mockSummary = [
-	'Pastor Dave Patterson explores grace as the foundation of Christian living.',
-	' The sermon covers three main points: grace cannot be earned, grace transforms identity, and grace empowers believers to fulfill their purpose. ',
-	'Drawing from Ephesians 2:8-9, Patterson emphasizes that understanding grace should change how we relate to God and each other.',
-];
+// The server sends the transcript and summary as one long piece of text, but the page shows separate paragraphs.
+// A blank line is the only thing marking where a paragraph ends, so split on those and throw away the empty pieces.
+function toParagraphs(text: string) {
+	return text
+		.split(/\n\s*\n/)
+		.map(paragraph => paragraph.trim())
+		.filter(paragraph => paragraph.length > 0);
+}
 
 function highlightKeywords(text: string, keywords: string[]) {
 	const escaped = keywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
@@ -60,20 +54,72 @@ function highlightKeywords(text: string, keywords: string[]) {
 	});
 }
 
-export default function SermonDetail() {
-	const { showToast } = useToast();
-	const [_transcript, setTranscript] = useState('');
-	const [_summary, setSummary] = useState(mockSummary.join(' '));
-	const { id } = useParams();
-	const sermon = sermons.find(s => s.id.toString() === id);
-	const [isEditingSummary, setIsEditingSummary] = useState(false);
-	const [editSermonOpen, setEditSermonOpen] = useState(false);
-	const [deleteSermonOpen, setDeleteSermonOpen] = useState(false);
-	const navigate = useNavigate();
+// A 404 from the server means "no sermon has that id". We treat that differently from a real failure.
+function isNotFound(error: unknown): boolean {
+	return axios.isAxiosError(error) && error.response?.status === 404;
+}
 
-	if (!sermon) {
-		throw new Error('Not found');
+export default function SermonDetail() {
+	const { showToast } = useToast(); // let's up pop up a little message at the corner of the screen
+	const [_transcript, setTranscript] = useState(''); // remembers a transcript the user uploads from their computer
+
+	const [_summary, setSummary] = useState<string | null>(null); // Starts as nothing. It only holds text once the user types their own summary.
+
+	const { id } = useParams(); // reads the number of the web address, so /sermons/5 gives us 5
+	const [isEditingSummary, setIsEditingSummary] = useState(false); // Remembers if the summary edit box is open
+	const [editSermonOpen, setEditSermonOpen] = useState(false); //	Remembers if the Edit popup is open
+	const [deleteSermonOpen, setDeleteSermonOpen] = useState(false); // Remembers if the Delete popup is open
+	const navigate = useNavigate(); // Lets us send the user to a different page
+
+	// What it does: go ask the server for this one sermon's information
+	const query = useQuery({
+		// Cache label. The id is included so each sermon is stored separately and not get mixed up
+		queryKey: ['sermon', id],
+		queryFn: async () => {
+			// Ask the server: "give me the sermon with this number"
+			const res = await axios.get(`/api/sermons/${id}`);
+			// Make sure the server sent what we expect, and turn its date text into a real date the page can display
+			return await Sermon.parseAsync(res.data);
+		},
+		// A sermon that does not exist will still not exist on the third try, so only keep trying for real failures like the server being down.
+		retry: (failureCount, error) => !isNotFound(error) && failureCount < 3,
+	});
+
+	// The server takes a moment to answer. Until it is done, show a loading message instead of crashing
+	if (query.isPending) {
+		return <MainLayout title="Sermon">Loading...</MainLayout>;
 	}
+
+	// Handled here rather than thrown, so the app-wide error screen in main.tsx does not take over and blank out the whole page.
+	if (isNotFound(query.error)) {
+		return (
+			<MainLayout title="Sermon not found">
+				<button
+					type="button"
+					className="SermonDetail-back"
+					onClick={() => navigate('/sermons')}
+				>
+					← Back to Sermons
+				</button>
+				<p>There is no sermon with that id {id}.</p>
+			</MainLayout>
+		);
+	}
+
+	// If the server never answered, or send back something broken, say error instead of an empty page
+	if (query.isError) {
+		return <MainLayout title="Sermon">Could not load this sermon.</MainLayout>;
+	}
+
+	// We got the sermon data.
+	const sermon = query.data;
+
+	// The server sends one long block of text. Cut it into separate paragraphs so the page can show them one under the other.
+	// If the sermon has no transcript or summary saved, we end up with nothing to show.
+	const transcriptParagraphs = sermon.transcript
+		? toParagraphs(sermon.transcript)
+		: [];
+	const summaryParagraphs = sermon.summary ? toParagraphs(sermon.summary) : [];
 
 	return (
 		<MainLayout title={sermon.title}>
@@ -169,14 +215,24 @@ export default function SermonDetail() {
 					</div>
 
 					<div className="SermonDetail-transcript-container">
-						{mockTranscript.map(paragraph => (
-							<p key={paragraph} className="SermonDetail-transcript-paragraph">
-								{highlightKeywords(
-									paragraph,
-									sermon.tags.map(t => t.name),
-								)}
+						{/* Some Sermons have no transcript saved yet. Show a short message instead of leaving it empty grey box. */}
+						{transcriptParagraphs.length > 0 ? (
+							transcriptParagraphs.map(paragraph => (
+								<p
+									key={paragraph}
+									className="SermonDetail-transcript-paragraph"
+								>
+									{highlightKeywords(
+										paragraph,
+										sermon.tags.map(t => t.name),
+									)}
+								</p>
+							))
+						) : (
+							<p className="SermonDetail-transcript-paragraph">
+								No transcript yet. Upload one or generate it with AI.
 							</p>
-						))}
+						)}
 					</div>
 				</Card>
 
@@ -198,7 +254,18 @@ export default function SermonDetail() {
 						</div>
 					</div>
 					<div className="SermonDetail-summary-container">
-						<p className="SermonDetail-summary-paragraph">{mockSummary}</p>
+						{/* Same idea as the transcript. Say there is no summary rather than showing an empty panel. */}
+						{summaryParagraphs.length > 0 ? (
+							summaryParagraphs.map(paragraph => (
+								<p key={paragraph} className="SermonDetail-summary-paragraph">
+									{paragraph}
+								</p>
+							))
+						) : (
+							<p className="SermonDetail-summary-paragraph">
+								No summary yet. Generate one with AI.
+							</p>
+						)}
 					</div>
 					<div className="SermonDetail-summary-edit-container">
 						{isEditingSummary ? (
@@ -212,7 +279,7 @@ export default function SermonDetail() {
 								</Button>
 								<textarea
 									className="SermonDetail-summary-textarea"
-									value={_summary}
+									value={_summary ?? sermon.summary ?? ''}
 									onChange={e => setSummary(e.target.value)}
 								/>
 							</div>
@@ -264,25 +331,37 @@ export default function SermonDetail() {
 						</span>
 
 						<span className="SermonDetail-metadata-label">Video</span>
+						{/* The real video address from the server, shown without the https:// */}
 						<span className="SermonDetail-metadata-value">
 							<a
-								href={mockSermon.videoUrl}
+								href={sermon.videoLink}
 								target="_blank"
 								rel="noreferrer"
 								className="SermonDetail-metadata-link"
 							>
-								{mockSermon.videoUrl.replace('https://', '')}
+								{sermon.videoLink.replace('https://', '')}
 							</a>
 						</span>
 
 						<span className="SermonDetail-metadata-label">Transcript</span>
+						{/* Only say "Generated" if a transcript really exists.
+						Most sermons in the database do not have one yet. */}
 						<span className="SermonDetail-metadata-value">
-							<Tag variant="green">{mockSermon.transcriptStatus}</Tag>
+							{sermon.transcript ? (
+								<Tag variant="green">Generated</Tag>
+							) : (
+								<Tag variant="amber">Not generated</Tag>
+							)}
 						</span>
 
 						<span className="SermonDetail-metadata-label">Summary</span>
+						{/* Same idea for the summary */}
 						<span className="SermonDetail-metadata-value">
-							<Tag variant="green">{mockSermon.summaryStatus}</Tag>
+							{sermon.summary ? (
+								<Tag variant="green">Generated</Tag>
+							) : (
+								<Tag variant="amber">Not generated</Tag>
+							)}
 						</span>
 
 						<span className="SermonDetail-metadata-label">Tags</span>
