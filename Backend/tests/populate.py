@@ -1,9 +1,11 @@
 from flask import Flask
 
+
 def populate(app: Flask):
-    from tsh.models import Series, Speaker, Tag, TagSource, Sermon, UploadStatus
-    from tsh.database import db
     from datetime import date
+
+    from tsh.database import db
+    from tsh.models import Series, Sermon, Speaker, Tag, TagSource, UploadStatus
 
     series_live_your_best_life = Series(id=None, title="Live Your Best Life")
     series_hope_rising = Series(id=None, title="Hope Rising")
@@ -19,15 +21,15 @@ def populate(app: Flask):
     )
 
     speaker_dave_patterson = Speaker(
-        id=None, first_name="Dave", last_name="Patterson"
+        id=None, first_name="Dave", last_name="Patterson", role="Lead Speaker"
     )
     db.session.add(speaker_dave_patterson)
 
-    tag_faith = Tag(name="faith", source=TagSource.AI)
-    tag_hope = Tag(name="hope", source=TagSource.AI)
-    tag_healing = Tag(name="healing", source=TagSource.AI)
-    tag_grace = Tag(name="grace", source=TagSource.AI)
-    tag_anxiety = Tag(name="anxiety", source=TagSource.MANUAL)
+    tag_faith = Tag(name="faith", source=TagSource.AI, sermons=[])
+    tag_hope = Tag(name="hope", source=TagSource.AI, sermons=[])
+    tag_healing = Tag(name="healing", source=TagSource.AI, sermons=[])
+    tag_grace = Tag(name="grace", source=TagSource.AI, sermons=[])
+    tag_anxiety = Tag(name="anxiety", source=TagSource.MANUAL, sermons=[])
     db.session.add_all([tag_faith, tag_hope, tag_healing, tag_grace, tag_anxiety])
 
     video_link = "https://youtu.be/asdfasdf"

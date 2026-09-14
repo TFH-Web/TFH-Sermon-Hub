@@ -6,13 +6,13 @@ import pytest
 
 
 @pytest.fixture()
-def app() -> Flask:
-    app = create_app("testing.cfg")
-    app.config.update(
-        {
+def app():
+    app = create_app(
+        "testing.cfg",
+        settings={
             "TESTING": True,
             "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
-        }
+        },
     )
 
     with app.app_context():

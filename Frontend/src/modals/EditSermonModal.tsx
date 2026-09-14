@@ -5,7 +5,8 @@ import FileUploadButton from '$/components/FileUploadButton';
 import { FormField, FormRow } from '$/components/FormField';
 import Modal from '$/components/Modal';
 import { useToast } from '$/components/ToastContext';
-import type { Sermon } from '../types/sermon';
+import type { Sermon } from '$/types/sermon';
+import { getFullName } from '$/types/speaker';
 
 interface EditSermonModalProps {
 	isOpen: boolean;
@@ -35,9 +36,9 @@ export default function EditSermonModal({
 	useEffect(() => {
 		if (sermon) {
 			setTitle(sermon.title);
-			setSpeaker(sermon.speaker);
-			setSeries(sermon.series ?? '');
-			setTags(sermon.tags.join(', '));
+			setSpeaker(getFullName(sermon.speaker));
+			setSeries(sermon.series?.title ?? '');
+			setTags(sermon.tags.map(t => t.name).join(', '));
 			setSeriesIndex('');
 			setDate('');
 			setVideoLink('');
