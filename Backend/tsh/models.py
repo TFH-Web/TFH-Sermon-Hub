@@ -32,7 +32,7 @@ class Speaker(db.Model):  # ty: ignore[unsupported-base]
     id: Mapped[intpk]
     first_name: Mapped[str64]
     last_name: Mapped[str64]
-    role: Mapped[str64]
+    role: Mapped[str64] = mapped_column(default='Guest Speaker')
     __table_args__ = (UniqueConstraint("first_name", "last_name"),)
 
 

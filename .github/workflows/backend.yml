@@ -38,5 +38,13 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
 
+      - name: Create test config
+        run: |
+          cat > tsh/testing.cfg << 'EOF'
+          SQLALCHEMY_DATABASE_URI="sqlite:///testing.db"
+          JWT_SECRET_KEY="ci-only-dummy-key-not-used-anywhere-real-0000000000000000000000"
+          JWT_ACCESS_TOKEN_EXPIRES="timedelta(hours=4)"
+          EOF
+
       - name: Run tests
         run: poetry run pytest

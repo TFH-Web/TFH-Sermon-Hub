@@ -7,16 +7,17 @@ from tsh.models import (
     Series,
     Sermon,
     Speaker,
-    Tag, sermon_tag_m2m,
+    Tag,
+    sermon_tag_m2m,
 )
 from tsh.schemas import (
+    counted_tags_schema,
     series_schema,
     seriess_schema,
     sermon_schema,
     sermons_schema,
     speaker_schema,
     speakers_schema,
-    tags_schema,
 )
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -31,7 +32,7 @@ def get_all_series():
 
 @api.route("/series/<int:id>")
 def get_series(id: int):
-    series = db.get_or_404(Series, id)
+    series = db.get_or_404(Series, id, description=f"Series with id {id} not found")
     result = series_schema.dump(series)
     return result
 
@@ -45,7 +46,7 @@ def get_speakers():
 
 @api.route("/speakers/<int:id>")
 def get_speaker(id: int):
-    speaker = db.get_or_404(Speaker, id)
+    speaker = db.get_or_404(Speaker, id, description=f"Speaker with id {id} not found")
     result = speaker_schema.dump(speaker)
     return result
 
@@ -59,7 +60,7 @@ def get_sermons():
 
 @api.route("/sermons/<int:id>")
 def get_sermon(id: int):
-    sermon = db.get_or_404(Sermon, id)
+    sermon = db.get_or_404(Sermon, id, description=f"Sermon with id {id} not found")
     result = sermon_schema.dump(sermon)
     return result
 
@@ -72,7 +73,7 @@ def get_tags():
         .group_by(Tag.name)
         .options(with_expression(Tag.count, func.count(Tag.name)))
     ).scalars()
-    result = tags_schema.dump(tags)
+    result = counted_tags_schema.dump(tags)
     return result
 
 

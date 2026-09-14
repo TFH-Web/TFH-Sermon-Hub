@@ -38,7 +38,7 @@ export default function EditSermonModal({
 			setTitle(sermon.title);
 			setSpeaker(getFullName(sermon.speaker));
 			setSeries(sermon.series?.title ?? '');
-			setTags(sermon.tags.join(', '));
+			setTags(sermon.tags.map(t => t.name).join(', '));
 			setSeriesIndex('');
 			setDate('');
 			setVideoLink('');

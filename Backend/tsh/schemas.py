@@ -69,7 +69,7 @@ class CountedTagSchema(CamelCaseSchema):
     @post_load
     def make_tag(self, data, **kwargs) -> Tag:
         data['sermons'] = []
-        return Tag(**{k: v for k, v in data if k != "count"})
+        return Tag(**{k: v for k, v in data.items() if k != "count"})
 
 
 counted_tag_schema = CountedTagSchema()
@@ -92,8 +92,11 @@ class SermonSchema(CamelCaseSchema):
 
     @post_load
     def make_sermon(self, data, **kwargs) -> Sermon:
+        data.setdefault('transcript', None)
+        data.setdefault('summary', None)
+        data.setdefault('series', None)
         data['speaker_id'] = data['speaker'].id
-        data['series_id'] = data['series'] and data['series'].id or None
+        data['series_id'] = data['series'].id if data['series'] else None
         return Sermon(**data)
 
 

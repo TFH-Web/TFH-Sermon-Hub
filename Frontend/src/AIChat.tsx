@@ -135,7 +135,7 @@ export default function AIChat() {
 	// biome-ignore lint/correctness/useExhaustiveDependencies: only reset conversation when the sermon context changes
 	useEffect(() => {
 		if (sermonId && sermonTitle && sermonSpeaker) {
-			const series = sermonSeries ?? canonicalSermon?.series ?? null;
+			const series = sermonSeries ?? canonicalSermon?.series?.title ?? null;
 			const snippet = sermonSnippet ?? null;
 			setMessages([
 				{
