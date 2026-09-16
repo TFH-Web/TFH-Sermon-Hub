@@ -27,6 +27,8 @@ import Settings from './Settings.tsx';
 import Speakers from './Speakers.tsx';
 import TagsAndMetadata from './TagsAndMetadata.tsx';
 import UserManagement from './UserManagement.tsx';
+import { MsalProvider } from "@azure/msal-react";
+import { msalInstance } from "./authConfig";
 
 function AppQueryProvider({ children }: PropsWithChildren) {
 	const { showToast } = useToast();
@@ -48,33 +50,33 @@ function AppQueryProvider({ children }: PropsWithChildren) {
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
 // biome-ignore lint/style/noNonNullAssertion: we'd want to throw anyways
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById('root')!).render(	
 	<StrictMode>
-		<ToastProvider>
-			<AppQueryProvider>
-				<BrowserRouter>
-					<ErrorBoundary
-						fallback={<MainLayout title="Error">Error!</MainLayout>}
-					>
-						<Routes>
-							<Route index element={<Dashboard />} />
-							<Route path="/login" element={<LoginPage />} />
-							<Route path="/sermons" element={<Sermons />} />
-							<Route path="/sermons/:id" element={<SermonDetail />} />
-							<Route path="/series" element={<Series />} />
-							<Route path="/speakers" element={<Speakers />} />
-							<Route path="/ai-search" element={<AISearch />} />
-							<Route path="/ai-search/results" element={<AISearchResults />} />
-							<Route path="/ai-chat" element={<AIChat />} />
-							<Route path="/upload" element={<ImportUpload />} />
-							<Route path="/tags" element={<TagsAndMetadata />} />
-							<Route path="/user-management" element={<UserManagement />} />
-							<Route path="/notifications" element={<Notifications />} />
-							<Route path="/settings" element={<Settings />} />
-						</Routes>
-					</ErrorBoundary>
-				</BrowserRouter>
-			</AppQueryProvider>
-		</ToastProvider>
-	</StrictMode>,
+		<MsalProvider instance={msalInstance}>
+			<ToastProvider>
+				<AppQueryProvider>
+					<BrowserRouter>
+						<ErrorBoundary fallback={<MainLayout title="Error">Error!</MainLayout>}	>
+							<Routes>
+								<Route index element={<Dashboard />} />
+								<Route path="/login" element={<LoginPage />} />
+								<Route path="/sermons" element={<Sermons />} />
+								<Route path="/sermons/:id" element={<SermonDetail />} />
+								<Route path="/series" element={<Series />} />
+								<Route path="/speakers" element={<Speakers />} />
+								<Route path="/ai-search" element={<AISearch />} />
+								<Route path="/ai-search/results" element={<AISearchResults />} />
+								<Route path="/ai-chat" element={<AIChat />} />
+								<Route path="/upload" element={<ImportUpload />} />
+								<Route path="/tags" element={<TagsAndMetadata />} />
+								<Route path="/user-management" element={<UserManagement />} />
+								<Route path="/notifications" element={<Notifications />} />
+								<Route path="/settings" element={<Settings />} />
+							</Routes>
+						</ErrorBoundary>
+					</BrowserRouter>
+				</AppQueryProvider>
+			</ToastProvider>
+		</MsalProvider>
+	</StrictMode>
 );
