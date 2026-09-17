@@ -25,8 +25,6 @@ def create_app(
     from tsh.database import db
     db.init_app(app)
 
-    from tsh.auth import jwt
-    jwt.init_app(app)
 
     @app.errorhandler(404)
     def handle_not_found(e):
