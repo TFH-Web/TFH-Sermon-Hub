@@ -7,7 +7,7 @@ import {
 	QueryClientProvider,
 } from '@tanstack/react-query';
 import axios from 'axios';
-import { StrictMode } from 'react';
+import { type PropsWithChildren, StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ErrorBoundary } from 'react-error-boundary';
 import { BrowserRouter, Route, Routes } from 'react-router';
@@ -28,22 +28,30 @@ import Speakers from './Speakers.tsx';
 import TagsAndMetadata from './TagsAndMetadata.tsx';
 import UserManagement from './UserManagement.tsx';
 
-const queryClient = new QueryClient({
-	queryCache: new QueryCache({
-		onError: (error: Error) => {
-			const { showToast } = useToast();
-			showToast(`Something went wrong: ${error.message}`, 'error');
-		},
-	}),
-});
+function AppQueryProvider({ children }: PropsWithChildren) {
+	const { showToast } = useToast();
+	const [queryClient] = useState(
+		() =>
+			new QueryClient({
+				queryCache: new QueryCache({
+					onError: (error: Error) => {
+						showToast(`Something went wrong: ${error.message}`, 'error');
+					},
+				}),
+			}),
+	);
+	return (
+		<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+	);
+}
 
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
 // biome-ignore lint/style/noNonNullAssertion: we'd want to throw anyways
 createRoot(document.getElementById('root')!).render(
 	<StrictMode>
-		<QueryClientProvider client={queryClient}>
-			<ToastProvider>
+		<ToastProvider>
+			<AppQueryProvider>
 				<BrowserRouter>
 					<ErrorBoundary
 						fallback={<MainLayout title="Error">Error!</MainLayout>}
@@ -66,7 +74,7 @@ createRoot(document.getElementById('root')!).render(
 						</Routes>
 					</ErrorBoundary>
 				</BrowserRouter>
-			</ToastProvider>
-		</QueryClientProvider>
+			</AppQueryProvider>
+		</ToastProvider>
 	</StrictMode>,
 );

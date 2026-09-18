@@ -9,8 +9,6 @@ import { Sermon } from '$/types/sermon';
 import type { Speaker } from '$/types/speaker';
 import './Series.css';
 
-let seriess: Series[]; //stores all officially recognized series into an array
-
 // Component to display the list of sermon series
 export default function Seriess() {
 	const [newSeriesOpen, setNewSeriesOpen] = useState(false);
@@ -20,26 +18,21 @@ export default function Seriess() {
 		queryKey: ['series'],
 		queryFn: async () => {
 			const res = await axios.get('/api/series');
-			seriess = await Series.array().parseAsync(res.data); //stores queried data into seriess
-			return seriess;
+			return Series.array().parseAsync(res.data);
 		},
 	});
-
-	const [sermons, setSermons] = useState<Sermon[]>([]); //using useState in order to use forEach loop
 
 	//querying for sermon data (id, title, videoLink, duration, date, description, tags, transcript, summary, speaker, series, status)
 	const sermonQuery = useQuery({
 		queryKey: ['sermons'],
 		queryFn: async () => {
 			const res = await axios.get('/api/sermons');
-			setSermons(await Sermon.array().parseAsync(res.data));
-			return sermons;
+			return Sermon.array().parseAsync(res.data);
 		},
 	});
 
 	// TODO: error state at error
 	if (seriesQuery.isError) {
-		seriess = [];
 		return (
 			<MainLayout title="Series" className="Series">
 				<h1>Error!</h1>
@@ -48,7 +41,6 @@ export default function Seriess() {
 	}
 
 	if (sermonQuery.isError) {
-		setSermons([]);
 		return (
 			<MainLayout title="Series" className="Series">
 				<h1>Error!</h1>
@@ -63,6 +55,9 @@ export default function Seriess() {
 				<h1>Loading...</h1>
 			</MainLayout>
 		);
+
+	const seriess = seriesQuery.data;
+	const sermons = sermonQuery.data;
 
 	//create type to store stats
 	type SeriesStats = {
