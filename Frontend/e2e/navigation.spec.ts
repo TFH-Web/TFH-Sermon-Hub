@@ -1,5 +1,22 @@
 import { devices, expect, test } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+	await page.route('**/api/*', route => {
+		const url = new URL(route.request().url());
+		const json =
+			url.pathname === '/api/sermons' && url.searchParams.has('page')
+				? {
+						items: [],
+						total: 0,
+						page: Number(url.searchParams.get('page')),
+						pageSize: 9,
+						totalPages: 0,
+					}
+				: [];
+		return route.fulfill({ json });
+	});
+});
+
 test('navigation works', async ({ page }) => {
 	await page.goto('/');
 
@@ -51,7 +68,9 @@ test('sidebar controls work on mobile', async ({ page }) => {
 		await expect(getSidebar()).not.toBeInViewport();
 
 		await page.getByTestId('sidebar-toggle-label').click();
-		await page.getByTestId('sidebar-backdrop').click();
+		await page.getByTestId('sidebar-backdrop').click({
+			position: { x: devices['iPhone XR'].viewport.width - 10, y: 10 },
+		});
 		await expect(getSidebar()).not.toBeInViewport();
 	});
 });
