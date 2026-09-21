@@ -1,0 +1,19 @@
+.Pagination {
+	display: flex;
+	gap: 1rem;
+	align-items: center;
+	justify-content: center;
+	margin-block: 2rem 1rem;
+}
+
+.Pagination-feedback {
+	font-size: 0.9rem;
+	font-weight: 500;
+	color: var(--cl-foreground);
+	user-select: none;
+}
+
+.Pagination-button:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}

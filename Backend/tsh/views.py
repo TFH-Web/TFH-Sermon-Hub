@@ -1,5 +1,6 @@
+import math
 from flask import Blueprint, request
-from sqlalchemy import func
+from sqlalchemy import false, func
 from sqlalchemy.orm import with_expression
 
 from tsh.database import db
@@ -8,6 +9,7 @@ from tsh.models import (
     Sermon,
     Speaker,
     Tag,
+    UploadStatus,
     sermon_tag_m2m,
 )
 from tsh.schemas import (
@@ -53,9 +55,146 @@ def get_speaker(id: int):
 
 @api.route("/sermons")
 def get_sermons():
-    sermons = db.session.execute(db.select(Sermon)).scalars()
-    result = sermons_schema.dump(sermons)
-    return result
+    query = db.select(Sermon)
+
+    # 1. Status filter
+    status_param = request.args.get("status", "").strip()
+    if status_param and status_param.lower() != "all":
+        matching_status = next(
+            (
+                s
+                for s in UploadStatus
+                if s.value.lower() == status_param.lower()
+                or s.name.lower() == status_param.lower()
+            ),
+            None,
+        )
+        if matching_status:
+            query = query.where(Sermon.status == matching_status)
+        else:
+            query = query.where(false())
+
+    # 2. Tag / topic filter (topics correspond to tags, identified by name)
+    # Uses EXISTS subquery to prevent sermon duplication and keep counts accurate
+    topic_param = (request.args.get("topic") or request.args.get("tag") or "").strip()
+    if topic_param and topic_param.lower() != "all":
+        query = query.where(
+            Sermon.tags.any(func.lower(Tag.name) == topic_param.lower())
+        )
+
+    # 3. Speaker filter (by ID or full name)
+    speaker_param = (
+        request.args.get("speaker_id")
+        or request.args.get("speakerId")
+        or request.args.get("speaker")
+        or ""
+    ).strip()
+    if speaker_param and speaker_param.lower() not in ("all", "all speakers"):
+        if speaker_param.isdigit():
+            query = query.where(Sermon.speaker_id == int(speaker_param))
+        else:
+            query = query.where(
+                Sermon.speaker.has(
+                    func.lower(Speaker.first_name + " " + Speaker.last_name)
+                    == speaker_param.lower()
+                )
+            )
+
+    # 4. Series filter (by ID or title)
+    series_param = (
+        request.args.get("series_id")
+        or request.args.get("seriesId")
+        or request.args.get("series")
+        or ""
+    ).strip()
+    if series_param and series_param.lower() not in ("all", "all series"):
+        if series_param.isdigit():
+            query = query.where(Sermon.series_id == int(series_param))
+        else:
+            query = query.where(
+                Sermon.series.has(
+                    func.lower(Series.title) == series_param.lower()
+                )
+            )
+
+    # 5. Sorting: "Newest" (default), "Oldest", and "Relevance" (behaves as Newest)
+    # Sermon ID is used as secondary tie-breaker to ensure stable ordering
+    sort_param = request.args.get("sort", "Newest").strip().lower()
+    if sort_param == "oldest":
+        query = query.order_by(Sermon.date.asc(), Sermon.id.asc())
+    else:
+        query = query.order_by(Sermon.date.desc(), Sermon.id.desc())
+
+    # 6. Opt-in pagination
+    page_param = request.args.get("page")
+    page_size_param = (
+        request.args.get("pageSize")
+        or request.args.get("page_size")
+        or request.args.get("per_page")
+    )
+
+    if page_param is None:
+        # Legacy mode: return complete unpaginated array
+        sermons = db.session.execute(query).scalars().all()
+        return sermons_schema.dump(sermons)
+
+    # Validate page parameter
+    try:
+        page = int(page_param)
+        if page < 1:
+            return {
+                "error": "Page must be an integer greater than or equal to 1",
+                "message": "Page must be an integer greater than or equal to 1",
+            }, 400
+    except (ValueError, TypeError):
+        return {
+            "error": "Invalid page parameter",
+            "message": "Invalid page parameter",
+        }, 400
+
+    # Validate page_size parameter
+    page_size = 10
+    if page_size_param is not None:
+        try:
+            page_size = int(page_size_param)
+            if page_size < 1:
+                return {
+                    "error": "Page size must be an integer greater than or equal to 1",
+                    "message": "Page size must be an integer greater than or equal to 1",
+                }, 400
+            if page_size > 100:
+                page_size = 100
+        except (ValueError, TypeError):
+            return {
+                "error": "Invalid page size parameter",
+                "message": "Invalid page size parameter",
+            }, 400
+
+    # Count total matching sermons before limit and offset
+    count_query = db.select(func.count()).select_from(query.order_by(None).subquery())
+    total = db.session.scalar(count_query) or 0
+    total_pages = math.ceil(total / page_size) if total > 0 else 0
+
+    # Out-of-range or empty results return empty items list
+    if total == 0 or page > total_pages:
+        paged_sermons = []
+    else:
+        offset = (page - 1) * page_size
+        paged_sermons = db.session.execute(
+            query.limit(page_size).offset(offset)
+        ).scalars().all()
+
+    items = sermons_schema.dump(paged_sermons)
+    return {
+        "items": items,
+        "sermons": items,
+        "total": total,
+        "page": page,
+        "pageSize": page_size,
+        "page_size": page_size,
+        "totalPages": total_pages,
+        "total_pages": total_pages,
+    }
 
 
 @api.route("/sermons/<int:id>")
