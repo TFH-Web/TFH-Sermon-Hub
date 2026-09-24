@@ -1,5 +1,6 @@
 import MurmurHash3 from 'imurmurhash';
 import z from 'zod';
+import { paginated } from './pagination';
 
 export const Speaker = z.object({
 	id: z.number(),
@@ -9,11 +10,13 @@ export const Speaker = z.object({
 });
 export type Speaker = z.infer<typeof Speaker>;
 
-export const CountedSpeaker = z.object({
-	...Speaker.shape,
+export const CountedSpeaker = Speaker.extend({
 	sermonCount: z.number().nonnegative(),
 });
 export type CountedSpeaker = z.infer<typeof CountedSpeaker>;
+
+export const PaginatedSpeakers = paginated(CountedSpeaker.array());
+export type PaginatedSpeakers = z.infer<typeof PaginatedSpeakers>;
 
 export function getFullName(speaker: Speaker): string {
 	return `${speaker.firstName} ${speaker.lastName}`;
