@@ -14,6 +14,7 @@ from tsh.models import (
     UploadStatus,
     sermon_tag_m2m,
 )
+from tsh.pagination import paginate
 from tsh.schemas import (
     counted_speakers_schema,
     counted_tags_schema,
@@ -131,75 +132,13 @@ def get_sermons():
         query = query.order_by(Sermon.date.desc(), Sermon.id.desc())
 
     # 6. Opt-in pagination
-    page_param = request.args.get("page")
-    page_size_param = (
-        request.args.get("pageSize")
-        or request.args.get("page_size")
-        or request.args.get("per_page")
-    )
-
-    if page_param is None:
+    pagination = paginate(query, request, sermons_schema, "sermons")
+    if pagination is None:
         # Legacy mode: return complete unpaginated array
         sermons = db.session.execute(query).scalars().all()
         return sermons_schema.dump(sermons)
 
-    # Validate page parameter
-    try:
-        page = int(page_param)
-        if page < 1:
-            return {
-                "error": "Page must be an integer greater than or equal to 1",
-                "message": "Page must be an integer greater than or equal to 1",
-            }, 400
-    except (ValueError, TypeError):
-        return {
-            "error": "Invalid page parameter",
-            "message": "Invalid page parameter",
-        }, 400
-
-    # Validate page_size parameter
-    page_size = 10
-    if page_size_param is not None:
-        try:
-            page_size = int(page_size_param)
-            if page_size < 1:
-                return {
-                    "error": "Page size must be an integer greater than or equal to 1",
-                    "message": "Page size must be an integer greater than or equal to 1",
-                }, 400
-            if page_size > 100:
-                page_size = 100
-        except (ValueError, TypeError):
-            return {
-                "error": "Invalid page size parameter",
-                "message": "Invalid page size parameter",
-            }, 400
-
-    # Count total matching sermons before limit and offset
-    count_query = db.select(func.count()).select_from(query.order_by(None).subquery())
-    total = db.session.scalar(count_query) or 0
-    total_pages = math.ceil(total / page_size) if total > 0 else 0
-
-    # Out-of-range or empty results return empty items list
-    if total == 0 or page > total_pages:
-        paged_sermons = []
-    else:
-        offset = (page - 1) * page_size
-        paged_sermons = (
-            db.session.execute(query.limit(page_size).offset(offset)).scalars().all()
-        )
-
-    items = sermons_schema.dump(paged_sermons)
-    return {
-        "items": items,
-        "sermons": items,
-        "total": total,
-        "page": page,
-        "pageSize": page_size,
-        "page_size": page_size,
-        "totalPages": total_pages,
-        "total_pages": total_pages,
-    }
+    return pagination
 
 
 @api.route("/sermons/<int:id>")
