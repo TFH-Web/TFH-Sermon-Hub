@@ -33,6 +33,7 @@ class Speaker(db.Model):  # ty: ignore[unsupported-base]
     first_name: Mapped[str64]
     last_name: Mapped[str64]
     role: Mapped[str64] = mapped_column(default='Guest Speaker')
+    sermon_count: Mapped[int] = query_expression()
     __table_args__ = (UniqueConstraint("first_name", "last_name"),)
 
 

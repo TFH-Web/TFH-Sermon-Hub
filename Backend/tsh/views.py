@@ -1,4 +1,6 @@
 import math
+import sys
+
 from flask import Blueprint, request
 from sqlalchemy import false, func
 from sqlalchemy.orm import with_expression
@@ -13,13 +15,13 @@ from tsh.models import (
     sermon_tag_m2m,
 )
 from tsh.schemas import (
+    counted_speakers_schema,
     counted_tags_schema,
     series_schema,
     seriess_schema,
     sermon_schema,
     sermons_schema,
     speaker_schema,
-    speakers_schema,
 )
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -41,8 +43,13 @@ def get_series(id: int):
 
 @api.route("/speakers")
 def get_speakers():
-    speakers = db.session.execute(db.select(Speaker)).scalars()
-    result = speakers_schema.dump(speakers)
+    speakers = db.session.execute(
+        db.select(Speaker)
+        .join(Sermon)
+        .group_by(Speaker.id)
+        .options(with_expression(Speaker.sermon_count, func.count(Sermon.id)))
+    ).scalars()
+    result = counted_speakers_schema.dump(speakers)
     return result
 
 
@@ -112,9 +119,7 @@ def get_sermons():
             query = query.where(Sermon.series_id == int(series_param))
         else:
             query = query.where(
-                Sermon.series.has(
-                    func.lower(Series.title) == series_param.lower()
-                )
+                Sermon.series.has(func.lower(Series.title) == series_param.lower())
             )
 
     # 5. Sorting: "Newest" (default), "Oldest", and "Relevance" (behaves as Newest)
@@ -180,9 +185,9 @@ def get_sermons():
         paged_sermons = []
     else:
         offset = (page - 1) * page_size
-        paged_sermons = db.session.execute(
-            query.limit(page_size).offset(offset)
-        ).scalars().all()
+        paged_sermons = (
+            db.session.execute(query.limit(page_size).offset(offset)).scalars().all()
+        )
 
     items = sermons_schema.dump(paged_sermons)
     return {

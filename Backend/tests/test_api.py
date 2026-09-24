@@ -3,12 +3,12 @@ from flask.testing import FlaskClient
 from syrupy.data import Snapshot
 
 from tsh.schemas import (
+    counted_speaker_schema,
+    counted_speakers_schema,
     series_schema,
     seriess_schema,
     sermon_schema,
     sermons_schema,
-    speaker_schema,
-    speakers_schema,
 )
 
 
@@ -29,12 +29,12 @@ def test_speakers(client, snapshot):
     from tsh.models import Speaker
 
     res = client.get("/api/speakers")
-    speakers: list[Speaker] = speakers_schema.loads(res.data)
+    speakers: list[Speaker] = counted_speakers_schema.loads(res.data)
     assert speakers == snapshot
 
     for speaker in speakers:
         res = client.get(f"/api/speakers/{speaker.id}")
-        res_speaker: Speaker = speaker_schema.loads(res.data)
+        res_speaker: Speaker = counted_speaker_schema.loads(res.data)
         assert res_speaker == speaker
 
 
@@ -111,6 +111,7 @@ def test_tags(client: FlaskClient):
 def test_dev_database_untouched(app):
     import os
     import sqlite3
+
     from tsh.database import db
 
     # Verify test database is in-memory
@@ -128,6 +129,7 @@ def test_dev_database_untouched(app):
 
         # Adding data to test database does not affect development database
         from tsh.models import Series
+
         with app.app_context():
             db.session.add(Series(id=None, title="Temporary Test Series"))
             db.session.commit()
@@ -247,6 +249,7 @@ def test_sermons_sorting(client: FlaskClient):
 def test_sermons_sorting_date_tie_breaker(app, client: FlaskClient):
     """Stable ordering when sermon dates match, broken by sermon ID."""
     from datetime import date
+
     from tsh.database import db
     from tsh.models import Sermon, Speaker, UploadStatus
 
@@ -335,7 +338,9 @@ def test_sermons_pagination_pages(client: FlaskClient):
     assert len(res_last.json["items"]) > 0
 
     # Out of range page: consistent empty items list
-    res_oor = client.get(f"/api/sermons?page={expected_pages + 10}&pageSize={page_size}")
+    res_oor = client.get(
+        f"/api/sermons?page={expected_pages + 10}&pageSize={page_size}"
+    )
     assert res_oor.status_code == 200
     assert res_oor.json["items"] == []
     assert res_oor.json["total"] == total
@@ -371,4 +376,3 @@ def test_sermons_pagination_invalid_inputs(client: FlaskClient):
         assert res.status_code == 400
         assert res.is_json
         assert "error" in res.json
-
