@@ -3,6 +3,7 @@ import type { TagVariant } from '$/components/Tag';
 import { Series } from './series';
 import { Speaker } from './speaker';
 import { Tag } from './tag';
+import { paginated } from './pagination';
 
 /* This file defines the interface for the sermon data structures used in the Sermons component. It includes properties such as title, speaker, series, date, time, and tags. */
 export const statuses = ['Published', 'Processing', 'Draft', 'Failed'] as const;
@@ -25,13 +26,7 @@ export const Sermon = z.object({
 });
 export type Sermon = z.infer<typeof Sermon>;
 
-export const PaginatedSermons = z.object({
-	items: Sermon.array(),
-	total: z.number().int().nonnegative(),
-	page: z.number().int().positive(),
-	pageSize: z.number().int().positive(),
-	totalPages: z.number().int().nonnegative(),
-});
+export const PaginatedSermons = paginated(Sermon.array());
 export type PaginatedSermons = z.infer<typeof PaginatedSermons>;
 
 export function linkTo(sermon: Sermon): string {
