@@ -8,8 +8,7 @@ import { InfoBanner } from '$/components/InfoBanner';
 import Loading from '$/components/Loading';
 import MainLayout from '$/components/MainLayout';
 import Pagination from '$/components/Pagination';
-import { speakers } from '$/data/speakers';
-import { CountedSpeaker, PaginatedSpeakers } from '$/types/speaker';
+import { PaginatedSpeakers } from '$/types/speaker';
 
 const PAGE_SIZE = 10;
 
@@ -64,6 +63,22 @@ export default function Speakers() {
 	));
 	return (
 		<MainLayout title="Speakers">
+			<fieldset className="Speakers-dropdowns">
+				<select
+					value={sortCategory}
+					onChange={e => {
+						setSortCategory(e.target.value as SortCategory);
+						setPage(1);
+					}}
+				>
+					{sortCategories.map(s => (
+						<option key={s} value={s}>
+							{s}
+						</option>
+					))}
+				</select>
+			</fieldset>
+
 			{speakerCards.length === 0 ? (
 				<div className="Speakers-empty">
 					<InfoBanner message="No speakers match the selected filters." />
