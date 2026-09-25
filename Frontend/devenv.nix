@@ -6,12 +6,13 @@
 }: let
   cwd = "${config.git.root}/Frontend";
   browsers = multiverse.playwright-driver."1.58.2".browsers;
+  biome = multiverse.biome."2.4.9";
 in {
   env.PLAYWRIGHT_BROWSERS_PATH = browsers;
   env.PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "true";
-  env.BIOME_BINARY = "${pkgs.biome}/bin/biome";
+  env.BIOME_BINARY = "${biome}/bin/biome";
 
-  packages = with pkgs; [
+  packages = [
     biome
     browsers
   ];
