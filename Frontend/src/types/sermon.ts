@@ -1,5 +1,6 @@
 import z from 'zod';
 import type { TagVariant } from '$/components/Tag';
+import { paginated } from './pagination';
 import { Series } from './series';
 import { Speaker } from './speaker';
 import { Tag } from './tag';
@@ -25,13 +26,7 @@ export const Sermon = z.object({
 });
 export type Sermon = z.infer<typeof Sermon>;
 
-export const PaginatedSermons = z.object({
-	items: Sermon.array(),
-	total: z.number().int().nonnegative(),
-	page: z.number().int().positive(),
-	pageSize: z.number().int().positive(),
-	totalPages: z.number().int().nonnegative(),
-});
+export const PaginatedSermons = paginated(Sermon.array());
 export type PaginatedSermons = z.infer<typeof PaginatedSermons>;
 
 export function linkTo(sermon: Sermon): string {

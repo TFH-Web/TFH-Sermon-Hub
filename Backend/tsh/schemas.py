@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from marshmallow import Schema, fields, post_load
 
-from tsh.models import Series, Speaker, Tag, TagSource, UploadStatus, Sermon
+from tsh.models import Series, Sermon, Speaker, Tag, TagSource, UploadStatus
 
 
 def camelcase(s):
@@ -47,13 +47,28 @@ speaker_schema = SpeakerSchema()
 speakers_schema = SpeakerSchema(many=True)
 
 
+class CountedSpeakerSchema(CamelCaseSchema):
+    id = id_field()
+    first_name = fields.String(required=True)
+    last_name = fields.String(required=True)
+    role = fields.String(required=True)
+    sermon_count = fields.Integer()
+
+    @post_load
+    def make_speaker(self, data, **kwargs) -> Speaker:
+        return Speaker(**{k: v for k, v in data.items() if k != "sermon_count"})
+
+counted_speaker_schema = CountedSpeakerSchema()
+counted_speakers_schema = CountedSpeakerSchema(many=True)
+
+
 class TagSchema(CamelCaseSchema):
     name = fields.String(required=True)
     source = fields.Enum(TagSource, required=True, by_value=True)
 
     @post_load
     def make_tag(self, data, **kwargs) -> Tag:
-        data['sermons'] = []
+        data["sermons"] = []
         return Tag(**data)
 
 
@@ -68,7 +83,7 @@ class CountedTagSchema(CamelCaseSchema):
 
     @post_load
     def make_tag(self, data, **kwargs) -> Tag:
-        data['sermons'] = []
+        data["sermons"] = []
         return Tag(**{k: v for k, v in data.items() if k != "count"})
 
 
@@ -92,11 +107,11 @@ class SermonSchema(CamelCaseSchema):
 
     @post_load
     def make_sermon(self, data, **kwargs) -> Sermon:
-        data.setdefault('transcript', None)
-        data.setdefault('summary', None)
-        data.setdefault('series', None)
-        data['speaker_id'] = data['speaker'].id
-        data['series_id'] = data['series'].id if data['series'] else None
+        data.setdefault("transcript", None)
+        data.setdefault("summary", None)
+        data.setdefault("series", None)
+        data["speaker_id"] = data["speaker"].id
+        data["series_id"] = data["series"].id if data["series"] else None
         return Sermon(**data)
 
 

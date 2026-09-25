@@ -6,11 +6,7 @@ import './Pagination.css';
 export type { PageInfo };
 
 export interface PaginationProps {
-	page?: number;
-	totalPages?: number;
-	total?: number;
-	pageSize?: number;
-	pageInfo?: PageInfo;
+	pageInfo?: Partial<PageInfo>;
 	onPageChange: (newPage: number) => void;
 	isLoading?: boolean;
 	disabled?: boolean;
@@ -18,16 +14,14 @@ export interface PaginationProps {
 }
 
 export default function Pagination({
-	page,
-	totalPages,
 	pageInfo,
 	onPageChange,
 	isLoading = false,
 	disabled = false,
 	className,
 }: PaginationProps) {
-	const currentPage = pageInfo?.page ?? page ?? 1;
-	const totalPageCount = pageInfo?.totalPages ?? totalPages ?? 0;
+	const currentPage = pageInfo?.page ?? 1;
+	const totalPageCount = pageInfo?.totalPages ?? 0;
 
 	const isPrevDisabled =
 		disabled || isLoading || currentPage <= 1 || totalPageCount <= 0;
