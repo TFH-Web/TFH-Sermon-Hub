@@ -1,15 +1,15 @@
 import SpeakerCard from '$/components/SpeakerCard';
 import './Speakers.css';
-import MainLayout from '$/components/MainLayout';
-import { speakers } from '$/data/speakers';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
 import axios from 'axios';
-import { CountedSpeaker, PaginatedSpeakers } from '$/types/speaker';
+import { useState } from 'react';
 import ErrorBox from '$/components/ErrorBox';
-import Loading from '$/components/Loading';
-import Pagination from '$/components/Pagination';
 import { InfoBanner } from '$/components/InfoBanner';
+import Loading from '$/components/Loading';
+import MainLayout from '$/components/MainLayout';
+import Pagination from '$/components/Pagination';
+import { speakers } from '$/data/speakers';
+import { CountedSpeaker, PaginatedSpeakers } from '$/types/speaker';
 
 const PAGE_SIZE = 10;
 

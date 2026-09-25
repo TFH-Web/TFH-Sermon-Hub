@@ -20,7 +20,7 @@ export default function Pagination({
 	disabled = false,
 	className,
 }: PaginationProps) {
-	const currentPage = pageInfo?.page ??  1;
+	const currentPage = pageInfo?.page ?? 1;
 	const totalPageCount = pageInfo?.totalPages ?? 0;
 
 	const isPrevDisabled =

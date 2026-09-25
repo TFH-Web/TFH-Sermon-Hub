@@ -4,7 +4,7 @@ import type * as z4 from 'zod/v4/core';
 export const PageInfo = z.object({
 	page: z.number().int().positive(),
 	pageSize: z.number().int().positive(),
- 	total: z.number().int().nonnegative(),
+	total: z.number().int().nonnegative(),
 	totalPages: z.number().int().nonnegative(),
 });
 export type PageInfo = z.infer<typeof PageInfo>;
