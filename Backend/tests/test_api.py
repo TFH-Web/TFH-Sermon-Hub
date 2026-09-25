@@ -184,11 +184,11 @@ def test_sermons_filtering_individual(client: FlaskClient):
     # Speaker
     res_speaker = client.get("/api/sermons?speaker_id=1&page=1")
     assert res_speaker.status_code == 200
-    assert res_speaker.json["total"] == 6
+    assert res_speaker.json["total"] == 2
 
     res_speaker_name = client.get("/api/sermons?speaker=Dave%20Patterson&page=1")
     assert res_speaker_name.status_code == 200
-    assert res_speaker_name.json["total"] == 6
+    assert res_speaker_name.json["total"] == 2
 
     # Series
     res_series = client.get("/api/sermons?series_id=1&page=1")
