@@ -7,7 +7,7 @@ import PopularTags from '$/components/PopularTags';
 import RecentActivity from '$/components/RecentActivity';
 import RecentSermonsTable from '$/components/RecentSermonsTable';
 import StatCard from '$/components/StatCard';
-import { Series } from '$/types/series';
+import { SeriesPage } from '$/types/series';
 import { Sermon } from '$/types/sermon';
 import { Speaker } from '$/types/speaker';
 
@@ -24,11 +24,10 @@ export default function Dashboard() {
 	});
 
 	const seriesQuery = useQuery({
-		queryKey: ['series'],
+		queryKey: ['series', 'count'],
 		queryFn: async () => {
-			const res = await axios.get('/api/series');
-			const series = await Series.array().parseAsync(res.data);
-			return series;
+			const res = await axios.get('/api/series?per_page=1');
+			return await SeriesPage.parseAsync(res.data);
 		},
 	});
 
@@ -71,7 +70,7 @@ export default function Dashboard() {
 				/>
 				<StatCard
 					label="Series"
-					value={seriesQuery.data?.length}
+					value={seriesQuery.data?.total}
 					isLoading={seriesQuery.isPending}
 					isError={seriesQuery.isError}
 					onRetry={() => seriesQuery.refetch()}
