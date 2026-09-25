@@ -1,6 +1,3 @@
-import math
-import sys
-
 from flask import Blueprint, request
 from sqlalchemy import false, func
 from sqlalchemy.orm import with_expression
@@ -44,14 +41,25 @@ def get_series(id: int):
 
 @api.route("/speakers")
 def get_speakers():
-    speakers = db.session.execute(
+    query = (
         db.select(Speaker)
-        .join(Sermon)
+        .join(Sermon, isouter=True)
         .group_by(Speaker.id)
         .options(with_expression(Speaker.sermon_count, func.count(Sermon.id)))
-    ).scalars()
-    result = counted_speakers_schema.dump(speakers)
-    return result
+    )
+
+    sort_param = request.args.get("sort", "Default").strip().lower()
+    if sort_param == 'a-z':
+        query = query.order_by(Speaker.first_name.asc(), Speaker.id.asc())
+    elif sort_param == 'z-a':
+        query = query.order_by(Speaker.first_name.desc(), Speaker.id.desc())
+
+    pagination = paginate(query, request, counted_speakers_schema, "speakers", max_page_size=30)
+    if pagination is None:
+        speakers = db.session.execute(query).scalars()
+        return counted_speakers_schema.dump(speakers)
+
+    return pagination
 
 
 @api.route("/speakers/<int:id>")
