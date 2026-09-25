@@ -1,20 +1,30 @@
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
 import { useState } from 'react';
 import Button from '$/components/Button';
+import ErrorBox from '$/components/ErrorBox';
 import { InfoBanner } from '$/components/InfoBanner';
+import Loading from '$/components/Loading';
 import MainLayout from '$/components/MainLayout';
 import Modal from '$/components/Modal';
 import Tag from '$/components/Tag';
 import { useToast } from '$/components/ToastContext';
-import { tags as initialTags } from '$/data/tags';
 import AddTagModal from '$/modals/AddTagModal';
 import './TagsAndMetadata.css';
-import type { CountedTag } from '$/types/tag';
+import { CountedTag } from '$/types/tag';
 
 export default function TagsAndMetadata() {
 	const { showToast } = useToast();
 
+	const tagsQuery = useQuery({
+		queryKey: ['tags'],
+		queryFn: async () => {
+			const res = await axios.get('/api/tags');
+			return await CountedTag.array().parseAsync(res.data);
+		},
+	});
+
 	const [addTagOpen, setAddTagOpen] = useState(false);
-	const [tags, setTags] = useState<CountedTag[]>(initialTags);
 	const [activeModal, setActiveModal] = useState<'edit' | 'delete' | null>(
 		null,
 	);
@@ -38,10 +48,26 @@ export default function TagsAndMetadata() {
 	const handleDelete = () => {
 		if (!selectedTag) return;
 
-		setTags(prev => prev.filter(t => t !== selectedTag));
+		// TODO: call DELETE /api/tags/:name and invalidate ['tags']
 		showToast('Tag deleted', 'success');
 		closeModal();
 	};
+
+	if (tagsQuery.isError) {
+		return (
+			<MainLayout title="Tags & Metadata">
+				<ErrorBox message="Failed to load tags. Refresh the page and try again." />
+			</MainLayout>
+		);
+	}
+
+	if (tagsQuery.isPending) {
+		return (
+			<MainLayout title="Tags & Metadata">
+				<Loading vertical />
+			</MainLayout>
+		);
+	}
 
 	return (
 		<MainLayout title="Tags & Metadata">
@@ -73,7 +99,7 @@ export default function TagsAndMetadata() {
 						</thead>
 
 						<tbody>
-							{tags.map(tag => (
+							{tagsQuery.data.map(tag => (
 								<tr key={tag.name}>
 									<td>
 										<Tag variant="green">{tag.name}</Tag>
