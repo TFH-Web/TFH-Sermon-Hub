@@ -108,9 +108,9 @@
 
 @container (width <= 550px) {
 	.Header-title:has(
-		~ .Header-controls
-			.Header-searchInput:where(:focus-visible, :not(:placeholder-shown))
-	) {
+			~ .Header-controls
+				.Header-searchInput:where(:focus-visible, :not(:placeholder-shown))
+		) {
 		display: none;
 		opacity: 0;
 	}
