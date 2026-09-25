@@ -1,6 +1,7 @@
-from flask import Blueprint, request
 from sqlalchemy import func
 from sqlalchemy.orm import with_expression
+from flask import Blueprint, g, jsonify, request
+from tsh.auth import require_role
 
 from tsh.database import db
 from tsh.models import (
@@ -87,6 +88,12 @@ def health():
     return {"status": "ok"}
 
 
+@api.get("/whoami")
+@require_role("Internal User")
+def whoami():
+    return jsonify({"roles": g.current_user_role})
+
+
 @api.get("/search")
 def search():
     query = request.args.get("q", "").strip().lower()
@@ -156,3 +163,5 @@ def search():
     filtered.sort(key=lambda item: item["ai_score"], reverse=True)
 
     return filtered
+
+
