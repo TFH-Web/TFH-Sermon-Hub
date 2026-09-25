@@ -160,9 +160,11 @@ def get_sermon(id: int):
 def get_tags():
     tags = db.session.execute(
         db.select(Tag)
-        .join(sermon_tag_m2m)
+        .outerjoin(sermon_tag_m2m)
         .group_by(Tag.name)
-        .options(with_expression(Tag.count, func.count(Tag.name)))
+        .options(
+            with_expression(Tag.count, func.count(sermon_tag_m2m.c.sermon_id))
+        )
     ).scalars()
     result = counted_tags_schema.dump(tags)
     return result
