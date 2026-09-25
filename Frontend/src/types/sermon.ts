@@ -1,9 +1,9 @@
 import z from 'zod';
 import type { TagVariant } from '$/components/Tag';
+import { paginated } from './pagination';
 import { Series } from './series';
 import { Speaker } from './speaker';
 import { Tag } from './tag';
-import { paginated } from './pagination';
 
 /* This file defines the interface for the sermon data structures used in the Sermons component. It includes properties such as title, speaker, series, date, time, and tags. */
 export const statuses = ['Published', 'Processing', 'Draft', 'Failed'] as const;
