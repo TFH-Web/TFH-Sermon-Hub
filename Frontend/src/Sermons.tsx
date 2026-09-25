@@ -274,10 +274,7 @@ export default function Sermons() {
 			)}
 
 			<Pagination
-				page={sermonsQuery.data.page}
-				totalPages={sermonsQuery.data.totalPages}
-				total={sermonsQuery.data.total}
-				pageSize={sermonsQuery.data.pageSize}
+				pageInfo={sermonsQuery.data}
 				onPageChange={setPage}
 				isLoading={sermonsQuery.isFetching}
 			/>
