@@ -6,7 +6,7 @@ import './Pagination.css';
 export type { PageInfo };
 
 export interface PaginationProps {
-	pageInfo?: PageInfo;
+	pageInfo?: Partial<PageInfo>;
 	onPageChange: (newPage: number) => void;
 	isLoading?: boolean;
 	disabled?: boolean;

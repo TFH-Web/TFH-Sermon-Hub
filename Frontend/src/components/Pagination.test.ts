@@ -8,8 +8,10 @@ describe('Pagination Component', () => {
 		const onPageChange = vi.fn();
 		const html = renderToString(
 			React.createElement(Pagination, {
-				page: 1,
-				totalPages: 3,
+				pageInfo: {
+					page: 1,
+					totalPages: 3,
+				},
 				onPageChange,
 			}),
 		);
@@ -24,8 +26,10 @@ describe('Pagination Component', () => {
 	it('renders middle page with both Previous and Next enabled', () => {
 		const html = renderToString(
 			React.createElement(Pagination, {
-				page: 2,
-				totalPages: 3,
+				pageInfo: {
+					page: 2,
+					totalPages: 3,
+				},
 				onPageChange: vi.fn(),
 			}),
 		);
@@ -38,8 +42,10 @@ describe('Pagination Component', () => {
 	it('renders last page with Next disabled', () => {
 		const html = renderToString(
 			React.createElement(Pagination, {
-				page: 3,
-				totalPages: 3,
+				pageInfo: {
+					page: 3,
+					totalPages: 3,
+				},
 				onPageChange: vi.fn(),
 			}),
 		);
@@ -52,8 +58,10 @@ describe('Pagination Component', () => {
 	it('renders single page with both buttons disabled', () => {
 		const html = renderToString(
 			React.createElement(Pagination, {
-				page: 1,
-				totalPages: 1,
+				pageInfo: {
+					page: 1,
+					totalPages: 1,
+				},
 				onPageChange: vi.fn(),
 			}),
 		);
@@ -66,8 +74,10 @@ describe('Pagination Component', () => {
 	it('renders empty state with Page 0 of 0 and both buttons disabled', () => {
 		const html = renderToString(
 			React.createElement(Pagination, {
-				page: 1,
-				totalPages: 0,
+				pageInfo: {
+					page: 1,
+					totalPages: 0,
+				},
 				onPageChange: vi.fn(),
 			}),
 		);
@@ -80,8 +90,10 @@ describe('Pagination Component', () => {
 	it('disables buttons when loading', () => {
 		const html = renderToString(
 			React.createElement(Pagination, {
-				page: 2,
-				totalPages: 5,
+				pageInfo: {
+					page: 2,
+					totalPages: 5,
+				},
 				isLoading: true,
 				onPageChange: vi.fn(),
 			}),
