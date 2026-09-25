@@ -47,10 +47,15 @@ function useSermons() {
 }
 
 // Generate SpeakerCards from Speaker data
-function GenSpeakerCard(speakers: Speaker[], sermons: Sermon[]): SpeakerCardData[] {
+function GenSpeakerCard(
+	speakers: Speaker[],
+	sermons: Sermon[],
+): SpeakerCardData[] {
 	return speakers.map(speaker => {
 		// Count sermons belonging to this speaker
-		const count = sermons.filter(sermon => sermon.speaker.id === speaker.id).length;
+		const count = sermons.filter(
+			sermon => sermon.speaker.id === speaker.id,
+		).length;
 
 		return {
 			id: speaker.id,
@@ -65,8 +70,16 @@ function GenSpeakerCard(speakers: Speaker[], sermons: Sermon[]): SpeakerCardData
 // displays grid of SpeakerCard components from given list of speakers
 export default function Speakers() {
 	// Fetch speakers using React Query
-	const { data: speakers, isLoading: speakersLoading, error:speakersError } = useSpeakers();
-	const { data: sermons, isLoading: sermonsLoading, error: sermonsError } = useSermons();
+	const {
+		data: speakers,
+		isLoading: speakersLoading,
+		error: speakersError,
+	} = useSpeakers();
+	const {
+		data: sermons,
+		isLoading: sermonsLoading,
+		error: sermonsError,
+	} = useSermons();
 	// Loading
 	if (speakersLoading) {
 		return (
