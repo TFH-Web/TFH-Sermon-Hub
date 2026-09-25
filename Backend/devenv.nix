@@ -25,14 +25,13 @@ in {
   };
 
   tasks = {
-    "setup:db:down" = {
-      inherit cwd;
-      exec = "./down.py";
-    };
     "setup:db:up" = {
       inherit cwd;
       exec = "./up.py";
-      status = "[[ -f instance/testing.db ]]";
+      status = ''
+        [[ -f instance/testing.db ]]
+        sqlite3 instance/testing.db 'SELECT * FROM sermon;'
+      '';
     };
     "setup:db:populate" = {
       inherit cwd;
@@ -42,7 +41,14 @@ in {
         "test:backend"
       ];
       exec = "./populate.py";
-      status = "sqlite3 instance/testing.db 'SELECT * FROM sermon;'";
+      status = ''
+        (( $(sqlite3 instance/testing.db ".mode split" "SELECT COUNT(*) FROM sermon") == 6 ))
+      '';
+    };
+
+    "teardown:db" = {
+      inherit cwd;
+      exec = "./down.py";
     };
 
     "test:backend" = {
