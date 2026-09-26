@@ -3,8 +3,8 @@ import axios from 'axios'; // Sends HTTP GET requests to our Flask backend API
 import MurmurHash3 from 'imurmurhash'; // Generates a consistent hash number from text to pick a unique card banner color
 import { useState } from 'react'; // React state to remember interactive values across renders (current page and popup visibility)
 import MainLayout from '$/components/MainLayout'; // App layout wrapper containing the navigation bar and header
-import NewSeriesModal from '$/modals/NewSeriesModal'; // Popup modal to create a new sermon series
 import Pagination from '$/components/Pagination'; // Shared pagination controls
+import NewSeriesModal from '$/modals/NewSeriesModal'; // Popup modal to create a new sermon series
 import { type SeriesCard, SeriesPage } from '$/types/series'; // Zod types to validate the paginated series response
 import './Series.css';
 
@@ -111,7 +111,9 @@ export default function Seriess() {
 			</div>
 
 			{/* Jack's Pagination component*/}
-			<div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center' }}>
+			<div
+				style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center' }}
+			>
 				<Pagination
 					pageInfo={{ page: page, totalPages: totalPages }}
 					onPageChange={setPage}
