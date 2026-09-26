@@ -1,0 +1,20 @@
+.TagsAndMetadata-header {
+	display: flex;
+	justify-content: flex-end;
+	width: 100%;
+}
+
+.Header-addTag {
+	height: 40px;
+	padding: 0 16px;
+	margin-top: 0.5rem;
+	margin-right: 1.8rem;
+	font-weight: 600;
+	color: #ffffff;
+	background: #5e6f55;
+	border: 1px solid #d8d8d8;
+}
+
+.tag-card {
+	padding: 16px;
+}
