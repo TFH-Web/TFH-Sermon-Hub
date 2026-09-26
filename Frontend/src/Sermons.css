@@ -1,11 +1,3 @@
-.Sermons {
-	:where(fieldset) {
-		padding: 0;
-		margin: 0;
-		border: none;
-	}
-}
-
 .Sermons-scrollContainer {
 	padding-block-end: 0.25rem;
 	margin-block: 1rem 2rem;
@@ -100,20 +92,6 @@
 	}
 }
 
-.Sermons-dropdowns {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.5rem;
-	min-width: 0;
-}
-
-.Sermons-dropdown {
-	padding: 0.25em 0.5em;
-	font: inherit;
-	border: 2px solid var(--cl-outline);
-	border-radius: 0.25rem;
-}
-
 .Sermons-grid {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -144,4 +122,8 @@
 .Sermons-cardLink > * {
 	flex: 1;
 	min-width: 0;
+}
+
+.Sermons-empty {
+	margin-block: 2rem;
 }

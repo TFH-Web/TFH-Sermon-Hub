@@ -7,17 +7,17 @@ import axios from 'axios';
 import clsx from 'clsx';
 import Loading from '$/components/Loading';
 import FloatingAddSermon from '$/modals/AddSermon';
-import type { Series } from '$/types/series';
-import { Sermon, type Status, statuses } from '$/types/sermon';
-import { getFullName, type Speaker } from '$/types/speaker';
+import { Series } from '$/types/series';
+import { PaginatedSermons, type Status, statuses } from '$/types/sermon';
+import { getFullName, Speaker } from '$/types/speaker';
+import { CountedTag } from '$/types/tag';
 import ErrorBox from './components/ErrorBox';
-
-const topics = ['Faith', 'Hope', 'Grace', 'Healing', 'Anxiety'] as const;
-type Topic = (typeof topics)[number];
+import { InfoBanner } from './components/InfoBanner';
+import Pagination from './components/Pagination';
 
 interface Filters {
 	status: Status | null;
-	topic: Topic | null;
+	topic: string | null;
 	speakerID: number | null;
 	seriesID: number | null;
 }
@@ -25,16 +25,10 @@ interface Filters {
 const sortCategories = ['Newest', 'Oldest', 'Relevance'] as const;
 type SortCategory = (typeof sortCategories)[number];
 
-export default function Sermons() {
-	const query = useQuery({
-		queryKey: ['sermons'],
-		queryFn: async () => {
-			const res = await axios.get('/api/sermons');
-			const sermons = await Sermon.array().parseAsync(res.data);
-			return sermons;
-		},
-	});
+const PAGE_SIZE = 9;
 
+export default function Sermons() {
+	const [page, setPage] = useState<number>(1);
 	const [filters, setFilters] = useState<Filters>({
 		status: null,
 		topic: null,
@@ -45,7 +39,62 @@ export default function Sermons() {
 	// Tracks the currently selected "freshness" filter, defaults to "Newest"
 	const [sortCategory, setSortCategory] = useState<SortCategory>('Newest');
 
-	if (query.isError) {
+	// Complete metadata options loaded independently of displayed sermon page
+	const speakersQuery = useQuery({
+		queryKey: ['speakers'],
+		queryFn: async () => {
+			const res = await axios.get('/api/speakers');
+			return Speaker.array().parseAsync(res.data);
+		},
+	});
+
+	const seriesQuery = useQuery({
+		queryKey: ['series'],
+		queryFn: async () => {
+			const res = await axios.get('/api/series');
+			return Series.array().parseAsync(res.data);
+		},
+	});
+
+	const tagsQuery = useQuery({
+		queryKey: ['tags'],
+		queryFn: async () => {
+			const res = await axios.get('/api/tags');
+			return CountedTag.array().parseAsync(res.data);
+		},
+	});
+
+	// Paginated query with distinct query key including all filter, sorting, and pagination selections
+	const sermonsQuery = useQuery({
+		queryKey: [
+			'paginated-sermons',
+			{
+				page,
+				pageSize: PAGE_SIZE,
+				status: filters.status,
+				topic: filters.topic,
+				speakerID: filters.speakerID,
+				seriesID: filters.seriesID,
+				sort: sortCategory,
+			},
+		],
+		queryFn: async () => {
+			const params: Record<string, string | number> = {
+				page,
+				pageSize: PAGE_SIZE,
+				sort: sortCategory,
+			};
+			if (filters.status) params.status = filters.status;
+			if (filters.topic) params.topic = filters.topic;
+			if (filters.speakerID !== null) params.speaker_id = filters.speakerID;
+			if (filters.seriesID !== null) params.series_id = filters.seriesID;
+
+			const res = await axios.get('/api/sermons', { params });
+			return PaginatedSermons.parseAsync(res.data);
+		},
+	});
+
+	if (sermonsQuery.isError) {
 		return (
 			<SermonShell>
 				<ErrorBox message="Failed to load sermons. Refresh the page and try again." />
@@ -53,7 +102,20 @@ export default function Sermons() {
 		);
 	}
 
-	if (query.isPending) {
+	if (speakersQuery.isError || seriesQuery.isError || tagsQuery.isError) {
+		return (
+			<SermonShell>
+				<ErrorBox message="Failed to load sermon filters. Refresh the page and try again." />
+			</SermonShell>
+		);
+	}
+
+	if (
+		sermonsQuery.isPending ||
+		speakersQuery.isPending ||
+		seriesQuery.isPending ||
+		tagsQuery.isPending
+	) {
 		return (
 			<SermonShell>
 				<Loading vertical />
@@ -61,13 +123,7 @@ export default function Sermons() {
 		);
 	}
 
-	const allSpeakers = query.data
-		.map(sermon => sermon.speaker)
-		.reduce<Map<number, Speaker>>((acc, speaker) => {
-			acc.set(speaker.id, speaker);
-			return acc;
-		}, new Map());
-	const speakerOptions = Array.from(allSpeakers.values())
+	const speakerOptions = (speakersQuery.data ?? [])
 		.toSorted((a, b) => a.id - b.id)
 		.map(s => (
 			<option key={s.id} value={s.id}>
@@ -75,14 +131,7 @@ export default function Sermons() {
 			</option>
 		));
 
-	const allSeries = query.data
-		.map(sermon => sermon.series)
-		.filter(s => s !== null && s !== undefined)
-		.reduce<Map<number, Series>>((acc, series) => {
-			acc.set(series.id, series);
-			return acc;
-		}, new Map());
-	const seriesOptions = Array.from(allSeries.values())
+	const seriesOptions = (seriesQuery.data ?? [])
 		.toSorted((a, b) => a.id - b.id)
 		.map(s => (
 			<option key={s.id} value={s.id}>
@@ -90,34 +139,18 @@ export default function Sermons() {
 			</option>
 		));
 
-	const sermonCards = query.data
-		.filter(s => filters.status === null || s.status === filters.status)
-		.filter(
-			s =>
-				filters.topic === null ||
-				s.tags.map(t => t.name).includes(filters.topic.toLowerCase()),
-		)
-		.filter(
-			s => filters.speakerID === null || s.speaker.id === filters.speakerID,
-		)
-		.filter(s => filters.seriesID === null || s.series?.id === filters.seriesID)
-		.toSorted((a, b) => {
-			switch (sortCategory) {
-				case 'Oldest':
-					return a.date.getTime() - b.date.getTime();
-				default:
-					return b.date.getTime() - a.date.getTime();
-			}
-		})
-		.map(sermon => (
-			<div key={sermon.id} className="Sermons-cardLink">
-				<SermonCard key={sermon.id} sermon={sermon} />
-			</div>
-		));
+	const availableTopics = (tagsQuery.data ?? []).map(t => t.name);
+
+	const sermons = sermonsQuery.data.items;
+	const sermonCards = sermons.map(sermon => (
+		<div key={sermon.id} className="Sermons-cardLink">
+			<SermonCard key={sermon.id} sermon={sermon} />
+		</div>
+	));
 
 	return (
 		<MainLayout title="Sermons" className="Sermons">
-			{/* Sermon Filter Buttons, clicks set as active and update the selectedSermonFilter state */}
+			{/* Sermon Filter Buttons, clicks set as active and update status */}
 			<div className="Sermons-scrollContainer">
 				<fieldset className="Sermons-statuses">
 					{[null, ...statuses].map(s => (
@@ -135,12 +168,9 @@ export default function Sermons() {
 								hidden={true}
 								value={s ?? 'All'}
 								checked={s === filters.status}
-								onChange={e => {
-									return setFilters({
-										...filters,
-										// @ts-expect-error 2345: value comes from iterating over an array marked as const
-										status: e.target.value === 'All' ? null : e.target.value,
-									});
+								onChange={() => {
+									setFilters(prev => ({ ...prev, status: s }));
+									setPage(1);
 								}}
 							/>
 							{s ?? 'All'}
@@ -149,78 +179,81 @@ export default function Sermons() {
 				</fieldset>
 			</div>
 
-			{/* Sermon Topic Buttons, clicks set as active and update the selectedTopic state */}
+			{/* Sermon Topic Buttons, clicks set as active and update topic */}
 			<fieldset className="Sermons-controls">
 				<fieldset className="Sermons-topics">
-					{[null, ...topics].map(t => (
-						<label
-							key={t ?? 'All'}
-							className={clsx(
-								'Sermons-topic',
-								'u-button',
-								filters.topic === t && 'is-active',
-							)}
-						>
-							<input
-								type="radio"
-								name="topic"
-								hidden={true}
-								value={t ?? 'All'}
-								checked={t === filters.topic}
-								onChange={e => {
-									return setFilters({
-										...filters,
-										// @ts-expect-error 2345: value comes from iterating over an array marked as const
-										topic: e.target.value === 'All' ? null : e.target.value,
-									});
-								}}
-							/>
-							{t ?? 'All'}
-						</label>
-					))}
+					{[null, ...availableTopics].map(t => {
+						const isSelected =
+							(t === null && filters.topic === null) ||
+							(t !== null && filters.topic?.toLowerCase() === t.toLowerCase());
+						return (
+							<label
+								key={t ?? 'All'}
+								className={clsx(
+									'Sermons-topic',
+									'u-button',
+									isSelected && 'is-active',
+								)}
+							>
+								<input
+									type="radio"
+									name="topic"
+									hidden={true}
+									value={t ?? 'All'}
+									checked={isSelected}
+									onChange={() => {
+										setFilters(prev => ({ ...prev, topic: t }));
+										setPage(1);
+									}}
+								/>
+								{t ? t.charAt(0).toUpperCase() + t.slice(1) : 'All'}
+							</label>
+						);
+					})}
 				</fieldset>
 
-				{/* Sermon Speaker dropdown, selection updates the selectedSpeaker state */}
+				{/* Sermon Speaker dropdown, selection updates speakerID */}
 				<fieldset className="Sermons-dropdowns">
 					<select
 						className="Sermons-dropdown"
-						onChange={e =>
-							setFilters({
-								...filters,
-								speakerID:
-									e.target.value === 'All Speakers'
-										? null
-										: parseInt(e.target.value, 10),
-							})
-						}
+						value={filters.speakerID ?? 'All Speakers'}
+						onChange={e => {
+							const val = e.target.value;
+							setFilters(prev => ({
+								...prev,
+								speakerID: val === 'All Speakers' ? null : parseInt(val, 10),
+							}));
+							setPage(1);
+						}}
 					>
-						<option>All Speakers</option>
+						<option value="All Speakers">All Speakers</option>
 						{speakerOptions}
 					</select>
 
-					{/* Sermon Series dropdown, selection updates the selectedSeries state */}
+					{/* Sermon Series dropdown, selection updates seriesID */}
 					<select
 						className="Sermons-dropdown"
-						onChange={e =>
-							setFilters({
-								...filters,
-								seriesID:
-									e.target.value === 'All Series'
-										? null
-										: parseInt(e.target.value, 10),
-							})
-						}
+						value={filters.seriesID ?? 'All Series'}
+						onChange={e => {
+							const val = e.target.value;
+							setFilters(prev => ({
+								...prev,
+								seriesID: val === 'All Series' ? null : parseInt(val, 10),
+							}));
+							setPage(1);
+						}}
 					>
-						<option>All Series</option>
+						<option value="All Series">All Series</option>
 						{seriesOptions}
 					</select>
 
-					{/* Video Upload Recency dropdown, selection updates the videoUploadRecency state */}
+					{/* Video Upload Recency dropdown, selection updates sortCategory */}
 					<select
 						className="Sermons-dropdown"
+						value={sortCategory}
 						onChange={e => {
-							// @ts-expect-error 2345: value comes from iterating over an array marked as const
-							return setSortCategory(e.target.value);
+							setSortCategory(e.target.value as SortCategory);
+							setPage(1);
 						}}
 					>
 						{sortCategories.map(s => (
@@ -232,7 +265,20 @@ export default function Sermons() {
 				</fieldset>
 			</fieldset>
 
-			<div className="Sermons-grid">{sermonCards}</div>
+			{sermons.length === 0 ? (
+				<div className="Sermons-empty">
+					<InfoBanner message="No sermons match the selected filters." />
+				</div>
+			) : (
+				<div className="Sermons-grid">{sermonCards}</div>
+			)}
+
+			<Pagination
+				pageInfo={sermonsQuery.data}
+				onPageChange={setPage}
+				isLoading={sermonsQuery.isFetching}
+			/>
+
 			<FloatingAddSermon />
 		</MainLayout>
 	);
@@ -263,7 +309,7 @@ function SermonShell({ children }: React.PropsWithChildren<{}>) {
 
 			<fieldset className="Sermons-controls">
 				<fieldset className="Sermons-topics" disabled={true}>
-					{[null, ...topics].map(t => (
+					{[null, 'Faith', 'Hope', 'Grace', 'Healing', 'Anxiety'].map(t => (
 						<label
 							key={t ?? 'All'}
 							className={clsx('Sermons-topic', 'u-button')}

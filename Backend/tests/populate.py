@@ -25,7 +25,113 @@ def populate(app: Flask):
     speaker_dave_patterson = Speaker(
         id=None, first_name="Dave", last_name="Patterson", role="Lead Speaker"
     )
-    db.session.add(speaker_dave_patterson)
+    speaker_jon_laurenzo = Speaker(
+        id=None, first_name="Jon", last_name="Laurenzo", role="Guest Speaker"
+    )
+    speaker_hilary_harris = Speaker(
+        id=None, first_name="Hilary", last_name="Harris", role="Guest Speaker"
+    )
+    speaker_tosha_zwanziger = Speaker(
+        id=None, first_name="Tosha", last_name="Zwanziger", role="Guest Speaker"
+    )
+    speaker_rich_harris = Speaker(
+        id=None, first_name="Rich", last_name="Harris", role="Guest Speaker"
+    )
+    db.session.add_all(
+        [
+            speaker_dave_patterson,
+            speaker_jon_laurenzo,
+            speaker_hilary_harris,
+            speaker_tosha_zwanziger,
+            speaker_rich_harris,
+        ]
+    )
+
+    speaker_victoria_austin = Speaker(
+        id=None, first_name="Victoria", last_name="Austin", role="Guest Speaker"
+    )
+    speaker_george_knight = Speaker(
+        id=None, first_name="George", last_name="Knight", role="Guest Speaker"
+    )
+    speaker_breanna_floyd = Speaker(
+        id=None, first_name="Breanna", last_name="Floyd", role="Guest Speaker"
+    )
+    speaker_jerry_barker = Speaker(
+        id=None, first_name="Jerry", last_name="Barker", role="Guest Speaker"
+    )
+    speaker_melissa_barron = Speaker(
+        id=None, first_name="Melissa", last_name="Barron", role="Guest Speaker"
+    )
+    speaker_vincent_lowe = Speaker(
+        id=None, first_name="Vincent", last_name="Lowe", role="Guest Speaker"
+    )
+    speaker_john_mclean = Speaker(
+        id=None, first_name="John", last_name="Mclean", role="Guest Speaker"
+    )
+    speaker_billy_alvarado = Speaker(
+        id=None, first_name="Billy", last_name="Alvarado", role="Guest Speaker"
+    )
+    speaker_angela_moore = Speaker(
+        id=None, first_name="Angela", last_name="Moore", role="Guest Speaker"
+    )
+    speaker_thomas_watkins = Speaker(
+        id=None, first_name="Thomas", last_name="Watkins", role="Guest Speaker"
+    )
+    speaker_raymond_henderson = Speaker(
+        id=None, first_name="Raymond", last_name="Henderson", role="Guest Speaker"
+    )
+    speaker_kirk_campbell = Speaker(
+        id=None, first_name="Kirk", last_name="Campbell", role="Guest Speaker"
+    )
+    speaker_joel_thomas = Speaker(
+        id=None, first_name="Joel", last_name="Thomas", role="Guest Speaker"
+    )
+    speaker_steven_galvan = Speaker(
+        id=None, first_name="Steven", last_name="Galvan", role="Guest Speaker"
+    )
+    speaker_roger_petersen = Speaker(
+        id=None, first_name="Roger", last_name="Petersen", role="Guest Speaker"
+    )
+    speaker_monica_reed = Speaker(
+        id=None, first_name="Monica", last_name="Reed", role="Guest Speaker"
+    )
+    speaker_tiffany_arroyo = Speaker(
+        id=None, first_name="Tiffany", last_name="Arroyo", role="Guest Speaker"
+    )
+    speaker_rodney_hill = Speaker(
+        id=None, first_name="Rodney", last_name="Hill", role="Guest Speaker"
+    )
+    speaker_lauren_parker = Speaker(
+        id=None, first_name="Lauren", last_name="Parker", role="Guest Speaker"
+    )
+    speaker_brian_carter = Speaker(
+        id=None, first_name="Brian", last_name="Carter", role="Guest Speaker"
+    )
+
+    db.session.add_all(
+        [
+            speaker_victoria_austin,
+            speaker_george_knight,
+            speaker_breanna_floyd,
+            speaker_jerry_barker,
+            speaker_melissa_barron,
+            speaker_vincent_lowe,
+            speaker_john_mclean,
+            speaker_billy_alvarado,
+            speaker_angela_moore,
+            speaker_thomas_watkins,
+            speaker_raymond_henderson,
+            speaker_kirk_campbell,
+            speaker_joel_thomas,
+            speaker_steven_galvan,
+            speaker_roger_petersen,
+            speaker_monica_reed,
+            speaker_tiffany_arroyo,
+            speaker_rodney_hill,
+            speaker_lauren_parker,
+            speaker_brian_carter,
+        ]
+    )
 
     tag_faith = Tag(name="faith", source=TagSource.AI, sermons=[])
     tag_hope = Tag(name="hope", source=TagSource.AI, sermons=[])
@@ -72,7 +178,7 @@ def populate(app: Flask):
         title="Anchored in Hope",
         video_link=video_link,
         duration=2650,
-        speaker=speaker_dave_patterson,
+        speaker=speaker_jon_laurenzo,
         speaker_id=None,
         series_id=None,
         series=None,
@@ -90,7 +196,7 @@ def populate(app: Flask):
         duration=2152,
         speaker_id=None,
         series_id=None,
-        speaker=speaker_dave_patterson,
+        speaker=speaker_tosha_zwanziger,
         series=series_together,
         date=date(2026, 2, 2),
         description="Lorem ipsum dolor sit amet",
@@ -106,7 +212,7 @@ def populate(app: Flask):
         duration=2493,
         speaker_id=None,
         series_id=None,
-        speaker=speaker_dave_patterson,
+        speaker=speaker_hilary_harris,
         series=series_fearless,
         date=date(2026, 1, 26),
         description="Lorem ipsum dolor sit amet",
@@ -122,7 +228,7 @@ def populate(app: Flask):
         duration=2561,
         speaker_id=None,
         series_id=None,
-        speaker=speaker_dave_patterson,
+        speaker=speaker_rich_harris,
         series=series_hope_rising,
         date=date(2026, 1, 19),
         description="Lorem ipsum dolor sit amet",
