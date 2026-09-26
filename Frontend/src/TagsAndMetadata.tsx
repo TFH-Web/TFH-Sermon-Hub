@@ -160,7 +160,9 @@ export default function TagsAndMetadata() {
 					<Modal isOpen onClose={closeModal} title="Delete Tag">
 						<p>Are you sure you want to delete "{selectedTag.name}"?</p>
 
-						<div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+						<div
+							style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}
+						>
 							<Button variant="secondary" onClick={closeModal}>
 								Cancel
 							</Button>
