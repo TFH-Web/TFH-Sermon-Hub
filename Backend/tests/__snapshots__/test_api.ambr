@@ -1,11 +1,81 @@
 # serializer version: 1
 # name: test_series
-  list([
-    Series(id=1, title='Live Your Best Life'),
-    Series(id=2, title='Hope Rising'),
-    Series(id=3, title='Fearless'),
-    Series(id=4, title='Together'),
-  ])
+  dict({
+    'items': list([
+      dict({
+        'firstDate': '2026-02-16',
+        'id': 1,
+        'lastDate': '2026-02-23',
+        'sermonCount': 2,
+        'speakers': list([
+          dict({
+            'firstName': 'Dave',
+            'id': 1,
+            'lastName': 'Patterson',
+            'role': 'Lead Speaker',
+          }),
+        ]),
+        'title': 'Live Your Best Life',
+      }),
+      dict({
+        'firstDate': '2026-02-02',
+        'id': 4,
+        'lastDate': '2026-02-02',
+        'sermonCount': 1,
+        'speakers': list([
+          dict({
+            'firstName': 'Tosha',
+            'id': 4,
+            'lastName': 'Zwanziger',
+            'role': 'Guest Speaker',
+          }),
+        ]),
+        'title': 'Together',
+      }),
+      dict({
+        'firstDate': '2026-01-26',
+        'id': 3,
+        'lastDate': '2026-01-26',
+        'sermonCount': 1,
+        'speakers': list([
+          dict({
+            'firstName': 'Hilary',
+            'id': 3,
+            'lastName': 'Harris',
+            'role': 'Guest Speaker',
+          }),
+        ]),
+        'title': 'Fearless',
+      }),
+      dict({
+        'firstDate': '2026-01-19',
+        'id': 2,
+        'lastDate': '2026-01-19',
+        'sermonCount': 1,
+        'speakers': list([
+          dict({
+            'firstName': 'Rich',
+            'id': 5,
+            'lastName': 'Harris',
+            'role': 'Guest Speaker',
+          }),
+        ]),
+        'title': 'Hope Rising',
+      }),
+      dict({
+        'firstDate': None,
+        'id': 5,
+        'lastDate': None,
+        'sermonCount': 0,
+        'speakers': list([
+        ]),
+        'title': 'New Ground',
+      }),
+    ]),
+    'page': 1,
+    'perPage': 12,
+    'total': 5,
+  })
 # ---
 # name: test_sermons
   list([
