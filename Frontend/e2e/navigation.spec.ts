@@ -12,7 +12,15 @@ test.beforeEach(async ({ page }) => {
 						pageSize: 9,
 						totalPages: 0,
 					}
-				: [];
+				: url.pathname === '/api/series' &&
+					  (url.searchParams.has('page') || url.searchParams.has('per_page'))
+					? {
+							items: [],
+							total: 0,
+							page: Number(url.searchParams.get('page') ?? 1),
+							perPage: 12,
+						}
+					: [];
 		return route.fulfill({ json });
 	});
 });
