@@ -23,10 +23,14 @@ export default function Dashboard() {
 		},
 	});
 
+	// Ask the server for the total series count for the dashboard stat card
 	const seriesQuery = useQuery({
+		// Unique cache key with 'count' so it doesn't conflict with the full Series page query cache
 		queryKey: ['series', 'count'],
 		queryFn: async () => {
+			// Ask for only 1 item per page so we don't waste bandwidth downloading all series just to get the total count
 			const res = await axios.get('/api/series?per_page=1');
+			// Validate that the server response matches our paginated SeriesPage schema
 			return await SeriesPage.parseAsync(res.data);
 		},
 	});
@@ -68,6 +72,7 @@ export default function Dashboard() {
 					isError={sermonsQuery.isError}
 					onRetry={() => sermonsQuery.refetch()}
 				/>
+				{/* Displays total series count directly from the backend total metadata */}
 				<StatCard
 					label="Series"
 					value={seriesQuery.data?.total}
