@@ -136,7 +136,9 @@ def populate(app: Flask):
     tag_healing = Tag(name="healing", source=TagSource.AI, sermons=[])
     tag_grace = Tag(name="grace", source=TagSource.AI, sermons=[])
     tag_anxiety = Tag(name="anxiety", source=TagSource.MANUAL, sermons=[])
-    db.session.add_all([tag_faith, tag_hope, tag_healing, tag_grace, tag_anxiety])
+    tag_fear = Tag(name="fear", source=TagSource.MANUAL, sermons=[])
+    tag_life = Tag(name="life", source=TagSource.MANUAL, sermons=[])
+    db.session.add_all([tag_faith, tag_hope, tag_healing, tag_grace, tag_anxiety, tag_fear, tag_life])
 
     video_link = "https://youtu.be/asdfasdf"
     sermon_under_grace = Sermon(
