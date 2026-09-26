@@ -76,6 +76,7 @@ export default function Header({
 					<Icon icon="lucide:plus" />
 					<p className="Header-uploadText">Upload</p>
 				</button>
+
 			</div>
 
 			<UploadSermonModal

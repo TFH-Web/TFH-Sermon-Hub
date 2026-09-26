@@ -1,12 +1,12 @@
 import { getFullName, getInitials, getUser } from '$/types/user';
 import './Profile.css';
-import { useNavigate } from 'react-router';
+import { useMsal } from '@azure/msal-react';
 
 export default function Profile() {
 	const user = getUser();
 	const initials = getInitials(user);
 	const name = getFullName(user);
-	const navigate = useNavigate();
+	const { instance } = useMsal();
 
 	return (
 		<div className="Profile">
@@ -16,7 +16,7 @@ export default function Profile() {
 			<button
 				type="button"
 				className="Profile-logOut u-button"
-				onClick={() => navigate('/login')}
+				onClick={() => instance.logoutRedirect()}
 			>
 				Log Out
 			</button>
