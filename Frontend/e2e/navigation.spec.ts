@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
 						totalPages: 0,
 					}
 				: url.pathname === '/api/series' &&
-					  (url.searchParams.has('page') || url.searchParams.has('per_page'))
+						(url.searchParams.has('page') || url.searchParams.has('per_page'))
 					? {
 							items: [],
 							total: 0,
