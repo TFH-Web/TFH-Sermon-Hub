@@ -57,9 +57,9 @@ export default function Sermons() {
 	});
 
 	const tagsQuery = useQuery({
-		queryKey: ['tags'],
+		queryKey: ['tags', { used: true }],
 		queryFn: async () => {
-			const res = await axios.get('/api/tags');
+			const res = await axios.get('/api/tags', { params: { used: true } });
 			return CountedTag.array().parseAsync(res.data);
 		},
 	});
