@@ -50,6 +50,22 @@ function AppQueryProvider({ children }: PropsWithChildren) {
 
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
+axios.interceptors.request.use(async (config) => {
+	const accounts = msalInstance.getAllAccounts();
+	if (accounts.length > 0) {
+		try {
+			const response = await msalInstance.acquireTokenSilent({
+				account: accounts[0],
+				scopes: ['openid', 'profile'],
+			});
+			config.headers.Authorization = `Bearer ${response.idToken}`;
+		} catch (error) {
+			console.error('Failed to acquire token for request:', error);
+		}
+	}
+	return config;
+});
+
 // biome-ignore lint/style/noNonNullAssertion: we'd want to throw anyways
 createRoot(document.getElementById('root')!).render(	
 	<StrictMode>
