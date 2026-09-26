@@ -48,9 +48,13 @@ Empty and out-of-range requests return HTTP 200 with empty items, accurate total
 
 The full-library `['sermons']` cache remains separate. Filters and sorting persist during page changes; changing any selection resets the page to 1. State is local to the page, not persisted across refreshes.
 
-Filter choices load separately from `/api/speakers`, `/api/series`, and `/api/tags`. These requests remain unpaginated. The existing tags endpoint returns tags used by sermons, excluding unused tags. Choices are independent of the displayed sermon page and active filters.
+Filter choices load separately from `/api/speakers`, `/api/series`, and `/api/tags`. These requests remain unpaginated. Tags are requested with `used=true`, so only tags attached to at least one sermon appear as topic choices. Choices are independent of the displayed sermon page and active filters.
 
 The page waits for filter choices before enabling controls. Failed filter requests show the shared ErrorBox with refresh instructions, rather than silently displaying empty choices. The app query provider obtains the toast callback inside a React component so failed requests do not trigger an invalid hook call.
+
+## Tags page
+
+`/api/tags` supports the same opt-in `page`/`pageSize` contract, sorted by tag name ascending; `tags` is the alias for `items`. `Frontend/src/TagsAndMetadata.tsx` requests ten tags per page under the `['paginated-tags', { page, pageSize }]` cache key and keeps the previous page visible while the next one loads. By default the endpoint returns every tag, including unused tags with a count of 0; `used=true` (or `1`) filters to tags with a count above 0 in the database, before counting or paging. The Sermons filters use the unpaginated `used=true` form under the `['tags', { used: true }]` cache key.
 
 ## Shared controls
 

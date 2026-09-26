@@ -124,7 +124,9 @@ for (const resource of ['speakers', 'series', 'tags']) {
 	}) => {
 		const browserErrors: string[] = [];
 		page.on('pageerror', error => browserErrors.push(error.message));
-		await page.route(`**/api/${resource}`, route =>
+		// Match by pathname so query params (e.g. tags?used=true) still hit the failure
+		const failing = (url: URL) => url.pathname === `/api/${resource}`;
+		await page.route(failing, route =>
 			route.fulfill({
 				status: 500,
 				json: { error: 'Unavailable' },
@@ -138,7 +140,7 @@ for (const resource of ['speakers', 'series', 'tags']) {
 		).toBeVisible({ timeout: 15000 });
 		await expect(page.locator('select').first()).toBeDisabled();
 		expect(browserErrors).toEqual([]);
-		await page.unroute(`**/api/${resource}`);
+		await page.unroute(failing);
 		await page.reload();
 		await expect(page.getByText('Page 1 of 2')).toBeVisible();
 	});

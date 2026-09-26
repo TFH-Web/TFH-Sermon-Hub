@@ -1,4 +1,5 @@
 import z from 'zod';
+import { paginated } from './pagination';
 
 export const Tag = z.object({
 	name: z.string(),
@@ -11,3 +12,6 @@ export const CountedTag = z.object({
 	count: z.number().nonnegative(),
 });
 export type CountedTag = z.infer<typeof CountedTag>;
+
+export const PaginatedTags = paginated(CountedTag.array());
+export type PaginatedTags = z.infer<typeof PaginatedTags>;
