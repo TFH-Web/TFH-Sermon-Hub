@@ -24,10 +24,10 @@
         'sermonCount': 1,
         'speakers': list([
           dict({
-            'firstName': 'Dave',
-            'id': 1,
-            'lastName': 'Patterson',
-            'role': 'Lead Speaker',
+            'firstName': 'Tosha',
+            'id': 4,
+            'lastName': 'Zwanziger',
+            'role': 'Guest Speaker',
           }),
         ]),
         'title': 'Together',
@@ -39,10 +39,10 @@
         'sermonCount': 1,
         'speakers': list([
           dict({
-            'firstName': 'Dave',
-            'id': 1,
-            'lastName': 'Patterson',
-            'role': 'Lead Speaker',
+            'firstName': 'Hilary',
+            'id': 3,
+            'lastName': 'Harris',
+            'role': 'Guest Speaker',
           }),
         ]),
         'title': 'Fearless',
@@ -54,10 +54,10 @@
         'sermonCount': 1,
         'speakers': list([
           dict({
-            'firstName': 'Dave',
-            'id': 1,
-            'lastName': 'Patterson',
-            'role': 'Lead Speaker',
+            'firstName': 'Rich',
+            'id': 5,
+            'lastName': 'Harris',
+            'role': 'Guest Speaker',
           }),
         ]),
         'title': 'Hope Rising',
