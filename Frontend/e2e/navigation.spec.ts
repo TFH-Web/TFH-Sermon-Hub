@@ -68,9 +68,7 @@ test('sidebar controls work on mobile', async ({ page }) => {
 		await expect(getSidebar()).not.toBeInViewport();
 
 		await page.getByTestId('sidebar-toggle-label').click();
-		await page.getByTestId('sidebar-backdrop').click({
-			position: { x: devices['iPhone XR'].viewport.width - 10, y: 10 },
-		});
+		await page.getByTestId('sidebar-backdrop').click();
 		await expect(getSidebar()).not.toBeInViewport();
 	});
 });
