@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useState } from 'react';
 import Button from '$/components/Button';
@@ -7,21 +7,28 @@ import { InfoBanner } from '$/components/InfoBanner';
 import Loading from '$/components/Loading';
 import MainLayout from '$/components/MainLayout';
 import Modal from '$/components/Modal';
+import Pagination from '$/components/Pagination';
 import Tag from '$/components/Tag';
 import { useToast } from '$/components/ToastContext';
 import AddTagModal from '$/modals/AddTagModal';
 import './TagsAndMetadata.css';
-import { CountedTag } from '$/types/tag';
+import { type CountedTag, PaginatedTags } from '$/types/tag';
+
+const PAGE_SIZE = 5;
 
 export default function TagsAndMetadata() {
 	const { showToast } = useToast();
+	const [page, setPage] = useState<number>(1);
 
 	const tagsQuery = useQuery({
-		queryKey: ['tags'],
+		queryKey: ['paginated-tags', { page, pageSize: PAGE_SIZE }],
 		queryFn: async () => {
-			const res = await axios.get('/api/tags');
-			return await CountedTag.array().parseAsync(res.data);
+			const res = await axios.get('/api/tags', {
+				params: { page, pageSize: PAGE_SIZE },
+			});
+			return await PaginatedTags.parseAsync(res.data);
 		},
+		placeholderData: keepPreviousData,
 	});
 
 	const [addTagOpen, setAddTagOpen] = useState(false);
@@ -48,7 +55,7 @@ export default function TagsAndMetadata() {
 	const handleDelete = () => {
 		if (!selectedTag) return;
 
-		// TODO: call DELETE /api/tags/:name and invalidate ['tags']
+		// TODO: call DELETE /api/tags/:name and invalidate ['tags'] and ['paginated-tags']
 		showToast('Tag deleted', 'success');
 		closeModal();
 	};
@@ -68,6 +75,8 @@ export default function TagsAndMetadata() {
 			</MainLayout>
 		);
 	}
+
+	const tags = tagsQuery.data.items;
 
 	return (
 		<MainLayout title="Tags & Metadata">
@@ -99,7 +108,7 @@ export default function TagsAndMetadata() {
 						</thead>
 
 						<tbody>
-							{tagsQuery.data.map(tag => (
+							{tags.map(tag => (
 								<tr key={tag.name}>
 									<td>
 										<Tag variant="green">{tag.name}</Tag>
@@ -137,6 +146,14 @@ export default function TagsAndMetadata() {
 						</tbody>
 					</table>
 				</div>
+
+				{tags.length === 0 && <InfoBanner message="No tags yet." />}
+
+				<Pagination
+					pageInfo={tagsQuery.data}
+					onPageChange={setPage}
+					isLoading={tagsQuery.isFetching}
+				/>
 
 				{/* Delete Modal */}
 				{activeModal === 'delete' && selectedTag && (

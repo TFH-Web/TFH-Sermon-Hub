@@ -158,16 +158,27 @@ def get_sermon(id: int):
 
 @api.route("/tags")
 def get_tags():
-    tags = db.session.execute(
+    query = (
         db.select(Tag)
         .outerjoin(sermon_tag_m2m)
         .group_by(Tag.name)
         .options(
             with_expression(Tag.count, func.count(sermon_tag_m2m.c.sermon_id))
         )
-    ).scalars()
-    result = counted_tags_schema.dump(tags)
-    return result
+        .order_by(Tag.name.asc())
+    )
+
+    # Opt-in: only tags attached to at least one sermon (e.g. for filter choices)
+    used_param = request.args.get("used", "").strip().lower()
+    if used_param in ("true", "1"):
+        query = query.having(func.count(sermon_tag_m2m.c.sermon_id) > 0)
+
+    pagination = paginate(query, request, counted_tags_schema, "tags")
+    if pagination is None:
+        tags = db.session.execute(query).scalars()
+        return counted_tags_schema.dump(tags)
+
+    return pagination
 
 
 @api.route("/")
