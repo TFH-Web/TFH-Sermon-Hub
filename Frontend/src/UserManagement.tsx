@@ -9,10 +9,9 @@ import {
 	dateRelative,
 	getFullName,
 	getInitials,
-	useUser,
 	userHue,
+	useUser,
 } from '$/types/user';
-
 
 export default function UserManagement() {
 	const [addUserOpen, setAddUserOpen] = useState(false);

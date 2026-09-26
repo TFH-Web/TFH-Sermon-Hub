@@ -1,7 +1,7 @@
-import MurmurHash3 from 'imurmurhash';
-import { testUsers } from '$/data/users';
 import type { AccountInfo } from '@azure/msal-browser';
 import { useMsal } from '@azure/msal-react';
+import MurmurHash3 from 'imurmurhash';
+import { testUsers } from '$/data/users';
 
 export type Role = 'Admin' | 'User';
 
@@ -40,9 +40,9 @@ export function useUser(): User {
 			console.warn('useUser(): no signed in MSAL account, using demo user');
 		}
 		return testUsers[0];
-		}
+	}
 
-	return userFromAccount(account);	
+	return userFromAccount(account);
 }
 
 export function getFullName(user: User): string {
