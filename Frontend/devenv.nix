@@ -5,7 +5,7 @@
   ...
 }: let
   cwd = "${config.git.root}/Frontend";
-  browsers = multiverse.playwright-driver."1.58.2".browsers;
+  browsers = multiverse.playwright-driver."1.60.0".browsers;
   biome = multiverse.biome."2.4.9";
 in {
   env.PLAYWRIGHT_BROWSERS_PATH = browsers;
