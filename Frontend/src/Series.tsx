@@ -91,7 +91,7 @@ export default function Seriess() {
 
 							{/* Series information and pre-computed card statistics */}
 							<div className="series-info">
-								<div className="series-name">{series.title}</div>
+								<h2 className="series-name">{series.title}</h2>
 								<div className="series-meta-data">
 									{/* Sermon count: handles 1 sermon vs multiple or 0 sermons */}
 									{series.sermonCount !== 1
