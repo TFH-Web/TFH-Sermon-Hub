@@ -5,15 +5,17 @@ import {
 	QueryCache,
 	QueryClient,
 	QueryClientProvider,
+	QueryErrorResetBoundary,
 } from '@tanstack/react-query';
 import axios from 'axios';
 import { type PropsWithChildren, StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ErrorBoundary } from 'react-error-boundary';
-import { BrowserRouter, Route, Routes } from 'react-router';
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router';
 import AIChat from './AIChat.tsx';
 import AISearch from './AISearch.tsx';
 import AISearchResults from './AISearchResults.tsx';
+import ErrorBox from './components/ErrorBox.tsx';
 import MainLayout from './components/MainLayout.tsx';
 import { ToastProvider, useToast } from './components/ToastContext';
 import Dashboard from './Dashboard.tsx';
@@ -45,6 +47,34 @@ function AppQueryProvider({ children }: PropsWithChildren) {
 	);
 }
 
+// Catches anything a page throws so the whole app doesn't go blank.
+// The old one never reset, so once one page broke, every page showed "Error!" until you refreshed.
+// resetKeys clears it every time the route changes, so leaving a broken page fixes it.
+// QueryErrorResetBoundary makes Retry actually refetch, not just re-render the same error.
+function RouteErrorBoundary({ children }: PropsWithChildren) {
+	const location = useLocation();
+	return (
+		<QueryErrorResetBoundary>
+			{({ reset }) => (
+				<ErrorBoundary
+					resetKeys={[location.pathname]}
+					onReset={reset}
+					fallbackRender={({ resetErrorBoundary }) => (
+						<MainLayout title="Error">
+							<ErrorBox
+								message="Something broke on this page."
+								onRetry={resetErrorBoundary}
+							/>
+						</MainLayout>
+					)}
+				>
+					{children}
+				</ErrorBoundary>
+			)}
+		</QueryErrorResetBoundary>
+	);
+}
+
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
 // biome-ignore lint/style/noNonNullAssertion: we'd want to throw anyways
@@ -53,9 +83,8 @@ createRoot(document.getElementById('root')!).render(
 		<ToastProvider>
 			<AppQueryProvider>
 				<BrowserRouter>
-					<ErrorBoundary
-						fallback={<MainLayout title="Error">Error!</MainLayout>}
-					>
+					{/* Has to be inside BrowserRouter, useLocation only works in there */}
+					<RouteErrorBoundary>
 						<Routes>
 							<Route index element={<Dashboard />} />
 							<Route path="/login" element={<LoginPage />} />
@@ -72,7 +101,7 @@ createRoot(document.getElementById('root')!).render(
 							<Route path="/notifications" element={<Notifications />} />
 							<Route path="/settings" element={<Settings />} />
 						</Routes>
-					</ErrorBoundary>
+					</RouteErrorBoundary>
 				</BrowserRouter>
 			</AppQueryProvider>
 		</ToastProvider>
