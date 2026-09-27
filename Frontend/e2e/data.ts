@@ -34,7 +34,14 @@ export const seriess = [
 	})),
 ];
 
-export const tags = [{ name: 'grace', source: 'manual', count: 10 }];
+export const tags = [
+	{ name: 'grace', source: 'manual', count: 10 },
+	...Array.from({ length: 10 }, (_, index) => ({
+		name: `tag-${index + 2}`,
+		source: 'ai',
+		count: 10 + index,
+	})),
+];
 
 export const sermons = Array.from({ length: 10 }, (_, index) => ({
 	id: index + 1,

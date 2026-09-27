@@ -110,9 +110,9 @@ export default function TagsAndMetadata() {
 						<tbody>
 							{tags.map(tag => (
 								<tr key={tag.name}>
-									<td>
+									<th scope="row">
 										<Tag variant="green">{tag.name}</Tag>
-									</td>
+									</th>
 
 									<td>{tag.count}</td>
 
