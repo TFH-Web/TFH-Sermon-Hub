@@ -9,8 +9,8 @@ test.beforeEach(async ({ page }) => {
 test('metrics work', async ({ page }) => {
 	for (const { name, stat } of [
 		{ name: 'Total Sermons', stat: 10 },
-		{ name: 'Series', stat: 1 },
-		{ name: 'Speakers', stat: 10 },
+		{ name: 'Series', stat: 15 },
+		{ name: 'Speakers', stat: 15 },
 	]) {
 		await test.step(`metric: ${name}`, async () => {
 			const heading = page.getByRole('heading', { name });
