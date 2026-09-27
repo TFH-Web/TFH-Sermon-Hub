@@ -6,23 +6,73 @@ from tsh.schemas import (
     counted_speaker_schema,
     counted_speakers_schema,
     series_schema,
-    seriess_schema,
     sermon_schema,
     sermons_schema,
 )
 
 
 def test_series(client: FlaskClient, snapshot: Snapshot):
-    from tsh.models import Series
-
     res = client.get("/api/series")
-    seriess: list[Series] = seriess_schema.loads(res.data)
-    assert seriess == snapshot
+    assert res.json == snapshot
 
-    for series in seriess:
-        res = client.get(f"/api/series/{series.id}")
-        res_series: Series = series_schema.loads(res.data)
-        assert res_series == series
+    for item in res.json["items"]:
+        res_series = series_schema.loads(client.get(f"/api/series/{item['id']}").data)
+        assert res_series.id == item["id"]
+        assert res_series.title == item["title"]
+
+
+def all_series(client: FlaskClient) -> dict[str, dict]:
+    res = client.get("/api/series?per_page=100")
+    return {s["title"]: s for s in res.json["items"]}
+
+
+def test_series_pagination(client: FlaskClient):
+    pages = [
+        client.get(f"/api/series?page={n}&per_page=2").json for n in (1, 2, 3)
+    ]
+
+    assert [p["total"] for p in pages] == [5, 5, 5]
+    assert [len(p["items"]) for p in pages] == [2, 2, 1]
+
+    # Every series appears exactly once across the pages
+    ids = [s["id"] for p in pages for s in p["items"]]
+    assert len(ids) == len(set(ids)) == 5
+
+
+def test_series_stats_ignore_page(client: FlaskClient):
+    # The ticket's "complete when": a card shows the same numbers whichever page it lands on
+    expected = {s["id"]: s for s in all_series(client).values()}
+    for n in (1, 2, 3):
+        for s in client.get(f"/api/series?page={n}&per_page=2").json["items"]:
+            assert s == expected[s["id"]]
+
+
+def test_series_stats(client: FlaskClient):
+    series = all_series(client)["Live Your Best Life"]
+
+    assert series["sermonCount"] == 2
+    assert series["firstDate"] == "2026-02-16"
+    assert series["lastDate"] == "2026-02-23"
+    assert [sp["lastName"] for sp in series["speakers"]] == ["Patterson"]
+
+
+def test_empty_series(client: FlaskClient):
+    empty = all_series(client)["New Ground"]
+
+    assert empty["sermonCount"] == 0
+    assert empty["firstDate"] is None
+    assert empty["lastDate"] is None
+    assert empty["speakers"] == []
+
+
+def test_series_bad_page_args(client: FlaskClient):
+    # Nonsense values fall back to something sensible instead of erroring
+    res = client.get("/api/series?page=-4&per_page=abc").json
+    assert res["page"] == 1
+    assert res["perPage"] == 12
+
+    res = client.get("/api/series?per_page=5000").json
+    assert res["perPage"] == 100
 
 
 def test_speakers(client, snapshot):

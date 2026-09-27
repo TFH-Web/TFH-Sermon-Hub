@@ -46,6 +46,27 @@ class SpeakerSchema(CamelCaseSchema):
 speaker_schema = SpeakerSchema()
 speakers_schema = SpeakerSchema(many=True)
 
+# A separate schema from SeriesSchema on purpose.
+# SeriesSchema is nested inside every sermon, so adding these fields there would attach series statistics to every sermon the API sends.
+class SeriesCardScheme(CamelCaseSchema):
+    id = id_field()
+    title = fields.String(required=True)
+    sermon_count = fields.Integer(required=True)
+
+    # Empty series have no sermons, so no dates
+    first_date = fields.Date(allow_none=True)
+    last_date = fields.Date(allow_none=True)
+    speakers = fields.Nested(SpeakerSchema, many=True)
+
+class SeriesPageScheme(CamelCaseSchema):
+    items = fields.Nested(SeriesCardScheme, many=True)
+
+    # How many series exist in total, not how many are on this page
+    total = fields.Integer()
+    page = fields.Integer()
+    per_page = fields.Integer()
+
+series_page_schema = SeriesPageScheme()
 
 class CountedSpeakerSchema(CamelCaseSchema):
     id = id_field()
