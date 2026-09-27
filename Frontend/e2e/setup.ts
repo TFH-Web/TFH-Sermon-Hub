@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
+import { seriess, sermons, speakers, tags } from './data';
 import { paginated } from './pagination';
-import { speakers, seriess, tags, sermons } from './data';
 
 export async function setupRoutes(page: Page) {
 	await page.route('**/api/*', async route => {
