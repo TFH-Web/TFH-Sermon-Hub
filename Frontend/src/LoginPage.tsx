@@ -1,7 +1,7 @@
 // Login Page, shows a microsoft sign-in card and demo
 import { useState } from 'react';
 import './LoginPage.css';
-import { useMsal } from "@azure/msal-react";
+import { useMsal } from '@azure/msal-react';
 
 // Scenariios Listed
 type DemoScenario =

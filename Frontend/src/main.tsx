@@ -1,6 +1,7 @@
 import 'sanitize.css';
 import './index.css';
 
+import { MsalProvider } from '@azure/msal-react';
 import {
 	QueryCache,
 	QueryClient,
@@ -14,7 +15,9 @@ import { BrowserRouter, Route, Routes } from 'react-router';
 import AIChat from './AIChat.tsx';
 import AISearch from './AISearch.tsx';
 import AISearchResults from './AISearchResults.tsx';
+import { msalInstance } from './authConfig';
 import MainLayout from './components/MainLayout.tsx';
+import ProtectedRoute from './components/ProtectedRoute';
 import { ToastProvider, useToast } from './components/ToastContext';
 import Dashboard from './Dashboard.tsx';
 import LoginPage from './LoginPage.tsx';
@@ -27,9 +30,6 @@ import Settings from './Settings.tsx';
 import Speakers from './Speakers.tsx';
 import TagsAndMetadata from './TagsAndMetadata.tsx';
 import UserManagement from './UserManagement.tsx';
-import { MsalProvider } from "@azure/msal-react";
-import { msalInstance } from "./authConfig";
-import ProtectedRoute  from './components/ProtectedRoute';
 
 function AppQueryProvider({ children }: PropsWithChildren) {
 	const { showToast } = useToast();
@@ -50,7 +50,7 @@ function AppQueryProvider({ children }: PropsWithChildren) {
 
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
-axios.interceptors.request.use(async (config) => {
+axios.interceptors.request.use(async config => {
 	const accounts = msalInstance.getAllAccounts();
 	if (accounts.length > 0) {
 		try {
@@ -67,13 +67,15 @@ axios.interceptors.request.use(async (config) => {
 });
 
 // biome-ignore lint/style/noNonNullAssertion: we'd want to throw anyways
-createRoot(document.getElementById('root')!).render(	
+createRoot(document.getElementById('root')!).render(
 	<StrictMode>
 		<MsalProvider instance={msalInstance}>
 			<ToastProvider>
 				<AppQueryProvider>
 					<BrowserRouter>
-						<ErrorBoundary fallback={<MainLayout title="Error">Error!</MainLayout>}	>
+						<ErrorBoundary
+							fallback={<MainLayout title="Error">Error!</MainLayout>}
+						>
 							<Routes>
 								<Route path="/login" element={<LoginPage />} />
 								<Route element={<ProtectedRoute />}>
@@ -84,7 +86,10 @@ createRoot(document.getElementById('root')!).render(
 									<Route path="/series" element={<Series />} />
 									<Route path="/speakers" element={<Speakers />} />
 									<Route path="/ai-search" element={<AISearch />} />
-									<Route path="/ai-search/results" element={<AISearchResults />} />
+									<Route
+										path="/ai-search/results"
+										element={<AISearchResults />}
+									/>
 									<Route path="/ai-chat" element={<AIChat />} />
 									<Route path="/upload" element={<ImportUpload />} />
 									<Route path="/tags" element={<TagsAndMetadata />} />
@@ -98,5 +103,5 @@ createRoot(document.getElementById('root')!).render(
 				</AppQueryProvider>
 			</ToastProvider>
 		</MsalProvider>
-	</StrictMode>
+	</StrictMode>,
 );
