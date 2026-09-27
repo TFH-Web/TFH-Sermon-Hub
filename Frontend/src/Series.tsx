@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import MurmurHash3 from 'imurmurhash';
 import { useState } from 'react';
+import ErrorBox from '$/components/ErrorBox';
+import Loading from '$/components/Loading';
 import MainLayout from '$/components/MainLayout';
 import NewSeriesModal from '$/modals/NewSeriesModal';
 import { Series } from '$/types/series';
@@ -31,28 +33,25 @@ export default function Seriess() {
 		},
 	});
 
-	// TODO: error state at error
-	if (seriesQuery.isError) {
+	// Either request failing means we can't really build the page. Retry only refetches the one that broke.
+	if (seriesQuery.isError || sermonQuery.isError) {
 		return (
 			<MainLayout title="Series" className="Series">
-				<h1>Error!</h1>
+				<ErrorBox
+					message="Failed to load series."
+					onRetry={() => {
+						if (seriesQuery.isError) seriesQuery.refetch();
+						if (sermonQuery.isError) sermonQuery.refetch();
+					}}
+				/>
 			</MainLayout>
 		);
 	}
 
-	if (sermonQuery.isError) {
-		return (
-			<MainLayout title="Series" className="Series">
-				<h1>Error!</h1>
-			</MainLayout>
-		);
-	}
-
-	// TODO: loading state while pending
 	if (seriesQuery.isPending || sermonQuery.isPending)
 		return (
 			<MainLayout title="Series" className="Series">
-				<h1>Loading...</h1>
+				<Loading vertical />
 			</MainLayout>
 		);
 

@@ -94,18 +94,32 @@ export default function Sermons() {
 		},
 	});
 
+	// The main sermon list failed. Retry just refetches this page of sermons.
+	// Filters and pagination stay where they were.
 	if (sermonsQuery.isError) {
 		return (
 			<SermonShell>
-				<ErrorBox message="Failed to load sermons. Refresh the page and try again." />
+				<ErrorBox
+					message="Failed to load sermons."
+					onRetry={() => sermonsQuery.refetch()}
+				/>
 			</SermonShell>
 		);
 	}
 
+	// One of the filter dropdowns (speakers, series, tags) failed to load.
+	// Retry only refetches the ones that broke, no point reloading the ones that worked.
 	if (speakersQuery.isError || seriesQuery.isError || tagsQuery.isError) {
 		return (
 			<SermonShell>
-				<ErrorBox message="Failed to load sermon filters. Refresh the page and try again." />
+				<ErrorBox
+					message="Failed to load sermon filters."
+					onRetry={() => {
+						if (speakersQuery.isError) speakersQuery.refetch();
+						if (seriesQuery.isError) seriesQuery.refetch();
+						if (tagsQuery.isError) tagsQuery.refetch();
+					}}
+				/>
 			</SermonShell>
 		);
 	}
