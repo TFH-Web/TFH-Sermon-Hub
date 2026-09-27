@@ -9,20 +9,21 @@ import { Sermon } from '$/types/sermon';
 import type { Speaker } from '$/types/speaker';
 import './Series.css';
 
-let seriess: Series[]; //stores all officially recognized series into an array
 
 // Component to display the list of sermon series
 export default function Seriess() {
 	const [newSeriesOpen, setNewSeriesOpen] = useState(false);
+  const [seriess, setSeriess] = useState<Series[]>([]); //stores all officially recognized series into an array
 
 	//querying for series data (id, title)
 	const seriesQuery = useQuery({
 		queryKey: ['series'],
 		queryFn: async () => {
 			const res = await axios.get('/api/series');
-			seriess = await Series.array().parseAsync(res.data); //stores queried data into seriess
+			setSeriess(await Series.array().parseAsync(res.data)); //stores queried data into seriess
 			return seriess;
 		},
+    retry: 2,
 	});
 
 	const [sermons, setSermons] = useState<Sermon[]>([]); //using useState in order to use forEach loop
@@ -35,11 +36,11 @@ export default function Seriess() {
 			setSermons(await Sermon.array().parseAsync(res.data));
 			return sermons;
 		},
+    retry: 2,
 	});
 
 	// TODO: error state at error
 	if (seriesQuery.isError) {
-		seriess = [];
 		return (
 			<MainLayout title="Series" className="Series">
 				<h1>Error!</h1>
@@ -48,7 +49,6 @@ export default function Seriess() {
 	}
 
 	if (sermonQuery.isError) {
-		setSermons([]);
 		return (
 			<MainLayout title="Series" className="Series">
 				<h1>Error!</h1>
