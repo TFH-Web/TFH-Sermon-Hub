@@ -27,8 +27,19 @@ test.beforeEach(async ({ page }) => {
 		switch (url.pathname) {
 			case '/api/speakers':
 				return route.fulfill({ json: [speaker] });
-			case '/api/series':
+			case '/api/series': {
+				if (url.searchParams.has('page') || url.searchParams.has('per_page')) {
+					return route.fulfill({
+						json: {
+							items: [series],
+							total: 1,
+							page: Number(url.searchParams.get('page') ?? 1),
+							perPage: Number(url.searchParams.get('per_page') ?? 12),
+						},
+					});
+				}
 				return route.fulfill({ json: [series] });
+			}
 			case '/api/tags':
 				return route.fulfill({ json: [tag] });
 			case '/api/sermons': {
