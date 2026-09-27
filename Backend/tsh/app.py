@@ -40,6 +40,7 @@ def create_app(
     def handle_unexpected_error(e):
         if isinstance(e, HTTPException):
             return e
+        app.logger.exception(e)
         return jsonify({"error": "Internal server error", "message": "Internal server error"}), 500
 
     app.register_blueprint(api)

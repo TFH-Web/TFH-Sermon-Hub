@@ -26,7 +26,9 @@ from tsh.schemas import (
 api = Blueprint("api", __name__, url_prefix="/api")
 
 
+
 @api.route("/series")
+@require_role("Internal User", "Admin")
 def get_all_series():
     series = db.session.execute(db.select(Series)).scalars()
     result = seriess_schema.dump(series)
@@ -34,6 +36,7 @@ def get_all_series():
 
 
 @api.route("/series/<int:id>")
+@require_role("Internal User", "Admin")
 def get_series(id: int):
     series = db.get_or_404(Series, id, description=f"Series with id {id} not found")
     result = series_schema.dump(series)
@@ -41,6 +44,7 @@ def get_series(id: int):
 
 
 @api.route("/speakers")
+@require_role("Internal User", "Admin")
 def get_speakers():
     query = (
         db.select(Speaker)
@@ -64,6 +68,7 @@ def get_speakers():
 
 
 @api.route("/speakers/<int:id>")
+@require_role("Internal User", "Admin")
 def get_speaker(id: int):
     speaker = db.get_or_404(Speaker, id, description=f"Speaker with id {id} not found")
     result = speaker_schema.dump(speaker)
@@ -71,6 +76,7 @@ def get_speaker(id: int):
 
 
 @api.route("/sermons")
+@require_role("Internal User", "Admin")
 def get_sermons():
     query = db.select(Sermon)
 
@@ -151,6 +157,7 @@ def get_sermons():
 
 
 @api.route("/sermons/<int:id>")
+@require_role("Internal User", "Admin")
 def get_sermon(id: int):
     sermon = db.get_or_404(Sermon, id, description=f"Sermon with id {id} not found")
     result = sermon_schema.dump(sermon)
@@ -158,6 +165,7 @@ def get_sermon(id: int):
 
 
 @api.route("/tags")
+@require_role("Internal User", "Admin")
 def get_tags():
     query = (
         db.select(Tag)
@@ -199,6 +207,7 @@ def whoami():
 
 
 @api.get("/search")
+@require_role("Internal User", "Admin")
 def search():
     query = request.args.get("q", "").strip().lower()
     content_type = request.args.get("type", "all").strip().lower()

@@ -2,7 +2,7 @@ import os
 from functools import wraps
 
 import jwt
-from flask import g, jsonify, request
+from flask import current_app, g, jsonify, request
 from jwt import PyJWKClient
 
 TENANT_ID = os.environ['TENANT_ID']
@@ -14,6 +14,17 @@ ISSUER = f"https://login.microsoftonline.com/{TENANT_ID}/v2.0"
 jwks_client = PyJWKClient(JWKS_URL)
 
 def parse_role_from_token():
+    if current_app.testing:
+        test_roles_header = request.headers.get("X-Test-Roles")
+
+        if test_roles_header is None:
+            g.current_user_role = ["Admin", "Internal User"]
+        elif test_roles_header.strip().lower() == "none":
+            g.current_user_role = None
+        else:
+            g.current_user_role = [r.strip() for r in test_roles_header.split(",")]
+        return  # Skip the rest of the function if in testing mode
+
     try:
         auth_header = request.headers.get('Authorization', "")
         if not auth_header.startswith("Bearer "):
@@ -29,7 +40,7 @@ def parse_role_from_token():
     except Exception:
         g.current_user_role = None
 
-def require_role(required_role):
+def require_role(*accepted_roles):
     def decorator(function_to_wrap):
         @wraps(function_to_wrap)
         def check_role_then_run(*args, **kwargs):
@@ -37,10 +48,10 @@ def require_role(required_role):
 
             if g.current_user_role is None:
                 return jsonify({"error": "Missing or invalid token. Please log in."}), 401
-            
-            if required_role not in g.current_user_role:
-                return jsonify({"error": f"Access Denied. Required role: {required_role}"}), 403
-            
+
+            if not any(role in g.current_user_role for role in accepted_roles):
+                return jsonify({"error": f"Access Denied. Required role: {' or '.join(accepted_roles)}"}), 403
+
             return function_to_wrap(*args, **kwargs)
         return check_role_then_run
     return decorator
