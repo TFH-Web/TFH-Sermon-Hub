@@ -36,7 +36,7 @@ def read_page_args() -> tuple[int, int]:
     per_page = min(max(per_page, 1), MAX_PER_PAGE)
     return page, per_page
 
-
+# TODO: use paginate()
 @api.route("/series")
 def get_all_series():
     page, per_page = read_page_args()

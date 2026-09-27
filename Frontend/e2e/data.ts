@@ -13,7 +13,24 @@ export const speakers = [
 	})),
 ];
 
-export const seriess = [{ id: 1, title: 'Grace Series' }];
+export const seriess = [
+	{
+		id: 1,
+		title: 'Grace Series',
+		firstDate: '2026-02-10',
+		lastDate: '2026-02-10',
+		sermonCount: 12,
+		speakers: [speakers[0]],
+	},
+	...Array.from({ length: 14 }, (_, index) => ({
+		id: index + 2,
+		title: `Series ${index + 2}`,
+		firstDate: `2026-02-${10 + index}`,
+		lastDate: `2026-02-${10 + index}`,
+		sermonCount: index + 1,
+		speakers,
+	})),
+];
 
 export const tags = [{ name: 'grace', source: 'manual', count: 10 }];
 

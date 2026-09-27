@@ -35,6 +35,7 @@ export function paginated(
 			total: items.length,
 			page: currentPage,
 			pageSize,
+			perPage: pageSize,
 			totalPages: Math.ceil(items.length / pageSize),
 		},
 	});

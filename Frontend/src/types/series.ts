@@ -20,6 +20,7 @@ export const SeriesCard = z.object({
 export type SeriesCard = z.infer<typeof SeriesCard>;
 
 // Paginated envelope schema: validates the full response wrapper from GET /api/series
+// TODO: replace with paginated(SeriesCard.array())
 export const SeriesPage = z.object({
 	items: z.array(SeriesCard), // The slice of series cards for the currently requested page
 	total: z.number(), // Total number of series existing in the database (not just this page)
