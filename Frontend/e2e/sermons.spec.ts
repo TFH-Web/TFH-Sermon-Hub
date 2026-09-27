@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { paginated } from './pagination';
 
 const speaker = {
 	id: 1,
@@ -42,24 +43,8 @@ test.beforeEach(async ({ page }) => {
 			}
 			case '/api/tags':
 				return route.fulfill({ json: [tag] });
-			case '/api/sermons': {
-				if (!url.searchParams.has('page'))
-					return route.fulfill({ json: sermons });
-				const currentPage = Number(url.searchParams.get('page'));
-				const pageSize = Number(url.searchParams.get('pageSize'));
-				return route.fulfill({
-					json: {
-						items: sermons.slice(
-							(currentPage - 1) * pageSize,
-							currentPage * pageSize,
-						),
-						total: sermons.length,
-						page: currentPage,
-						pageSize,
-						totalPages: Math.ceil(sermons.length / pageSize),
-					},
-				});
-			}
+			case '/api/sermons':
+				return paginated(sermons, route, url.searchParams);
 			default:
 				return route.abort();
 		}
