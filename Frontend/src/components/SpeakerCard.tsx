@@ -20,21 +20,15 @@ export default function SpeakerCard({ speaker }: SpeakerCardProps) {
 				className="speaker-icon"
 				style={{ '--h': speakerHue(speaker) } as React.CSSProperties}
 			>
-				<b>{getInitials(speaker)}</b>
+				{getInitials(speaker)}
 			</div>
 
 			{/* speaker info section with Name header, role, and sermon count*/}
-			<div className="speaker-name">
-				<p>
-					<b>{getFullName(speaker)}</b>
-				</p>
-			</div>
-			<div className="speaker-info">
-				<p>
-					{speaker.role} • {speaker.sermonCount} sermon
-					{speaker.sermonCount !== 1 && 's'}
-				</p>
-			</div>
+			<h2 className="speaker-name">{getFullName(speaker)}</h2>
+			<p className="speaker-info">
+				{speaker.role} • {speaker.sermonCount} sermon
+				{speaker.sermonCount !== 1 && 's'}
+			</p>
 		</div>
 	);
 }

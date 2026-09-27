@@ -4,12 +4,14 @@ export const speakers = [
 		firstName: 'Dave',
 		lastName: 'Patterson',
 		role: 'Lead Speaker',
+		sermonCount: 12,
 	},
-	...Array.from({ length: 9 }, (_, index) => ({
+	...Array.from({ length: 14 }, (_, index) => ({
 		id: index + 2,
 		firstName: 'Speaker',
 		lastName: `No. ${index + 2}`,
 		role: 'Guest Speaker',
+		sermonCount: index + 1,
 	})),
 ];
 
