@@ -28,3 +28,9 @@
 	grid-area: message;
 	margin: 0;
 }
+
+/* Retry goes on its own row under the message, centered */
+.ErrorBox-retry {
+	grid-column: 1 / -1;
+	justify-self: center;
+}

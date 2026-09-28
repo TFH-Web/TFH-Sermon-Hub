@@ -57,7 +57,10 @@ export default function Speakers() {
 		);
 	}
 
-	const speakers = speakersQuery.data?.items ?? [];
+	const speakers = (speakersQuery.data?.items ?? []).map(speaker => ({
+		...speaker,
+		role: speaker.role || 'Unspecified Role',
+	}));
 	const speakerCards = speakers.map(speaker => (
 		<SpeakerCard key={speaker.id} speaker={speaker} />
 	));
