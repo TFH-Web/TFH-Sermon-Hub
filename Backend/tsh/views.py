@@ -1,6 +1,7 @@
-from flask import Blueprint, request
+from flask import Blueprint, g, jsonify, request
 from sqlalchemy import false, func
 from sqlalchemy.orm import with_expression
+from tsh.auth import require_role
 
 from tsh.database import db
 from tsh.models import (
@@ -38,6 +39,7 @@ def read_page_args() -> tuple[int, int]:
 
 # TODO: use paginate()
 @api.route("/series")
+@require_role("Internal User", "Admin")
 def get_all_series():
     page, per_page = read_page_args()
 
@@ -100,6 +102,7 @@ def get_all_series():
 
 
 @api.route("/series/<int:id>")
+@require_role("Internal User", "Admin")
 def get_series(id: int):
     series = db.get_or_404(Series, id, description=f"Series with id {id} not found")
     result = series_schema.dump(series)
@@ -107,6 +110,7 @@ def get_series(id: int):
 
 
 @api.route("/speakers")
+@require_role("Internal User", "Admin")
 def get_speakers():
     query = (
         db.select(Speaker)
@@ -130,6 +134,7 @@ def get_speakers():
 
 
 @api.route("/speakers/<int:id>")
+@require_role("Internal User", "Admin")
 def get_speaker(id: int):
     speaker = db.get_or_404(Speaker, id, description=f"Speaker with id {id} not found")
     result = speaker_schema.dump(speaker)
@@ -137,6 +142,7 @@ def get_speaker(id: int):
 
 
 @api.route("/sermons")
+@require_role("Internal User", "Admin")
 def get_sermons():
     query = db.select(Sermon)
 
@@ -217,6 +223,7 @@ def get_sermons():
 
 
 @api.route("/sermons/<int:id>")
+@require_role("Internal User", "Admin")
 def get_sermon(id: int):
     sermon = db.get_or_404(Sermon, id, description=f"Sermon with id {id} not found")
     result = sermon_schema.dump(sermon)
@@ -224,6 +231,7 @@ def get_sermon(id: int):
 
 
 @api.route("/tags")
+@require_role("Internal User", "Admin")
 def get_tags():
     query = (
         db.select(Tag)
@@ -258,7 +266,14 @@ def health():
     return {"status": "ok"}
 
 
+@api.get("/whoami")
+@require_role("Internal User")
+def whoami():
+    return jsonify({"roles": g.current_user_role})
+
+
 @api.get("/search")
+@require_role("Internal User", "Admin")
 def search():
     query = request.args.get("q", "").strip().lower()
     content_type = request.args.get("type", "all").strip().lower()
@@ -327,3 +342,5 @@ def search():
     filtered.sort(key=lambda item: item["ai_score"], reverse=True)
 
     return filtered
+
+

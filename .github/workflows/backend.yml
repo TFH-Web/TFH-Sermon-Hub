@@ -47,4 +47,7 @@ jobs:
           EOF
 
       - name: Run tests
+        env:
+          TENANT_ID: "ci-only-dummy-tenant-id"
+          CLIENT_ID: "ci-only-dummy-client-id"
         run: poetry run pytest

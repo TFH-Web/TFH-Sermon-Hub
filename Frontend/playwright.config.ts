@@ -72,10 +72,13 @@ export default defineConfig({
 		// },
 	],
 
-	/* Run your local dev server before starting the tests */
-	webServer: {
-		command: 'npm run dev',
-		url: devServerURL,
-		reuseExistingServer: !process.env.CI,
-	},
+  /* Run your local dev server before starting the tests */
+  webServer: {
+    command: 'npm run dev',
+    url: devServerURL,
+    reuseExistingServer: !process.env.CI,
+    env: {
+      VITE_E2E_TEST: 'true',
+    }
+  },
 });
