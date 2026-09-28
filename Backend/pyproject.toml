@@ -12,6 +12,7 @@ dependencies = [
     "flask-jwt-extended (>=4.7.1,<5.0.0)",
     "flask-cors (>=6.0.5,<7.0.0)",
     "marshmallow (>=4.3.1,<5.0.0)",
+    "pyjwt[crypto] (>=2.14.0,<3.0.0)",
 ]
 
 [dependency-groups]

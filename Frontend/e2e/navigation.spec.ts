@@ -1,8 +1,12 @@
 import { devices, expect, test } from '@playwright/test';
+import { setupRoutes } from './setup';
+
+test.beforeEach(async ({ page }) => {
+	setupRoutes(page);
+	await page.goto('/');
+});
 
 test('navigation works', async ({ page }) => {
-	await page.goto('/');
-
 	for (const pageName of [
 		'Sermons',
 		'Series',
@@ -26,7 +30,6 @@ test('navigation works', async ({ page }) => {
 
 test('sidebar controls work on mobile', async ({ page }) => {
 	await page.setViewportSize(devices['iPhone XR'].viewport);
-	await page.goto('/');
 
 	const getSidebar = () => page.getByRole('heading', { name: 'Sermon Hub' });
 

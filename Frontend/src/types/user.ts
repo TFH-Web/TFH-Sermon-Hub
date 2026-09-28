@@ -1,10 +1,12 @@
+import type { AccountInfo } from '@azure/msal-browser';
+import { useMsal } from '@azure/msal-react';
 import MurmurHash3 from 'imurmurhash';
 import { testUsers } from '$/data/users';
 
 export type Role = 'Admin' | 'User';
 
 export interface User {
-	id: number;
+	id: string;
 	firstName: string;
 	lastName: string;
 	email: string;
@@ -12,8 +14,35 @@ export interface User {
 	lastActive: Date;
 }
 
-export function getUser(): User {
-	return testUsers[0];
+const isE2ETestMode = import.meta.env.VITE_E2E_TEST === 'true';
+
+function userFromAccount(account: AccountInfo): User {
+	const claims = account.idTokenClaims as { roles?: string[] } | undefined;
+	const fullName = account.name?.trim() || account.username;
+	const [firstName, ...rest] = fullName.split(' ');
+
+	return {
+		id: account.localAccountId,
+		firstName: firstName || fullName,
+		lastName: rest.join(' '),
+		email: account.username,
+		role: claims?.roles?.includes('Admin') ? 'Admin' : 'User',
+		lastActive: new Date(),
+	};
+}
+
+export function useUser(): User {
+	const { accounts } = useMsal();
+	const account = accounts[0];
+
+	if (!account) {
+		if (!isE2ETestMode) {
+			console.warn('useUser(): no signed in MSAL account, using demo user');
+		}
+		return testUsers[0];
+	}
+
+	return userFromAccount(account);
 }
 
 export function getFullName(user: User): string {
