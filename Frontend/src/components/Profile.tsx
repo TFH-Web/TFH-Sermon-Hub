@@ -1,12 +1,19 @@
-import { getFullName, getInitials, getUser } from '$/types/user';
+import { getFullName, getInitials, useUser } from '$/types/user';
 import './Profile.css';
-import { useNavigate } from 'react-router';
+import { useMsal } from '@azure/msal-react';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function Profile() {
-	const user = getUser();
+	const user = useUser();
 	const initials = getInitials(user);
 	const name = getFullName(user);
-	const navigate = useNavigate();
+	const { instance } = useMsal();
+	const queryClient = useQueryClient();
+
+	function handleLogout() {
+		queryClient.clear();
+		instance.logoutRedirect();
+	}
 
 	return (
 		<div className="Profile">
@@ -16,7 +23,7 @@ export default function Profile() {
 			<button
 				type="button"
 				className="Profile-logOut u-button"
-				onClick={() => navigate('/login')}
+				onClick={handleLogout}
 			>
 				Log Out
 			</button>

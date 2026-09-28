@@ -1,6 +1,7 @@
 import 'sanitize.css';
 import './index.css';
 
+import { MsalProvider } from '@azure/msal-react';
 import {
 	QueryCache,
 	QueryClient,
@@ -15,8 +16,10 @@ import { BrowserRouter, Route, Routes, useLocation } from 'react-router';
 import AIChat from './AIChat.tsx';
 import AISearch from './AISearch.tsx';
 import AISearchResults from './AISearchResults.tsx';
+import { msalInstance } from './authConfig';
 import ErrorBox from './components/ErrorBox.tsx';
 import MainLayout from './components/MainLayout.tsx';
+import ProtectedRoute from './components/ProtectedRoute';
 import { ToastProvider, useToast } from './components/ToastContext';
 import Dashboard from './Dashboard.tsx';
 import LoginPage from './LoginPage.tsx';
@@ -77,33 +80,56 @@ function RouteErrorBoundary({ children }: PropsWithChildren) {
 
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
+axios.interceptors.request.use(async config => {
+	const accounts = msalInstance.getAllAccounts();
+	if (accounts.length > 0) {
+		try {
+			const response = await msalInstance.acquireTokenSilent({
+				account: accounts[0],
+				scopes: ['openid', 'profile'],
+			});
+			config.headers.Authorization = `Bearer ${response.idToken}`;
+		} catch (error) {
+			console.error('Failed to acquire token for request:', error);
+		}
+	}
+	return config;
+});
+
 // biome-ignore lint/style/noNonNullAssertion: we'd want to throw anyways
 createRoot(document.getElementById('root')!).render(
 	<StrictMode>
-		<ToastProvider>
-			<AppQueryProvider>
-				<BrowserRouter>
-					{/* Has to be inside BrowserRouter, useLocation only works in there */}
-					<RouteErrorBoundary>
-						<Routes>
-							<Route index element={<Dashboard />} />
-							<Route path="/login" element={<LoginPage />} />
-							<Route path="/sermons" element={<Sermons />} />
-							<Route path="/sermons/:id" element={<SermonDetail />} />
-							<Route path="/series" element={<Series />} />
-							<Route path="/speakers" element={<Speakers />} />
-							<Route path="/ai-search" element={<AISearch />} />
-							<Route path="/ai-search/results" element={<AISearchResults />} />
-							<Route path="/ai-chat" element={<AIChat />} />
-							<Route path="/upload" element={<ImportUpload />} />
-							<Route path="/tags" element={<TagsAndMetadata />} />
-							<Route path="/user-management" element={<UserManagement />} />
-							<Route path="/notifications" element={<Notifications />} />
-							<Route path="/settings" element={<Settings />} />
-						</Routes>
-					</RouteErrorBoundary>
-				</BrowserRouter>
-			</AppQueryProvider>
-		</ToastProvider>
+		<MsalProvider instance={msalInstance}>
+			<ToastProvider>
+				<AppQueryProvider>
+					<BrowserRouter>
+						{/* Has to be inside BrowserRouter, useLocation only works in there */}
+						<RouteErrorBoundary>
+							<Routes>
+								<Route path="/login" element={<LoginPage />} />
+								<Route element={<ProtectedRoute />}>
+									<Route index element={<Dashboard />} />
+									<Route path="/sermons" element={<Sermons />} />
+									<Route path="/sermons/:id" element={<SermonDetail />} />
+									<Route path="/series" element={<Series />} />
+									<Route path="/speakers" element={<Speakers />} />
+									<Route path="/ai-search" element={<AISearch />} />
+									<Route
+										path="/ai-search/results"
+										element={<AISearchResults />}
+									/>
+									<Route path="/ai-chat" element={<AIChat />} />
+									<Route path="/upload" element={<ImportUpload />} />
+									<Route path="/tags" element={<TagsAndMetadata />} />
+									<Route path="/user-management" element={<UserManagement />} />
+									<Route path="/notifications" element={<Notifications />} />
+									<Route path="/settings" element={<Settings />} />
+								</Route>
+							</Routes>
+						</RouteErrorBoundary>
+					</BrowserRouter>
+				</AppQueryProvider>
+			</ToastProvider>
+		</MsalProvider>
 	</StrictMode>,
 );
