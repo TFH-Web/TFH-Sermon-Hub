@@ -9,11 +9,10 @@ import { Sermon } from '$/types/sermon';
 import type { Speaker } from '$/types/speaker';
 import './Series.css';
 
-
 // Component to display the list of sermon series
 export default function Seriess() {
 	const [newSeriesOpen, setNewSeriesOpen] = useState(false);
-  const [seriess, setSeriess] = useState<Series[]>([]); //stores all officially recognized series into an array
+	const [seriess, setSeriess] = useState<Series[]>([]); //stores all officially recognized series into an array
 
 	//querying for series data (id, title)
 	const seriesQuery = useQuery({
@@ -23,7 +22,7 @@ export default function Seriess() {
 			setSeriess(await Series.array().parseAsync(res.data)); //stores queried data into seriess
 			return seriess;
 		},
-    retry: 2,
+		retry: 2,
 	});
 
 	const [sermons, setSermons] = useState<Sermon[]>([]); //using useState in order to use forEach loop
@@ -36,7 +35,7 @@ export default function Seriess() {
 			setSermons(await Sermon.array().parseAsync(res.data));
 			return sermons;
 		},
-    retry: 2,
+		retry: 2,
 	});
 
 	// TODO: error state at error
