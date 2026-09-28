@@ -52,7 +52,7 @@ export default function Sermons() {
 		queryKey: ['series'],
 		queryFn: async () => {
 			// Ask for up to 100 series to ensure the filter dropdown has all options
-			const res = await axios.get('/api/series?per_page=100');
+			const res = await axios.get('/api/series?page=1&per_page=100');
 			// The backend now returns { items: [...], total, ... }, so we parse items
 			return Series.array().parseAsync(res.data.items);
 		},

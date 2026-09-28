@@ -1,33 +1,12 @@
 import { devices, expect, test } from '@playwright/test';
+import { setupRoutes } from './setup';
 
 test.beforeEach(async ({ page }) => {
-	await page.route('**/api/*', route => {
-		const url = new URL(route.request().url());
-		const json =
-			url.pathname === '/api/sermons' && url.searchParams.has('page')
-				? {
-						items: [],
-						total: 0,
-						page: Number(url.searchParams.get('page')),
-						pageSize: 9,
-						totalPages: 0,
-					}
-				: url.pathname === '/api/series' &&
-						(url.searchParams.has('page') || url.searchParams.has('per_page'))
-					? {
-							items: [],
-							total: 0,
-							page: Number(url.searchParams.get('page') ?? 1),
-							perPage: 12,
-						}
-					: [];
-		return route.fulfill({ json });
-	});
+	setupRoutes(page);
+	await page.goto('/');
 });
 
 test('navigation works', async ({ page }) => {
-	await page.goto('/');
-
 	for (const pageName of [
 		'Sermons',
 		'Series',
@@ -51,7 +30,6 @@ test('navigation works', async ({ page }) => {
 
 test('sidebar controls work on mobile', async ({ page }) => {
 	await page.setViewportSize(devices['iPhone XR'].viewport);
-	await page.goto('/');
 
 	const getSidebar = () => page.getByRole('heading', { name: 'Sermon Hub' });
 

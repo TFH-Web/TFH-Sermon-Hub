@@ -29,7 +29,7 @@ export default function Dashboard() {
 		queryKey: ['series', 'count'],
 		queryFn: async () => {
 			// Ask for only 1 item per page so we don't waste bandwidth downloading all series just to get the total count
-			const res = await axios.get('/api/series?per_page=1');
+			const res = await axios.get('/api/series?page=1&per_page=1');
 			// Validate that the server response matches our paginated SeriesPage schema
 			return await SeriesPage.parseAsync(res.data);
 		},

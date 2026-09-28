@@ -1,69 +1,8 @@
 import { expect, test } from '@playwright/test';
-
-const speaker = {
-	id: 1,
-	firstName: 'Dave',
-	lastName: 'Patterson',
-	role: 'Lead Speaker',
-};
-const series = { id: 1, title: 'Grace Series' };
-const tag = { name: 'grace', source: 'manual', count: 10 };
-const sermons = Array.from({ length: 10 }, (_, index) => ({
-	id: index + 1,
-	title: `Sermon ${index + 1}`,
-	videoLink: 'https://youtu.be/example',
-	duration: 1200,
-	date: '2026-02-23',
-	description: 'A message about grace.',
-	tags: [tag],
-	speaker,
-	series,
-	status: 'Published',
-}));
+import { setupRoutes } from './setup';
 
 test.beforeEach(async ({ page }) => {
-	await page.route('**/api/*', async route => {
-		const url = new URL(route.request().url());
-		switch (url.pathname) {
-			case '/api/speakers':
-				return route.fulfill({ json: [speaker] });
-			case '/api/series': {
-				if (url.searchParams.has('page') || url.searchParams.has('per_page')) {
-					return route.fulfill({
-						json: {
-							items: [series],
-							total: 1,
-							page: Number(url.searchParams.get('page') ?? 1),
-							perPage: Number(url.searchParams.get('per_page') ?? 12),
-						},
-					});
-				}
-				return route.fulfill({ json: [series] });
-			}
-			case '/api/tags':
-				return route.fulfill({ json: [tag] });
-			case '/api/sermons': {
-				if (!url.searchParams.has('page'))
-					return route.fulfill({ json: sermons });
-				const currentPage = Number(url.searchParams.get('page'));
-				const pageSize = Number(url.searchParams.get('pageSize'));
-				return route.fulfill({
-					json: {
-						items: sermons.slice(
-							(currentPage - 1) * pageSize,
-							currentPage * pageSize,
-						),
-						total: sermons.length,
-						page: currentPage,
-						pageSize,
-						totalPages: Math.ceil(sermons.length / pageSize),
-					},
-				});
-			}
-			default:
-				return route.abort();
-		}
-	});
+	setupRoutes(page);
 });
 
 for (const { name, parameter, value } of [
