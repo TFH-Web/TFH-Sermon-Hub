@@ -1,12 +1,15 @@
-import { useQuery } from '@tanstack/react-query'; // Hook to fetch data from the server and manage loading, error, and cached states
-import axios from 'axios'; // Sends HTTP GET requests to our Flask backend API
-import MurmurHash3 from 'imurmurhash'; // Generates a consistent hash number from text to pick a unique card banner color
-import { useState } from 'react'; // React state to remember interactive values across renders (current page and popup visibility)
-import MainLayout from '$/components/MainLayout'; // App layout wrapper containing the navigation bar and header
-import Pagination from '$/components/Pagination'; // Shared pagination controls
-import NewSeriesModal from '$/modals/NewSeriesModal'; // Popup modal to create a new sermon series
-import { type SeriesCard, SeriesPage } from '$/types/series'; // Zod types to validate the paginated series response
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
+import MurmurHash3 from 'imurmurhash';
+import { useState } from 'react';
+import ErrorBox from '$/components/ErrorBox';
+import Loading from '$/components/Loading';
+import MainLayout from '$/components/MainLayout';
+import NewSeriesModal from '$/modals/NewSeriesModal';
+import { type SeriesCard, SeriesPage } from '$/types/series';
+import { Sermon } from '$/types/sermon';
 import './Series.css';
+import Pagination from '$/components/Pagination';
 
 // How many series cards to display per page
 const PER_PAGE = 12;
@@ -25,30 +28,39 @@ export default function Seriess() {
 				`/api/series?page=${page}&per_page=${PER_PAGE}`,
 			);
 			// Validate response shape against SeriesPage schema (items, total, page, perPage)
-			return await SeriesPage.parseAsync(res.data);
+			return SeriesPage.parseAsync(res.data);
+		},
+	});
+
+	//querying for sermon data (id, title, videoLink, duration, date, description, tags, transcript, summary, speaker, series, status)
+	const sermonQuery = useQuery({
+		queryKey: ['sermons'],
+		queryFn: async () => {
+			const res = await axios.get('/api/sermons');
+			return Sermon.array().parseAsync(res.data);
 		},
 	});
 
 	// If the backend request failed or network broke, show an error box with a retry button instead of a blank screen
-	if (seriesQuery.isError) {
+	if (seriesQuery.isError || sermonQuery.isError) {
 		return (
 			<MainLayout title="Series" className="Series">
-				<div className="series-error">
-					<h1>Error loading series</h1>
-					<p>{seriesQuery.error.message}</p>
-					<button type="button" onClick={() => seriesQuery.refetch()}>
-						Retry
-					</button>
-				</div>
+				<ErrorBox
+					message="Failed to load series."
+					onRetry={() => {
+						if (seriesQuery.isError) seriesQuery.refetch();
+						if (sermonQuery.isError) sermonQuery.refetch();
+					}}
+				/>
 			</MainLayout>
 		);
 	}
 
 	// While waiting for the backend to respond, show a loading placeholder
-	if (seriesQuery.isPending) {
+	if (seriesQuery.isPending || sermonQuery.isPending) {
 		return (
 			<MainLayout title="Series" className="Series">
-				<h1>Loading...</h1>
+				<Loading vertical />
 			</MainLayout>
 		);
 	}
