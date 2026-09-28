@@ -146,7 +146,7 @@ for (const resource of ['speakers', 'series', 'tags']) {
 		await page.goto('/sermons');
 		await expect(
 			page.getByText(
-				'Failed to load sermon filters. Refresh the page and try again.',
+				'Failed to load sermon filters.',
 			),
 		).toBeVisible({ timeout: 15000 });
 		await expect(page.locator('select').first()).toBeDisabled();
