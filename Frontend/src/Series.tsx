@@ -9,11 +9,10 @@ import { Sermon } from '$/types/sermon';
 import type { Speaker } from '$/types/speaker';
 import './Series.css';
 
-
 // Component to display the list of sermon series
 export default function Seriess() {
 	const [newSeriesOpen, setNewSeriesOpen] = useState(false);
-  const [seriess, setSeriess] = useState<Series[]>([]); //stores all officially recognized series into an array
+	const [seriess, setSeriess] = useState<Series[]>([]); //stores all officially recognized series into an array
 
 	//querying for series data (id, title)
 	const seriesQuery = useQuery({
@@ -23,7 +22,7 @@ export default function Seriess() {
 			setSeriess(await Series.array().parseAsync(res.data)); //stores queried data into seriess
 			return seriess;
 		},
-    retry: 2,
+		retry: 2,
 	});
 
 	const [sermons, setSermons] = useState<Sermon[]>([]); //using useState in order to use forEach loop
@@ -36,7 +35,7 @@ export default function Seriess() {
 			setSermons(await Sermon.array().parseAsync(res.data));
 			return sermons;
 		},
-    retry: 2,
+		retry: 2,
 	});
 
 	// TODO: error state at error
@@ -67,6 +66,7 @@ export default function Seriess() {
 	//create type to store stats
 	type SeriesStats = {
 		count: number;
+		sermons: Sermon[];
 		startYear: number;
 		endYear: number;
 		speakers: Speaker[];
@@ -77,17 +77,19 @@ export default function Seriess() {
 	const seriesById = new Map<number, Series>(
 		seriess.map(item => [item.id, item]),
 	);
+
 	//now that we have both the series and sermon data, we can display the page
 	if (seriesQuery.isSuccess && sermonQuery.isSuccess) {
 		// console.log("setting up stats");
 		//mapping stats for each series in one pass corresponding to series.id
-		console.log(`looking through ${sermons.length} sermons`);
+		// console.log(`looking through ${sermons.length} sermons`);
 
 		//initialize series stats
 		seriess.forEach((series: Series) => {
 			const hue = seriesHue(series.id, series.title ?? '');
 			statsBySeriesId.set(series.id, {
 				count: 0,
+				sermons: [],
 				startYear: Number.MAX_SAFE_INTEGER,
 				endYear: Number.MIN_SAFE_INTEGER,
 				speakers: [],
@@ -113,6 +115,7 @@ export default function Seriess() {
 				const hue = seriesHue(seriesId, seriesById.get(seriesId)?.title ?? '');
 				statsBySeriesId.set(seriesId, {
 					count: 0,
+					sermons: [],
 					startYear: Number.MAX_SAFE_INTEGER,
 					endYear: Number.MIN_SAFE_INTEGER,
 					speakers: [],
@@ -127,6 +130,12 @@ export default function Seriess() {
 
 			if (currentStats) {
 				currentStats.count++;
+				currentStats.sermons.push(sermon); //push sermon to stack
+				currentStats.sermons.sort(
+					(a, b) =>
+						b.date.getFullYear() - a.date.getFullYear() ||
+						b.id - a.id
+				); //sort by year, then id
 				currentStats.startYear = Math.min(
 					currentStats.startYear,
 					sermon.date.getFullYear(),
@@ -138,10 +147,17 @@ export default function Seriess() {
 				if (!currentStats.speakers.includes(sermon.speaker)) {
 					currentStats.speakers.push(sermon.speaker);
 				}
+
+				//for now, print each series sermons in order in the console because display for contents has not been set up yet
+				console.log(
+					`series sort for ${seriesById.get(seriesId)?.title ?? 'no title'}`,
+				);
+				currentStats.sermons.forEach((s: Sermon) => {
+					console.log(`${s.date} ${s.title}`);
+				});
 			}
 		});
 
-		// console.log("loading main series page");
 		return (
 			<MainLayout title="Series">
 				{/* Top Right New Series Button */}
