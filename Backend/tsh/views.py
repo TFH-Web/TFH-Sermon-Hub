@@ -15,8 +15,8 @@ from tsh.pagination import paginate
 from tsh.schemas import (
     counted_speakers_schema,
     counted_tags_schema,
+    series_page_schema,
     series_schema,
-    seriess_schema,
     sermon_schema,
     sermons_schema,
     speaker_schema,
@@ -25,11 +25,78 @@ from tsh.schemas import (
 api = Blueprint("api", __name__, url_prefix="/api")
 
 
+DEFAULT_PER_PAGE = 12
+MAX_PER_PAGE = 100
+
+
+def read_page_args() -> tuple[int, int]:
+    # Anything missing or not a number falls back to default, and the numbers are kept in range so nobody can ask for page 0 or a million rows.
+    page = max(request.args.get("page", default=1, type=int), 1)
+    per_page = request.args.get("per_page", default=DEFAULT_PER_PAGE, type=int)
+    per_page = min(max(per_page, 1), MAX_PER_PAGE)
+    return page, per_page
+
+
 @api.route("/series")
 def get_all_series():
-    series = db.session.execute(db.select(Series)).scalars()
-    result = seriess_schema.dump(series)
-    return result
+    page, per_page = read_page_args()
+
+    total = db.session.scalar(db.select(func.count()).select_from(Series))
+
+    # One row per series, with its number worked out across ALL of its sermons.
+    # The page limit only decides which series come back, never which sermons get counted, so a card shows the same numbers on any page.
+    # outerjoin keeps series that have no sermons, with a count of 0.
+    last_sermon_date = func.max(Sermon.date)
+    rows = db.session.execute(
+        db.select(
+            Series,
+            func.count(Sermon.id),
+            func.min(Sermon.date),
+            last_sermon_date,
+        )
+        .outerjoin(Sermon, Sermon.series_id == Series.id)
+        .group_by(Series.id)
+
+        # Most recently preached first, empty series at the end.
+        # Series.id break ties, so the order never shifts between page requests.
+        .order_by(last_sermon_date.desc().nulls_last(), Series.id)
+        .limit(per_page)
+        .offset((page - 1) * per_page)
+    ).all()
+
+    # Speakers for just the series on this page, in one query rather than one query per card
+    series_ids = [series.id for series, *_ in rows]
+    speaker_by_series: dict[int, list[Speaker]] = {sid: [] for sid in series_ids}
+    speaker_rows = db.session.execute(
+        db.select(Sermon.series_id, Speaker)
+        .join(Speaker, Sermon.speaker_id == Speaker.id)
+        .where(Sermon.series_id.in_(series_ids))
+        .distinct()
+        .order_by(Speaker.last_name, Speaker.first_name)
+    ).all()
+    for series_id, speaker in speaker_rows:
+        speaker_by_series[series_id].append(speaker)
+
+    items = [
+        {
+            "id": series.id,
+            "title": series.title,
+            "sermon_count": sermon_count,
+            "first_date": first_date,
+            "last_date": last_date,
+            "speakers": speaker_by_series[series.id],
+        }
+        for series, sermon_count, first_date, last_date in rows
+    ]
+
+    return series_page_schema.dump(
+        {
+            "items": items,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+        }
+    )
 
 
 @api.route("/series/<int:id>")

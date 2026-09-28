@@ -6,7 +6,7 @@ export const Speaker = z.object({
 	id: z.number(),
 	firstName: z.string().nonempty(),
 	lastName: z.string().nonempty(),
-	role: z.string().nonempty(),
+	role: z.string().optional(),
 });
 export type Speaker = z.infer<typeof Speaker>;
 

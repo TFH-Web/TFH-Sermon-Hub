@@ -11,12 +11,14 @@ def populate(app: Flask):
     series_hope_rising = Series(id=None, title="Hope Rising")
     series_fearless = Series(id=None, title="Fearless")
     series_together = Series(id=None, title="Together")
+    series_new_ground = Series(id=None, title="New Ground") # No sermons point at this one, so the empty-series case gets tested
     db.session.add_all(
         [
             series_live_your_best_life,
             series_hope_rising,
             series_fearless,
             series_together,
+            series_new_ground,
         ]
     )
 
