@@ -15,13 +15,6 @@ import EditSermonModal from '$/modals/EditSermonModal.tsx';
 import { durationToString, Sermon } from '$/types/sermon';
 import { getFullName } from '$/types/speaker.ts';
 
-// TODO(Sprint 6): seriesIndex and seriesTotal are the only two things on this page that backend cannot give us.
-// The database has no column saying which number a sermon is inside its series, so we still fake those two.
-const mockSermon = {
-	seriesIndex: 4,
-	seriesTotal: 6,
-};
-
 // The server sends the transcript and summary as one long piece of text, but the page shows separate paragraphs.
 // A blank line is the only thing marking where a paragraph ends, so split on those and throw away the empty pieces.
 function toParagraphs(text: string) {
@@ -85,13 +78,25 @@ export default function SermonDetail() {
 		retry: (failureCount, error) => !isNotFound(error) && failureCount < 3,
 	});
 
+	//ask server for data of all sermons
+	const sermonsQuery = useQuery({
+		queryKey: ['sermons'],
+		queryFn: async () => {
+			const res = await axios.get(`/api/sermons`);
+			// setSermons(await Sermon.array().parseAsync(res.data));
+			return await Sermon.array().parseAsync(res.data);
+		},
+		// A sermon that does not exist will still not exist on the third try, so only keep trying for real failures like the server being down.
+		retry: (failureCount, error) => !isNotFound(error) && failureCount < 3,
+	});
+
 	// The server takes a moment to answer. Until it is done, show a loading message instead of crashing
-	if (query.isPending) {
+	if (query.isPending || sermonsQuery.isPending) {
 		return <MainLayout title="Sermon">Loading...</MainLayout>;
 	}
 
 	// Handled here rather than thrown, so the app-wide error screen in main.tsx does not take over and blank out the whole page.
-	if (isNotFound(query.error)) {
+	if (isNotFound(query.error || sermonsQuery.error)) {
 		return (
 			<MainLayout title="Sermon not found">
 				<button
@@ -107,12 +112,14 @@ export default function SermonDetail() {
 	}
 
 	// If the server never answered, or send back something broken, say error instead of an empty page
-	if (query.isError) {
+	if (query.isError || sermonsQuery.isError) {
 		return <MainLayout title="Sermon">Could not load this sermon.</MainLayout>;
 	}
 
 	// We got the sermon data.
 	const sermon = query.data;
+	// We got the data of all the sermons
+	const sermons = sermonsQuery.data ?? [];
 
 	// The server sends one long block of text. Cut it into separate paragraphs so the page can show them one under the other.
 	// If the sermon has no transcript or summary saved, we end up with nothing to show.
@@ -120,6 +127,40 @@ export default function SermonDetail() {
 		? toParagraphs(sermon.transcript)
 		: [];
 	const summaryParagraphs = sermon.summary ? toParagraphs(sermon.summary) : [];
+
+	// Filters list of sermons to a new array containing only sermons in the same series
+	// const [filteredSermons, setFilteredSermons] = useState<Sermon[]>([]);
+	let filteredSermons: Sermon[] = [];
+
+	// Pushes sermon from sermons into filteredSermons if it is in the same series as our main sermon
+	if (sermon.series) {
+		sermons.forEach(s => {
+			if (s.series?.id === sermon.series?.id) {
+				filteredSermons.push(s as Sermon);
+			}
+		});
+	}
+
+	// Sorts sermons by date, then by ID
+	filteredSermons = filteredSermons.sort((a, b) => {
+		const dateDiff = a.date.getTime() - b.date.getTime();
+		if (dateDiff !== 0) {
+			return dateDiff;
+		}
+		return a.id - b.id;
+	});
+
+	// Sets seriesTotal and seriesIndex based on filteredSermons
+	let seriesTotal: number;
+	let seriesIndex: number;
+	// Set both seriesTotal and seriesIndex to 1 if sermon does not have a series
+	if (filteredSermons.length < 1) {
+		seriesTotal = 1;
+		seriesIndex = 1;
+	} else {
+		seriesTotal = filteredSermons.length;
+		seriesIndex = filteredSermons.findIndex(item => item.id === sermon.id) + 1; // Add 1 to the index to offset zero-indexing
+	}
 
 	return (
 		<MainLayout title={sermon.title}>
@@ -308,7 +349,7 @@ export default function SermonDetail() {
 
 						<span className="SermonDetail-metadata-label">Series Index</span>
 						<span className="SermonDetail-metadata-value">
-							#{mockSermon.seriesIndex} of {mockSermon.seriesTotal}
+							#{seriesIndex} of {seriesTotal}
 						</span>
 
 						<span className="SermonDetail-metadata-label">Speaker</span>
