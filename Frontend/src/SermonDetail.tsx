@@ -6,7 +6,9 @@ import './SermonDetail.css';
 import { useNavigate, useParams } from 'react-router';
 import Button from '$/components/Button';
 import { Card } from '$/components/Card.tsx';
+import ErrorBox from '$/components/ErrorBox.tsx';
 import FileUploadButton from '$/components/FileUploadButton.tsx';
+import Loading from '$/components/Loading.tsx';
 import MainLayout from '$/components/MainLayout';
 import Tag from '$/components/Tag.tsx';
 import { useToast } from '$/components/ToastContext.tsx';
@@ -90,9 +92,13 @@ export default function SermonDetail() {
 		retry: (failureCount, error) => !isNotFound(error) && failureCount < 3,
 	});
 
-	// The server takes a moment to answer. Until it is done, show a loading message instead of crashing
+  // Shared spinner, same as every other page. No more plain "Loading...." text.
 	if (query.isPending || sermonsQuery.isPending) {
-		return <MainLayout title="Sermon">Loading...</MainLayout>;
+		return (
+			<MainLayout title="Sermon">
+				<Loading vertical />
+			</MainLayout>
+		);
 	}
 
 	// Handled here rather than thrown, so the app-wide error screen in main.tsx does not take over and blank out the whole page.
@@ -111,9 +117,17 @@ export default function SermonDetail() {
 		);
 	}
 
-	// If the server never answered, or send back something broken, say error instead of an empty page
+  // Server's down or sent back something broken. A 404 is handled above.
+	// Separately since retrying a sermon that doesn't exist won't help.
 	if (query.isError || sermonsQuery.isError) {
-		return <MainLayout title="Sermon">Could not load this sermon.</MainLayout>;
+		return (
+			<MainLayout title="Sermon">
+				<ErrorBox
+					message="Failed to load this sermon."
+					onRetry={() => query.refetch()}
+				/>
+			</MainLayout>
+		);
 	}
 
 	// We got the sermon data.

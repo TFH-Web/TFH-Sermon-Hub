@@ -79,6 +79,10 @@
 		transition: translate 250ms cubic-bezier(0.215, 0.61, 0.355, 1);
 	}
 
+	.Sidebar-backdrop {
+		inset-inline-start: 18rem;
+	}
+
 	.Sidebar-close {
 		display: initial;
 	}

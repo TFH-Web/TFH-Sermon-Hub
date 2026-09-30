@@ -3,38 +3,88 @@ from flask.testing import FlaskClient
 from syrupy.data import Snapshot
 
 from tsh.schemas import (
+    counted_speaker_schema,
+    counted_speakers_schema,
     series_schema,
-    seriess_schema,
     sermon_schema,
     sermons_schema,
-    speaker_schema,
-    speakers_schema,
 )
 
 
 def test_series(client: FlaskClient, snapshot: Snapshot):
-    from tsh.models import Series
-
     res = client.get("/api/series")
-    seriess: list[Series] = seriess_schema.loads(res.data)
-    assert seriess == snapshot
+    assert res.json == snapshot
 
-    for series in seriess:
-        res = client.get(f"/api/series/{series.id}")
-        res_series: Series = series_schema.loads(res.data)
-        assert res_series == series
+    for item in res.json["items"]:
+        res_series = series_schema.loads(client.get(f"/api/series/{item['id']}").data)
+        assert res_series.id == item["id"]
+        assert res_series.title == item["title"]
+
+
+def all_series(client: FlaskClient) -> dict[str, dict]:
+    res = client.get("/api/series?per_page=100")
+    return {s["title"]: s for s in res.json["items"]}
+
+
+def test_series_pagination(client: FlaskClient):
+    pages = [
+        client.get(f"/api/series?page={n}&per_page=2").json for n in (1, 2, 3)
+    ]
+
+    assert [p["total"] for p in pages] == [5, 5, 5]
+    assert [len(p["items"]) for p in pages] == [2, 2, 1]
+
+    # Every series appears exactly once across the pages
+    ids = [s["id"] for p in pages for s in p["items"]]
+    assert len(ids) == len(set(ids)) == 5
+
+
+def test_series_stats_ignore_page(client: FlaskClient):
+    # The ticket's "complete when": a card shows the same numbers whichever page it lands on
+    expected = {s["id"]: s for s in all_series(client).values()}
+    for n in (1, 2, 3):
+        for s in client.get(f"/api/series?page={n}&per_page=2").json["items"]:
+            assert s == expected[s["id"]]
+
+
+def test_series_stats(client: FlaskClient):
+    series = all_series(client)["Live Your Best Life"]
+
+    assert series["sermonCount"] == 2
+    assert series["firstDate"] == "2026-02-16"
+    assert series["lastDate"] == "2026-02-23"
+    assert [sp["lastName"] for sp in series["speakers"]] == ["Patterson"]
+
+
+def test_empty_series(client: FlaskClient):
+    empty = all_series(client)["New Ground"]
+
+    assert empty["sermonCount"] == 0
+    assert empty["firstDate"] is None
+    assert empty["lastDate"] is None
+    assert empty["speakers"] == []
+
+
+def test_series_bad_page_args(client: FlaskClient):
+    # Nonsense values fall back to something sensible instead of erroring
+    res = client.get("/api/series?page=-4&per_page=abc").json
+    assert res["page"] == 1
+    assert res["perPage"] == 12
+
+    res = client.get("/api/series?per_page=5000").json
+    assert res["perPage"] == 100
 
 
 def test_speakers(client, snapshot):
     from tsh.models import Speaker
 
     res = client.get("/api/speakers")
-    speakers: list[Speaker] = speakers_schema.loads(res.data)
+    speakers: list[Speaker] = counted_speakers_schema.loads(res.data)
     assert speakers == snapshot
 
     for speaker in speakers:
         res = client.get(f"/api/speakers/{speaker.id}")
-        res_speaker: Speaker = speaker_schema.loads(res.data)
+        res_speaker: Speaker = counted_speaker_schema.loads(res.data)
         assert res_speaker == speaker
 
 
@@ -111,6 +161,7 @@ def test_tags(client: FlaskClient):
 def test_dev_database_untouched(app):
     import os
     import sqlite3
+
     from tsh.database import db
 
     # Verify test database is in-memory
@@ -128,6 +179,7 @@ def test_dev_database_untouched(app):
 
         # Adding data to test database does not affect development database
         from tsh.models import Series
+
         with app.app_context():
             db.session.add(Series(id=None, title="Temporary Test Series"))
             db.session.commit()
@@ -140,3 +192,237 @@ def test_dev_database_untouched(app):
 
         assert count_before == count_after
 
+
+def test_sermons_legacy_array_preserved(client: FlaskClient):
+    """Opt-in pagination: requests without page return a plain JSON array."""
+    res = client.get("/api/sermons")
+    assert res.status_code == 200
+    assert isinstance(res.json, list)
+    assert len(res.json) == 6
+
+    # Filters also work on legacy unpaginated requests
+    res_filtered = client.get("/api/sermons?status=Draft")
+    assert res_filtered.status_code == 200
+    assert isinstance(res_filtered.json, list)
+    assert len(res_filtered.json) == 2
+    titles = [s["title"] for s in res_filtered.json]
+    assert "Power of Community" in titles
+    assert "Worship as a Lifestyle" in titles
+
+
+def test_sermons_filtering_individual(client: FlaskClient):
+    """Test individual status, topic/tag, speaker, and series filters."""
+    # Status
+    res = client.get("/api/sermons?status=Published&page=1")
+    assert res.status_code == 200
+    assert res.json["total"] == 2
+    assert all(s["status"] == "Published" for s in res.json["items"])
+
+    # Topic / Tag (identified by name, case-insensitive)
+    res = client.get("/api/sermons?topic=FAITH&page=1")
+    assert res.status_code == 200
+    assert res.json["total"] == 4
+    # Ensure tag filtering does not duplicate sermons or inflate totals
+    ids = [s["id"] for s in res.json["items"]]
+    assert len(ids) == len(set(ids))
+
+    res_anxiety = client.get("/api/sermons?topic=anxiety&page=1")
+    assert res_anxiety.status_code == 200
+    assert res_anxiety.json["total"] == 1
+    assert res_anxiety.json["items"][0]["title"] == "Bold Faith"
+
+    # Speaker
+    res_speaker = client.get("/api/sermons?speaker_id=1&page=1")
+    assert res_speaker.status_code == 200
+    assert res_speaker.json["total"] == 2
+
+    res_speaker_name = client.get("/api/sermons?speaker=Dave%20Patterson&page=1")
+    assert res_speaker_name.status_code == 200
+    assert res_speaker_name.json["total"] == 2
+
+    # Series
+    res_series = client.get("/api/sermons?series_id=1&page=1")
+    assert res_series.status_code == 200
+    assert res_series.json["total"] == 2
+    assert all(s["series"]["id"] == 1 for s in res_series.json["items"])
+
+    res_series_title = client.get("/api/sermons?series=Fearless&page=1")
+    assert res_series_title.status_code == 200
+    assert res_series_title.json["total"] == 1
+    assert res_series_title.json["items"][0]["title"] == "Worship as a Lifestyle"
+
+
+def test_sermons_filtering_combined_and_no_matches(client: FlaskClient):
+    """Combined filters must use AND; no matches must return empty result."""
+    # Matching combination: series 1 AND status Published AND topic faith
+    res = client.get("/api/sermons?series_id=1&status=Published&topic=faith&page=1")
+    assert res.status_code == 200
+    assert res.json["total"] == 2
+    assert len(res.json["items"]) == 2
+
+    # Non-matching combination: series 1 AND status Draft -> 0 matches
+    res_empty = client.get("/api/sermons?series_id=1&status=Draft&page=1")
+    assert res_empty.status_code == 200
+    assert res_empty.json["total"] == 0
+    assert res_empty.json["totalPages"] == 0
+    assert res_empty.json["items"] == []
+
+    # Non-existent series ID
+    res_none = client.get("/api/sermons?series_id=9999&page=1")
+    assert res_none.status_code == 200
+    assert res_none.json["total"] == 0
+    assert res_none.json["items"] == []
+
+
+def test_sermons_sorting(client: FlaskClient):
+    """Test Newest, Oldest, and Relevance sorting."""
+    # Newest: date descending (2026-02-23 down to 2026-01-19)
+    res_newest = client.get("/api/sermons?sort=Newest&page=1&pageSize=10")
+    assert res_newest.status_code == 200
+    dates = [s["date"] for s in res_newest.json["items"]]
+    assert dates == sorted(dates, reverse=True)
+
+    # Oldest: date ascending (2026-01-19 up to 2026-02-23)
+    res_oldest = client.get("/api/sermons?sort=Oldest&page=1&pageSize=10")
+    assert res_oldest.status_code == 200
+    dates_asc = [s["date"] for s in res_oldest.json["items"]]
+    assert dates_asc == sorted(dates_asc)
+
+    # Relevance behaves like Newest
+    res_rel = client.get("/api/sermons?sort=Relevance&page=1&pageSize=10")
+    assert res_rel.status_code == 200
+    assert [s["id"] for s in res_rel.json["items"]] == [
+        s["id"] for s in res_newest.json["items"]
+    ]
+
+
+def test_sermons_sorting_date_tie_breaker(app, client: FlaskClient):
+    """Stable ordering when sermon dates match, broken by sermon ID."""
+    from datetime import date
+
+    from tsh.database import db
+    from tsh.models import Sermon, Speaker, UploadStatus
+
+    with app.app_context():
+        speaker = db.session.execute(db.select(Speaker)).scalars().first()
+        s1 = Sermon(
+            id=None,
+            title="Tie Sermon A",
+            video_link="https://youtu.be/sampleA",
+            duration=1200,
+            date=date(2025, 6, 1),
+            description="Tie date test A",
+            tags=[],
+            transcript=None,
+            summary=None,
+            status=UploadStatus.PUBLISHED,
+            speaker=speaker,
+            speaker_id=speaker.id,
+            series=None,
+            series_id=None,
+        )
+        s2 = Sermon(
+            id=None,
+            title="Tie Sermon B",
+            video_link="https://youtu.be/sampleB",
+            duration=1300,
+            date=date(2025, 6, 1),
+            description="Tie date test B",
+            tags=[],
+            transcript=None,
+            summary=None,
+            status=UploadStatus.PUBLISHED,
+            speaker=speaker,
+            speaker_id=speaker.id,
+            series=None,
+            series_id=None,
+        )
+        db.session.add_all([s1, s2])
+        db.session.commit()
+        s1_id = s1.id
+        s2_id = s2.id
+
+    assert s2_id > s1_id
+
+    # For Newest: higher id first when dates match
+    res_newest = client.get("/api/sermons?sort=Newest&page=1&pageSize=20")
+    items_newest = res_newest.json["items"]
+    tie_ids_newest = [s["id"] for s in items_newest if s["id"] in (s1_id, s2_id)]
+    assert tie_ids_newest == [s2_id, s1_id]
+
+    # For Oldest: lower id first when dates match
+    res_oldest = client.get("/api/sermons?sort=Oldest&page=1&pageSize=20")
+    items_oldest = res_oldest.json["items"]
+    tie_ids_oldest = [s["id"] for s in items_oldest if s["id"] in (s1_id, s2_id)]
+    assert tie_ids_oldest == [s1_id, s2_id]
+
+
+def test_sermons_pagination_pages(client: FlaskClient):
+    """Test first, middle, last, and out-of-range pages with accurate metadata."""
+    # 6 sermons total (or 8 after tie-breaker test in same run, let's query total first)
+    res_all = client.get("/api/sermons?page=1&pageSize=100")
+    total = res_all.json["total"]
+    page_size = 2
+    expected_pages = (total + page_size - 1) // page_size
+
+    # First page
+    res_p1 = client.get(f"/api/sermons?page=1&pageSize={page_size}")
+    assert res_p1.status_code == 200
+    assert res_p1.json["page"] == 1
+    assert res_p1.json["pageSize"] == page_size
+    assert res_p1.json["total"] == total
+    assert res_p1.json["totalPages"] == expected_pages
+    assert len(res_p1.json["items"]) == page_size
+
+    # Middle page
+    res_p2 = client.get(f"/api/sermons?page=2&pageSize={page_size}")
+    assert res_p2.status_code == 200
+    assert res_p2.json["page"] == 2
+    assert len(res_p2.json["items"]) == page_size
+    assert res_p1.json["items"][0]["id"] != res_p2.json["items"][0]["id"]
+
+    # Last page
+    res_last = client.get(f"/api/sermons?page={expected_pages}&pageSize={page_size}")
+    assert res_last.status_code == 200
+    assert res_last.json["page"] == expected_pages
+    assert len(res_last.json["items"]) > 0
+
+    # Out of range page: consistent empty items list
+    res_oor = client.get(
+        f"/api/sermons?page={expected_pages + 10}&pageSize={page_size}"
+    )
+    assert res_oor.status_code == 200
+    assert res_oor.json["items"] == []
+    assert res_oor.json["total"] == total
+    assert res_oor.json["totalPages"] == expected_pages
+    assert res_oor.json["page"] == expected_pages + 10
+
+
+def test_sermons_matches_outside_first_unfiltered_page(client: FlaskClient):
+    """Sermon outside the first unfiltered page is found when filter is applied."""
+    # With pageSize=2, page 1 contains sermons 1 and 2
+    res_unfiltered_p1 = client.get("/api/sermons?page=1&pageSize=2&sort=Newest")
+    p1_ids = [s["id"] for s in res_unfiltered_p1.json["items"]]
+    assert 4 not in p1_ids  # Sermon 4 is on a later page
+
+    # When filtering by its series (series_id=4), sermon 4 appears on page 1
+    res_filtered = client.get("/api/sermons?page=1&pageSize=2&series_id=4")
+    assert res_filtered.status_code == 200
+    assert res_filtered.json["total"] == 1
+    assert res_filtered.json["items"][0]["id"] == 4
+
+
+def test_sermons_pagination_invalid_inputs(client: FlaskClient):
+    """Test validation of invalid page and pageSize parameters."""
+    for bad_page in ["0", "-1", "-99", "abc", "1.5"]:
+        res = client.get(f"/api/sermons?page={bad_page}")
+        assert res.status_code == 400
+        assert res.is_json
+        assert "error" in res.json
+        assert "message" in res.json
+
+    for bad_size in ["0", "-1", "xyz", "2.5"]:
+        res = client.get(f"/api/sermons?page=1&pageSize={bad_size}")
+        assert res.status_code == 400
+        assert res.is_json
+        assert "error" in res.json
