@@ -163,8 +163,9 @@ TFH-SH-App/
 # Navigate to the backend directory
 cd Backend
 
-# Set up env vars (Entra tenant + client ID, nothing secret)
+# For first-time setup, copy the examples (keep existing local config files)
 cp .env.example .env
+cp tsh/testing.cfg.example tsh/testing.cfg
 
 # Install dependencies
 poetry install
@@ -182,9 +183,18 @@ run.bat         # Windows
 
 The backend will be available at `http://localhost:5000`.
 
+In Windows Command Prompt, use `copy` instead of `cp`. Update the local config
+values as needed, including the placeholder `JWT_SECRET_KEY` in `tsh/testing.cfg`.
+
 #### Changing the database
 
 The schema is managed with migrations, not `db.create_all()`. After pulling, run `poetry run python up.py` to apply any new ones. A database made before migrations is detected and upgraded automatically.
+
+Keep your existing database; deleting `instance/testing.db` is unnecessary.
+Back it up before the first upgrade. Use `up.py` for that first upgrade so the
+existing schema is recorded at the baseline before applying later migrations.
+Running `flask db upgrade` directly on an unversioned database tries to recreate
+its existing tables.
 
 To change a model:
 
