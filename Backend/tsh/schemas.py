@@ -130,7 +130,7 @@ class SermonSchema(CamelCaseSchema):
     storage_key = fields.String(allow_none=True)
     audio_key = fields.String(allow_none=True)
     processing_error = fields.String(allow_none=True)
-    processed_at = fields.String(allow_none=True)
+    processed_at = fields.DateTime(allow_none=True)
 
     @post_load
     def make_sermon(self, data, **kwargs) -> Sermon:

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 import pytest
 from marshmallow import ValidationError
 
@@ -243,6 +243,21 @@ def test_sermon_schema_load():
     assert sermon.series_id == 2
     assert sermon.status == UploadStatus.PUBLISHED
     assert sermon.date == date(2026, 1, 19)
+
+    data.update({
+        "storageKey": "videos/sermon.mp4",
+        "audioKey": "audio/sermon.mp3",
+        "processingError": None,
+        "processedAt": "2026-10-01T12:30:00",
+    })
+    processed_sermon = sermon_schema.load(data)
+    assert processed_sermon.processed_at == datetime(2026, 10, 1, 12, 30)
+    assert sermon_schema.dump(processed_sermon) == data
+
+    data["processedAt"] = "invalid-date"
+    with pytest.raises(ValidationError) as exc_info:
+        sermon_schema.load(data)
+    assert "processedAt" in exc_info.value.messages
 
 
 def test_sermon_schema_load_null_series():
