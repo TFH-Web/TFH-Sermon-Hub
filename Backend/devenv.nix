@@ -27,11 +27,8 @@ in {
   tasks = {
     "setup:db:up" = {
       inherit cwd;
+      # Existing tables can still need migrations; up.py is safe to run again.
       exec = "./up.py";
-      status = ''
-        [[ -f instance/testing.db ]]
-        sqlite3 instance/testing.db 'SELECT * FROM sermon;'
-      '';
     };
     "setup:db:populate" = {
       inherit cwd;

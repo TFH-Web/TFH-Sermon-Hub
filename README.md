@@ -105,6 +105,7 @@ The following Entity Relationship Diagram shows the planned database structure f
 | [Python 3.12+](https://www.python.org/) | Runtime |
 | [Flask 3](https://flask.palletsprojects.com/) | Web framework |
 | [Flask-SQLAlchemy](https://flask-sqlalchemy.readthedocs.io/) | ORM & database management |
+| [Flask-Migrate](https://flask-migrate.readthedocs.io/) | Database migrations (Alembic) |
 | [Flask-JWT-Extended](https://flask-jwt-extended.readthedocs.io/) | JWT authentication |
 | [Poetry](https://python-poetry.org/) | Dependency management |
 | [Pytest](https://docs.pytest.org/) + [Syrupy](https://github.com/syrupy-project/syrupy) | Testing & snapshot testing |
@@ -138,7 +139,7 @@ TFH-SH-App/
     │   ├── database.py         # SQLAlchemy database instance
     │   ├── models.py           # Data models (Sermon, Speaker, Series, Tag)
     │   └── views.py            # API route handlers
-    ├── up.py                   # Database initialization script
+    ├── up.py                   # Runs database migrations
     ├── populate.py             # Database seed script
     ├── run.sh / run.bat        # Dev server start scripts
     └── pyproject.toml
@@ -162,10 +163,14 @@ TFH-SH-App/
 # Navigate to the backend directory
 cd Backend
 
+# For first-time setup, copy the examples (keep existing local config files)
+cp .env.example .env
+cp tsh/testing.cfg.example tsh/testing.cfg
+
 # Install dependencies
 poetry install
 
-# Initialize the database
+# Create or update the database to the latest schema
 poetry run python up.py
 
 # (Optional) Seed the database with sample data
@@ -177,6 +182,31 @@ run.bat         # Windows
 ```
 
 The backend will be available at `http://localhost:5000`.
+
+In Windows Command Prompt, use `copy` instead of `cp`. Update the local config
+values as needed, including the placeholder `JWT_SECRET_KEY` in `tsh/testing.cfg`.
+
+#### Changing the database
+
+The schema is managed with migrations, not `db.create_all()`. After pulling, run `poetry run python up.py` to apply any new ones. A database made before migrations is detected and upgraded automatically.
+
+Keep your existing database; deleting `instance/testing.db` is unnecessary.
+Back it up before the first upgrade. Use `up.py` for that first upgrade so the
+existing schema is recorded at the baseline before applying later migrations.
+Running `flask db upgrade` directly on an unversioned database tries to recreate
+its existing tables.
+
+To change a model:
+
+```sh
+# 1. Edit tsh/models.py
+# 2. Generate a migration and read it over before committing
+poetry run flask --app "tsh:create_app('testing.cfg')" db migrate -m "short description"
+# 3. Apply it
+poetry run python up.py
+```
+
+Commit the new file in `migrations/versions/` with your model change. New non-nullable columns need a default, or the migration will fail on databases that already have rows.
 
 ---
 
@@ -272,7 +302,8 @@ Tag
 | Command | Description |
 |---|---|
 | `./run.sh` | Start Flask development server |
-| `poetry run python up.py` | Initialize the database |
+| `poetry run python up.py` | Create or update the database (runs migrations) |
+| `poetry run flask --app "tsh:create_app('testing.cfg')" db migrate -m "..."` | Generate a migration after changing models |
 | `poetry run python populate.py` | Seed with sample data |
 | `./test.sh` | Run backend tests |
 

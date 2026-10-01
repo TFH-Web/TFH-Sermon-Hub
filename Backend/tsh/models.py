@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from enum import Enum
 
 from sqlalchemy import (
@@ -9,6 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     String,
     UniqueConstraint,
+    Text,
 )
 from sqlalchemy import (
     Enum as SAEnum,
@@ -83,7 +84,8 @@ class UploadStatus(Enum):
 class Sermon(db.Model):  # ty: ignore[unsupported-base]
     id: Mapped[intpk]
     title: Mapped[str64]
-    video_link: Mapped[str32]
+    # Real video URLs and Spaces links are way longer than 32 chars
+    video_link: Mapped[str] = mapped_column(Text)
     duration: Mapped[int]
     date: Mapped[date]
     description: Mapped[str]
@@ -104,3 +106,12 @@ class Sermon(db.Model):  # ty: ignore[unsupported-base]
         SAEnum(UploadStatus, create_constraint=True, validate_strings=True),
         default=UploadStatus.DRAFT,
     )
+    # Sprint 7 upload + processing pipeline
+    # Where the original video lives in Spaces
+    storage_key: Mapped[str | None] = mapped_column(String(512), default=None)
+    # Where the extracted audio lives in Spaces, used for transcription
+    audio_key: Mapped[str | None] = mapped_column(String(512), default=None)
+    # Why processing failed, if it did, so admins can see it and processing
+    processing_error: Mapped[str | None] = mapped_column(Text, default=None)
+    # When the worker finished processing
+    processed_at: Mapped[datetime | None] = mapped_column(default=None)
