@@ -9,6 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     String,
     UniqueConstraint,
+    Text,
 )
 from sqlalchemy import (
     Enum as SAEnum,
@@ -83,7 +84,8 @@ class UploadStatus(Enum):
 class Sermon(db.Model):  # ty: ignore[unsupported-base]
     id: Mapped[intpk]
     title: Mapped[str64]
-    video_link: Mapped[str32]
+    # Real video URLs and Spaces links are way longer than 32 chars
+    video_link: Mapped[str] = mapped_column(Text)
     duration: Mapped[int]
     date: Mapped[date]
     description: Mapped[str]
