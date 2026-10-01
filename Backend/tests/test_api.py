@@ -426,3 +426,13 @@ def test_sermons_pagination_invalid_inputs(client: FlaskClient):
         assert res.status_code == 400
         assert res.is_json
         assert "error" in res.json
+
+def test_sermon_has_processing_fields(client):
+    # New sermons come back with the pipeline fields, empty until the worker runs
+    res = client.get("/api/sermons/1")
+    data = res.get_json()
+    for key in ("storageKey", "audioKey", "processingError", "processedAt"):
+        assert key in data
+        assert data[key] is None
+
+
