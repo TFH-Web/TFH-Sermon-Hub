@@ -16,12 +16,7 @@ logger = logging.getLogger('alembic.env')
 
 
 def get_engine():
-    try:
-        # this works with Flask-SQLAlchemy<3 and Alchemical
-        return current_app.extensions['migrate'].db.get_engine()
-    except (TypeError, AttributeError):
-        # this works with Flask-SQLAlchemy>=3
-        return current_app.extensions['migrate'].db.engine
+    return current_app.extensions['migrate'].db.engine
 
 
 def get_engine_url():
@@ -90,21 +85,48 @@ def run_migrations_online():
                 directives[:] = []
                 logger.info('No changes in schema detected.')
 
-    conf_args = current_app.extensions['migrate'].configure_args
+    conf_args = dict(current_app.extensions['migrate'].configure_args)
     if conf_args.get("process_revision_directives") is None:
         conf_args["process_revision_directives"] = process_revision_directives
 
     connectable = get_engine()
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection,
-            target_metadata=get_metadata(),
-            **conf_args
-        )
+        if connection.dialect.name == "sqlite":
+            # Batch operations replace tables. Leaving FK enforcement enabled
+            # would cascade DELETE into Sermon_Tag when sermon is replaced.
+            foreign_keys = connection.exec_driver_sql("PRAGMA foreign_keys").scalar()
+            connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+            connection.commit()
+            try:
+                # Explicit BEGIN also makes SQLite DDL transactional when the
+                # sqlite3 driver uses legacy transaction control.
+                connection.exec_driver_sql("BEGIN")
+                context.configure(
+                    connection=connection,
+                    target_metadata=get_metadata(),
+                    **conf_args,
+                )
+                with context.begin_transaction():
+                    context.run_migrations()
+                if connection.exec_driver_sql("PRAGMA foreign_key_check").first():
+                    raise RuntimeError("Migration left invalid foreign key references")
+                connection.commit()
+            except BaseException:
+                connection.rollback()
+                raise
+            finally:
+                connection.exec_driver_sql(f"PRAGMA foreign_keys={int(foreign_keys)}")
+                connection.commit()
+        else:
+            context.configure(
+                connection=connection,
+                target_metadata=get_metadata(),
+                **conf_args,
+            )
 
-        with context.begin_transaction():
-            context.run_migrations()
+            with context.begin_transaction():
+                context.run_migrations()
 
 
 if context.is_offline_mode():
