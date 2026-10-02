@@ -1,5 +1,6 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
+from flask_migrate import Migrate
 from werkzeug.exceptions import HTTPException, InternalServerError
 
 from tsh.views import api
@@ -24,6 +25,9 @@ def create_app(
 
     from tsh.database import db
     db.init_app(app)
+
+    # render_as_batch lets migrations change columns on SQLite, which cannot ALTER a column in place
+    Migrate(app, db, render_as_batch=True)
 
 
     @app.errorhandler(404)

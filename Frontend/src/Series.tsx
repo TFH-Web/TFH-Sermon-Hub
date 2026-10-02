@@ -30,6 +30,7 @@ export default function Seriess() {
 			// Validate response shape against SeriesPage schema (items, total, page, perPage)
 			return SeriesPage.parseAsync(res.data);
 		},
+		retry: 2,
 	});
 
 	//querying for sermon data (id, title, videoLink, duration, date, description, tags, transcript, summary, speaker, series, status)
@@ -39,6 +40,7 @@ export default function Seriess() {
 			const res = await axios.get('/api/sermons');
 			return Sermon.array().parseAsync(res.data);
 		},
+		retry: 2,
 	});
 
 	// If the backend request failed or network broke, show an error box with a retry button instead of a blank screen

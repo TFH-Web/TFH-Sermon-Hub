@@ -126,6 +126,12 @@ class SermonSchema(CamelCaseSchema):
     series = fields.Nested(SeriesSchema, allow_none=True)
     status = fields.Enum(UploadStatus, required=True, by_value=True)
 
+    # Sprint 7 upload + processing pipeline. All optional since old sermons and YouTube imports never went through the worker.
+    storage_key = fields.String(allow_none=True)
+    audio_key = fields.String(allow_none=True)
+    processing_error = fields.String(allow_none=True)
+    processed_at = fields.DateTime(allow_none=True)
+
     @post_load
     def make_sermon(self, data, **kwargs) -> Sermon:
         data.setdefault("transcript", None)
