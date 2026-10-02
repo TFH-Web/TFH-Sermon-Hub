@@ -92,7 +92,7 @@ export default function SermonDetail() {
 		retry: (failureCount, error) => !isNotFound(error) && failureCount < 3,
 	});
 
-  // Shared spinner, same as every other page. No more plain "Loading...." text.
+	// Shared spinner, same as every other page. No more plain "Loading...." text.
 	if (query.isPending || sermonsQuery.isPending) {
 		return (
 			<MainLayout title="Sermon">
@@ -117,7 +117,7 @@ export default function SermonDetail() {
 		);
 	}
 
-  // Server's down or sent back something broken. A 404 is handled above.
+	// Server's down or sent back something broken. A 404 is handled above.
 	// Separately since retrying a sermon that doesn't exist won't help.
 	if (query.isError || sermonsQuery.isError) {
 		return (
