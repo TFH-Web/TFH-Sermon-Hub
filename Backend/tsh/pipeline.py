@@ -1,0 +1,88 @@
+# Processing pipeline for a sermon: transcript, then embeddings, then summary.
+from datetime import datetime, timezone
+from typing import Callable
+
+from flask import current_app
+
+from tsh.database import db
+from tsh.models import Sermon, UploadStatus
+
+
+def fetch_transcript(sermon: Sermon) -> None:
+    """Fill in the transcript from the YouTube captions. Placeholder until S5."""
+
+
+def embed_chunks(sermon: Sermon) -> None:
+    """Split the transcript into chunks and store their embeddings. Placeholder until S6."""
+
+
+def summarize_sermon(sermon: Sermon) -> None:
+    """Write the AI summary for the sermon. Placeholder until S7."""
+
+
+def process_sermon(sermon_id: int) -> None:
+    """Run every pipeline step for one sermon and save the result on it.
+
+    Starts by setting status PROCESSING and clearing the old processing_error.
+    Required steps (transcript, embeddings) failing sets status FAILED.
+    The summary is best effort: if it fails the sermon is still PUBLISHED.
+    Any error is saved to processing_error as "<step>: <error>" instead of raised,
+    so the job itself never fails. Does nothing if the sermon no longer exists.
+    """
+    sermon = db.session.get(Sermon, sermon_id)
+    if sermon is None:
+        current_app.logger.warning("Sermon %s was deleted before it could be processed", sermon_id)
+        return
+
+    # Set here as well as in start_processing, so a job queued any other way still shows as processing.
+    sermon.status = UploadStatus.PROCESSING
+    sermon.processing_error = None
+    db.session.commit()
+
+    # Steps are looked up when this runs, not at import, so tests can monkeypatch them.
+    for name, step in (("fetch_transcript", fetch_transcript), ("embed_chunks", embed_chunks)):
+        error = _run_step(name, step, sermon_id)
+        if error:
+            sermon = db.session.get(Sermon, sermon_id)
+            sermon.status = UploadStatus.FAILED
+            sermon.processing_error = error
+            db.session.commit()
+            return
+
+    # Search and chat only need the transcript and embeddings, so a failed summary still publishes.
+    error = _run_step("summarize_sermon", summarize_sermon, sermon_id)
+    sermon = db.session.get(Sermon, sermon_id)
+    sermon.status = UploadStatus.PUBLISHED
+    sermon.processing_error = error
+    # The column has no time zone, so store UTC without tzinfo.
+    sermon.processed_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    db.session.commit()
+
+
+def regenerate_summary(sermon_id: int) -> None:
+    """Run only the summary step, for the "Regenerate with AI" buttons.
+
+    Leaves the status alone. Saves "<step>: <error>" to processing_error if it fails,
+    and clears processing_error if it works. Does nothing if the sermon no longer exists.
+    """
+    if db.session.get(Sermon, sermon_id) is None:
+        return
+
+    error = _run_step("summarize_sermon", summarize_sermon, sermon_id)
+    sermon = db.session.get(Sermon, sermon_id)
+    sermon.processing_error = error
+    db.session.commit()
+
+
+def _run_step(name: str, step: Callable[[Sermon], None], sermon_id: int) -> str | None:
+    """Run one step and commit what it changed. Returns "<name>: <error>" if it raised, else None."""
+    sermon = db.session.get(Sermon, sermon_id)
+    try:
+        step(sermon)
+        db.session.commit()
+        return None
+    except Exception as e:
+        # Roll back so a half-finished step never gets saved, e.g. a partial summary.
+        db.session.rollback()
+        current_app.logger.exception("Sermon %s failed at %s", sermon_id, name)
+        return f"{name}: {str(e) or type(e).__name__}"
