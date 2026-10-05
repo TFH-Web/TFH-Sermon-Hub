@@ -103,15 +103,21 @@ def process_sermon(sermon_id: int) -> None:
 def regenerate_summary(sermon_id: int) -> None:
     """Run only the summary step, for the "Regenerate with AI" buttons.
 
-    Leaves the status alone. Saves "<step>: <error>" to processing_error if it fails,
-    and clears processing_error if it works. Does nothing if the sermon no longer exists.
+    Leaves the status alone. Saves "summarize_sermon: <error>" to processing_error if it fails.
+    If it works, clears processing_error only when that was an old summary error.
+    Does nothing unless the sermon exists and is PUBLISHED.
     """
-    if db.session.get(Sermon, sermon_id) is None:
+    sermon = db.session.get(Sermon, sermon_id)
+    # The summary needs the transcript, which only a PUBLISHED sermon is sure to have.
+    if sermon is None or sermon.status != UploadStatus.PUBLISHED:
         return
 
     error = _run_step("summarize_sermon", summarize_sermon, sermon_id)
     sermon = db.session.get(Sermon, sermon_id)
-    sermon.processing_error = error
+    if error:
+        sermon.processing_error = error
+    elif (sermon.processing_error or "").startswith("summarize_sermon:"):
+        sermon.processing_error = None
     db.session.commit()
 
 

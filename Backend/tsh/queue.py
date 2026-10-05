@@ -5,13 +5,16 @@ from flask import current_app
 
 QUEUE_NAME = "sermons"
 
+# RQ kills jobs after 180 seconds by default, which is too short for a long sermon.
+JOB_TIMEOUT = 15 * 60
+
 
 def enqueue(func: Callable, *args) -> Any:
     """Run func(*args) as a background job.
 
-    With REDIS_URL set, pushes the job to the "sermons" RQ queue and returns the RQ job.
+    With REDIS_URL set, pushes the job to the "sermons" RQ queue with a 15 minute timeout and returns the RQ job.
     Without it, calls func(*args) right away and returns its result.
-    Raises redis.ConnectionError if REDIS_URL is set but Redis cannot be reached.
+    Raises redis.ConnectionError or redis.TimeoutError if REDIS_URL is set but Redis cannot be reached.
     """
     redis_url = current_app.config["REDIS_URL"]
     if not redis_url:
@@ -22,4 +25,4 @@ def enqueue(func: Callable, *args) -> Any:
     from rq import Queue
 
     queue = Queue(QUEUE_NAME, connection=Redis.from_url(redis_url))
-    return queue.enqueue(func, *args)
+    return queue.enqueue(func, *args, job_timeout=JOB_TIMEOUT)
