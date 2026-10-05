@@ -253,6 +253,7 @@ The other settings default to the TFH channel, so only the key is required. Over
 | `YOUTUBE_IGNORE_PLAYLISTS` | `Worship Focus`, `TFH Worship Moments`, `Worship Resources To Help You Change The Atmosphere - After God's Heart - Pt2`, `Church Online` | Comma-separated playlists that are skipped entirely (worship songs and full services). |
 | `YOUTUBE_SERIES_ALIASES` | `Book of James=The Book of James` | Comma-separated `Playlist name=Series name` pairs, for playlists that should merge into one series but differ by more than case. |
 | `YOUTUBE_MAX_MINUTES` | `60` | Videos longer than this are skipped and listed in the import report. Sermons run up to about 45 minutes and full services about 90. |
+| `YOUTUBE_TIMEZONE` | `America/Los_Angeles` | Time zone used to turn YouTube's UTC publish time into the sermon date. |
 
 Playlists can be named by title or by playlist ID. Playlists whose titles differ only by case merge into one series.
 

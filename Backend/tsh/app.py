@@ -40,6 +40,8 @@ def create_app(
         "YOUTUBE_SERIES_ALIASES": "Book of James=The Book of James",
         # Sermons run up to about 45 minutes and full services about 90, so 60 catches services without cutting long sermons.
         "YOUTUBE_MAX_MINUTES": "60",
+        # Sermon dates are taken in the church's time zone, not UTC.
+        "YOUTUBE_TIMEZONE": "America/Los_Angeles",
     }
     for name, default in youtube_defaults.items():
         app.config.setdefault(name, os.environ.get(name, default))
