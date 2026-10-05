@@ -15,6 +15,10 @@ def app():
         settings={
             "TESTING": True,
             "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+            # Always run jobs inline, even when .env or devenv sets REDIS_URL for the whole shell.
+            "REDIS_URL": "",
+            # A delay set in testing.cfg would slow every test that runs the pipeline.
+            "PIPELINE_DUMMY_DELAY": 0,
         },
     )
 
