@@ -28,6 +28,22 @@ def create_app(
     # The one place REDIS_URL is read. Config wins over the environment, so tests can force inline jobs.
     app.config.setdefault("REDIS_URL", os.environ.get("REDIS_URL", ""))
 
+    # YouTube import settings, read the same way. Defaults match the TFH channel, so only the key has to be set.
+    youtube_defaults = {
+        "YOUTUBE_API_KEY": "",
+        "YOUTUBE_CHANNEL_ID": "UCua-IeYiJ1LiNQ6ydGZbIaw",
+        # The master list of every sermon. Its videos are imported, but it is never a series.
+        "YOUTUBE_MASTER_PLAYLIST": "TFH Latest Messages",
+        # Worship songs and full Sunday services, not messages.
+        "YOUTUBE_IGNORE_PLAYLISTS": "Worship Focus,TFH Worship Moments,"
+        "Worship Resources To Help You Change The Atmosphere - After God's Heart - Pt2,Church Online",
+        "YOUTUBE_SERIES_ALIASES": "Book of James=The Book of James",
+        # Sermons run up to about 45 minutes and full services about 90, so 60 catches services without cutting long sermons.
+        "YOUTUBE_MAX_MINUTES": "60",
+    }
+    for name, default in youtube_defaults.items():
+        app.config.setdefault(name, os.environ.get(name, default))
+
     from tsh.database import db
     db.init_app(app)
 

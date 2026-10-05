@@ -233,6 +233,29 @@ The worker runs each job inside the Flask app context, so jobs can use the datab
 
 To watch a sermon sit in `Processing` before the real steps exist, set `PIPELINE_DUMMY_DELAY` (seconds) in `tsh/testing.cfg`. Without Redis the delay blocks the request, so keep it small or use the worker.
 
+#### Importing from YouTube
+
+Sermons are imported from the TFH YouTube channel: each playlist becomes a series and each video a sermon. The import reads public data only, so it needs an API key, not a Google sign-in.
+
+To get a key:
+
+1. In the [Google Cloud Console](https://console.cloud.google.com/), create a project (or pick an existing one).
+2. Under **APIs & Services → Library**, enable **YouTube Data API v3**.
+3. Under **APIs & Services → Credentials**, create an **API key**. Restrict it to the YouTube Data API v3.
+4. Put it in `Backend/.env` as `YOUTUBE_API_KEY=...`. Never commit it or paste it into an issue or PR.
+
+The other settings default to the TFH channel, so only the key is required. Override any of them in `Backend/.env`:
+
+| Setting | Default | What it does |
+|---|---|---|
+| `YOUTUBE_CHANNEL_ID` | `UCua-IeYiJ1LiNQ6ydGZbIaw` | The channel to import from. |
+| `YOUTUBE_MASTER_PLAYLIST` | `TFH Latest Messages` | Playlist whose videos are imported but that never becomes a series. |
+| `YOUTUBE_IGNORE_PLAYLISTS` | `Worship Focus`, `TFH Worship Moments`, `Worship Resources To Help You Change The Atmosphere - After God's Heart - Pt2`, `Church Online` | Comma-separated playlists that are skipped entirely (worship songs and full services). |
+| `YOUTUBE_SERIES_ALIASES` | `Book of James=The Book of James` | Comma-separated `Playlist name=Series name` pairs, for playlists that should merge into one series but differ by more than case. |
+| `YOUTUBE_MAX_MINUTES` | `60` | Videos longer than this are skipped and listed in the import report. Sermons run up to about 45 minutes and full services about 90. |
+
+Playlists can be named by title or by playlist ID. Playlists whose titles differ only by case merge into one series.
+
 ---
 
 ### Frontend Setup
