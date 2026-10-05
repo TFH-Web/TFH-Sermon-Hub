@@ -19,9 +19,19 @@ in {
     sqlite
   ];
 
+  services.redis.enable = true;
+
+  # Send jobs to the devenv Redis instead of running them inline. Tests still run inline because conftest overrides it.
+  env.REDIS_URL = "redis://localhost:6379/0";
+
   processes.backend = {
     inherit cwd;
     exec = "./run.sh";
+  };
+
+  processes.worker = {
+    inherit cwd;
+    exec = "./worker.sh";
   };
 
   tasks = {

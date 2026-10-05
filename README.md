@@ -224,7 +224,12 @@ redis-server
 
 # Then in Backend/.env
 REDIS_URL=redis://localhost:6379/0
+
+# Start the worker in its own terminal, next to ./run.sh
+./worker.sh
 ```
+
+The worker runs each job inside the Flask app context, so jobs can use the database. Without `REDIS_URL` it exits with a message, since there is nothing for it to do. With devenv, `devenv up` starts Redis and the worker for you.
 
 ---
 
@@ -320,6 +325,7 @@ Tag
 | Command | Description |
 |---|---|
 | `./run.sh` | Start Flask development server |
+| `./worker.sh` | Start the background job worker (needs `REDIS_URL`) |
 | `poetry run python up.py` | Create or update the database (runs migrations) |
 | `poetry run flask --app "tsh:create_app('testing.cfg')" db migrate -m "..."` | Generate a migration after changing models |
 | `poetry run python populate.py` | Seed with sample data |
