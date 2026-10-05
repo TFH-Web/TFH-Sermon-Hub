@@ -208,6 +208,24 @@ poetry run python up.py
 
 Commit the new file in `migrations/versions/` with your model change. New non-nullable columns need a default, or the migration will fail on databases that already have rows.
 
+#### Background jobs
+
+Sermon processing runs as a background job. Where it runs depends on `REDIS_URL`:
+
+- **`REDIS_URL` unset (the default):** jobs run inline in the Flask process. No Redis is needed, so this works on plain Windows too. Tests always run this way.
+- **`REDIS_URL` set:** jobs go to the `sermons` queue in Redis and a separate worker runs them.
+
+To use Redis locally (WSL, macOS or Linux):
+
+```sh
+# Install and start Redis (or: docker run -p 6379:6379 redis)
+sudo apt install redis-server
+redis-server
+
+# Then in Backend/.env
+REDIS_URL=redis://localhost:6379/0
+```
+
 ---
 
 ### Frontend Setup
