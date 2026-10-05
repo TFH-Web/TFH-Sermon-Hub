@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_migrate import Migrate
@@ -22,6 +24,9 @@ def create_app(
         app.config.update(test_config)
     if kwargs:
         app.config.update(kwargs)
+
+    # The one place REDIS_URL is read. Config wins over the environment, so tests can force inline jobs.
+    app.config.setdefault("REDIS_URL", os.environ.get("REDIS_URL", ""))
 
     from tsh.database import db
     db.init_app(app)

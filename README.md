@@ -208,6 +208,31 @@ poetry run python up.py
 
 Commit the new file in `migrations/versions/` with your model change. New non-nullable columns need a default, or the migration will fail on databases that already have rows.
 
+#### Background jobs
+
+Sermon processing runs as a background job. Where it runs depends on `REDIS_URL`:
+
+- **`REDIS_URL` unset (the default):** jobs run inline in the Flask process. No Redis is needed, so this works on plain Windows too. Tests always run this way.
+- **`REDIS_URL` set:** jobs go to the `sermons` queue in Redis and a separate worker runs them.
+
+To use Redis locally (WSL, macOS or Linux):
+
+```sh
+# Install and start Redis (or: docker run -p 6379:6379 redis)
+sudo apt install redis-server
+redis-server
+
+# Then in Backend/.env
+REDIS_URL=redis://localhost:6379/0
+
+# Start the worker in its own terminal, next to ./run.sh
+./worker.sh
+```
+
+The worker runs each job inside the Flask app context, so jobs can use the database. Without `REDIS_URL` it exits with a message, since there is nothing for it to do. With devenv, `devenv up` starts Redis and the worker for you.
+
+To watch a sermon sit in `Processing` before the real steps exist, set `PIPELINE_DUMMY_DELAY` (seconds) in `tsh/testing.cfg`. Without Redis the delay blocks the request, so keep it small or use the worker.
+
 ---
 
 ### Frontend Setup
@@ -234,6 +259,7 @@ The frontend will be available at `http://localhost:5173`.
 | `GET` | `/health` | Health check |
 | `GET` | `/sermons` | List all sermons |
 | `GET` | `/sermons/<id>` | Get a single sermon |
+| `POST` | `/sermons/<id>/reprocess` | Re-run sermon processing (Admin only, 202; 503 if Redis is down) |
 | `GET` | `/series` | List all series |
 | `GET` | `/series/<id>` | Get a single series |
 | `GET` | `/speakers` | List all speakers |
@@ -302,6 +328,7 @@ Tag
 | Command | Description |
 |---|---|
 | `./run.sh` | Start Flask development server |
+| `./worker.sh` | Start the background job worker (needs `REDIS_URL`) |
 | `poetry run python up.py` | Create or update the database (runs migrations) |
 | `poetry run flask --app "tsh:create_app('testing.cfg')" db migrate -m "..."` | Generate a migration after changing models |
 | `poetry run python populate.py` | Seed with sample data |

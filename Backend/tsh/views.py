@@ -1,4 +1,6 @@
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy import false, func
 from sqlalchemy.orm import with_expression
 from tsh.auth import require_role
@@ -13,6 +15,7 @@ from tsh.models import (
     sermon_tag_m2m,
 )
 from tsh.pagination import paginate
+from tsh.pipeline import start_processing
 from tsh.schemas import (
     counted_speakers_schema,
     counted_tags_schema,
@@ -228,6 +231,26 @@ def get_sermon(id: int):
     sermon = db.get_or_404(Sermon, id, description=f"Sermon with id {id} not found")
     result = sermon_schema.dump(sermon)
     return result
+
+
+@api.post("/sermons/<int:id>/reprocess")
+@require_role("Admin")
+def reprocess_sermon(id: int):
+    """Run the processing pipeline on a sermon again.
+
+    Sets status PROCESSING, clears processing_error and queues the job.
+    Returns 202 with the sermon. Without REDIS_URL the job has already run, so the status is final.
+    Sends 401 without a valid token, 403 for non-Admins, 404 if the sermon does not exist,
+    and 503 if Redis cannot be reached (the sermon is left FAILED with the reason).
+    """
+    sermon = db.get_or_404(Sermon, id, description=f"Sermon with id {id} not found")
+    try:
+        start_processing(sermon)
+    except (RedisConnectionError, RedisTimeoutError):
+        current_app.logger.exception("Could not queue sermon %s", id)
+        message = "The job queue is unavailable. Please try again later."
+        return jsonify({"error": message, "message": message}), 503
+    return sermon_schema.dump(sermon), 202
 
 
 @api.route("/tags")
