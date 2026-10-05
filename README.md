@@ -257,6 +257,7 @@ The frontend will be available at `http://localhost:5173`.
 | `GET` | `/health` | Health check |
 | `GET` | `/sermons` | List all sermons |
 | `GET` | `/sermons/<id>` | Get a single sermon |
+| `POST` | `/sermons/<id>/reprocess` | Re-run sermon processing (Admin only, 202; 503 if Redis is down) |
 | `GET` | `/series` | List all series |
 | `GET` | `/series/<id>` | Get a single series |
 | `GET` | `/speakers` | List all speakers |
