@@ -5,11 +5,14 @@ from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 from flask import current_app
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy import func
 
 from tsh import youtube
 from tsh.database import db
-from tsh.models import Series, Sermon, Speaker
+from tsh.models import Series, Sermon, Speaker, UploadStatus
+from tsh.pipeline import start_processing
 
 # Every description is this boilerplate plus a few links, so everything from here on is dropped.
 BOILERPLATE_START = "broadcasted live from"
@@ -24,6 +27,9 @@ class ImportReport:
 
     series_created: int = 0
     sermons_created: int = 0
+    # Already imported sermons whose length, date or link changed on YouTube.
+    sermons_updated: int = 0
+    sermons_unchanged: int = 0
     # Playlists that could not be read, as "title (id): reason".
     skipped_playlists: list[str] = field(default_factory=list)
     # Private, deleted or unavailable videos, by video id.
@@ -32,6 +38,9 @@ class ImportReport:
     skipped_too_long: list[str] = field(default_factory=list)
     # Videos in more than one series playlist, as "title (id): kept A, also in B".
     multiple_series: list[str] = field(default_factory=list)
+    # New sermons whose pipeline job could not be queued, as "title (id): error". They are left FAILED
+    # and can be retried with the reprocess endpoint.
+    queue_failures: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -51,6 +60,10 @@ def import_channel() -> ImportReport:
     Ignored playlists (YOUTUBE_IGNORE_PLAYLISTS) are skipped. The master playlist (YOUTUBE_MASTER_PLAYLIST)
     adds its videos without a series. Every other playlist becomes a series.
     Everything is fetched from YouTube before anything is saved, so a failed run saves nothing.
+    Safe to run again: videos already imported are matched on youtube_video_id and only their
+    duration, date and link are updated (see _update_sermon). New sermons are queued with start_processing;
+    one that cannot be queued is counted in queue_failures and the import carries on. Once Redis
+    cannot be reached, the rest are set FAILED without trying, since each try would wait for a timeout.
     Returns an ImportReport. Raises youtube.YouTubeError if the channel or the video details cannot be fetched.
     """
     report = ImportReport()
@@ -67,6 +80,11 @@ def import_channel() -> ImportReport:
     # get_videos leaves out videos that are private or deleted, but still listed in a playlist.
     report.skipped_private.extend(v for v in playlists_for_video if v not in found and v not in report.skipped_private)
 
+    existing = {
+        s.youtube_video_id: s
+        for s in db.session.scalars(db.select(Sermon).where(Sermon.youtube_video_id.in_(list(found))))
+    }
+    new_sermons = []
     max_seconds = float(current_app.config["YOUTUBE_MAX_MINUTES"]) * 60
     for video in videos:
         if video["privacy"] == "private":
@@ -77,11 +95,20 @@ def import_channel() -> ImportReport:
             report.skipped_too_long.append(f"{video['title']} ({video['id']}): {round(duration / 60)} min")
             continue
 
-        series = _series_for_video(video, playlists_for_video[video["id"]], report)
-        _create_sermon(video, duration, series)
-        report.sermons_created += 1
+        sermon = existing.get(video["id"])
+        series = _series_for_video(video, playlists_for_video[video["id"]], report, is_new=sermon is None)
+        if sermon is None:
+            new_sermons.append(_create_sermon(video, duration, series))
+            report.sermons_created += 1
+        elif _update_sermon(sermon, video, duration, series):
+            report.sermons_updated += 1
+        else:
+            report.sermons_unchanged += 1
 
+    # Save everything first: start_processing commits, and a job must not run before its sermon is saved.
     db.session.commit()
+
+    _queue_new_sermons(new_sermons, report)
     return report
 
 
@@ -146,10 +173,11 @@ def _fetch_playlists(report: ImportReport) -> list[_Playlist]:
     return playlists
 
 
-def _series_for_video(video: dict, playlists: list[_Playlist], report: ImportReport) -> Series | None:
+def _series_for_video(video: dict, playlists: list[_Playlist], report: ImportReport, is_new: bool) -> Series | None:
     """Return the series for the first series playlist the video is in, or None if it is only in the master list.
 
-    A video in more than one series keeps the first and the others go in the report.
+    A new video in more than one series keeps the first and the others go in the report.
+    Already imported videos were reported on their first run, so they are not reported again.
     """
     series_list: list[Series] = []
     for playlist in playlists:
@@ -157,7 +185,7 @@ def _series_for_video(video: dict, playlists: list[_Playlist], report: ImportRep
             series = _get_or_create_series(playlist, report)
             if series not in series_list:
                 series_list.append(series)
-    if len(series_list) > 1:
+    if is_new and len(series_list) > 1:
         others = ", ".join(s.title for s in series_list[1:])
         report.multiple_series.append(f"{video['title']} ({video['id']}): kept {series_list[0].title}, also in {others}")
     return series_list[0] if series_list else None
@@ -185,15 +213,46 @@ def _get_or_create_series(playlist: _Playlist, report: ImportReport) -> Series:
     return series
 
 
+def _queue_new_sermons(sermons: list[Sermon], report: ImportReport) -> None:
+    """Call start_processing for each new sermon, adding any that fail to report.queue_failures.
+
+    After the first Redis connection error or timeout, the rest are set FAILED with "queue: Redis unavailable"
+    without trying, since each try would wait for its own timeout and fail the same way.
+    """
+    redis_down = False
+    for sermon in sermons:
+        if redis_down:
+            sermon.status = UploadStatus.FAILED
+            sermon.processing_error = "queue: Redis unavailable"
+            db.session.commit()
+            report.queue_failures.append(f"{sermon.title} ({sermon.youtube_video_id}): Redis unavailable")
+            continue
+        try:
+            start_processing(sermon)
+        except Exception as e:
+            # start_processing has already set this sermon FAILED, so log it and move on to the next one.
+            current_app.logger.exception("Could not queue imported sermon %s", sermon.id)
+            report.queue_failures.append(f"{sermon.title} ({sermon.youtube_video_id}): {str(e) or type(e).__name__}")
+            redis_down = isinstance(e, (RedisConnectionError, RedisTimeoutError))
+
+
+def _synced_fields(video: dict, duration: int) -> dict:
+    """The sermon fields kept in step with YouTube on every run."""
+    return {
+        "video_link": f"https://www.youtube.com/watch?v={video['id']}",
+        "duration": duration,
+        "date": local_date(video["published_at"]),
+    }
+
+
 def _create_sermon(video: dict, duration: int, series: Series | None) -> Sermon:
     """Add a sermon for one YouTube video. The speaker is the placeholder until titles are parsed (TFH-480)."""
     sermon = Sermon(
         id=None,
+        # Title and description are only set here, so admin edits are never undone by a re-run.
         title=video["title"],
-        video_link=f"https://www.youtube.com/watch?v={video['id']}",
-        duration=duration,
-        date=local_date(video["published_at"]),
         description=clean_description(video["description"], video["title"]),
+        **_synced_fields(video, duration),
         transcript=None,
         summary=None,
         speaker_id=None,
@@ -205,6 +264,24 @@ def _create_sermon(video: dict, duration: int, series: Series | None) -> Sermon:
     )
     db.session.add(sermon)
     return sermon
+
+
+def _update_sermon(sermon: Sermon, video: dict, duration: int, series: Series | None) -> bool:
+    """Bring an already imported sermon up to date with YouTube. Returns True if anything changed.
+
+    Only duration, date and link are updated. Title, description, speaker, tags, transcript and summary
+    are never touched, since admins may have edited them.
+    The series is only filled in when the sermon has none, e.g. it was in the master list before its series playlist existed.
+    """
+    changed = False
+    for name, value in _synced_fields(video, duration).items():
+        if getattr(sermon, name) != value:
+            setattr(sermon, name, value)
+            changed = True
+    if sermon.series is None and series is not None:
+        sermon.series = series
+        changed = True
+    return changed
 
 
 def _unknown_speaker() -> Speaker:
