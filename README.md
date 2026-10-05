@@ -231,6 +231,8 @@ REDIS_URL=redis://localhost:6379/0
 
 The worker runs each job inside the Flask app context, so jobs can use the database. Without `REDIS_URL` it exits with a message, since there is nothing for it to do. With devenv, `devenv up` starts Redis and the worker for you.
 
+To watch a sermon sit in `Processing` before the real steps exist, set `PIPELINE_DUMMY_DELAY` (seconds) in `tsh/testing.cfg`. Without Redis the delay blocks the request, so keep it small or use the worker.
+
 ---
 
 ### Frontend Setup

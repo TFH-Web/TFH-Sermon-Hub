@@ -1,4 +1,5 @@
 # Processing pipeline for a sermon: transcript, then embeddings, then summary.
+import time
 from datetime import datetime, timezone
 from typing import Callable
 
@@ -7,6 +8,16 @@ from flask import current_app
 from tsh.database import db
 from tsh.models import Sermon, UploadStatus
 from tsh.queue import enqueue
+
+
+def dummy_delay(sermon: Sermon) -> None:
+    """Sleep for PIPELINE_DUMMY_DELAY seconds (default 0), so the frontend can watch a sermon sit in PROCESSING.
+
+    Only for development until the real steps exist. Remove once S5 to S7 are in.
+    """
+    delay = float(current_app.config.get("PIPELINE_DUMMY_DELAY", 0))
+    if delay > 0:
+        time.sleep(delay)
 
 
 def fetch_transcript(sermon: Sermon) -> None:
@@ -65,7 +76,12 @@ def process_sermon(sermon_id: int) -> None:
     db.session.commit()
 
     # Steps are looked up when this runs, not at import, so tests can monkeypatch them.
-    for name, step in (("fetch_transcript", fetch_transcript), ("embed_chunks", embed_chunks)):
+    required_steps = (
+        ("dummy_delay", dummy_delay),
+        ("fetch_transcript", fetch_transcript),
+        ("embed_chunks", embed_chunks),
+    )
+    for name, step in required_steps:
         error = _run_step(name, step, sermon_id)
         if error:
             sermon = db.session.get(Sermon, sermon_id)
