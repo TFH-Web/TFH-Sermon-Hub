@@ -6,6 +6,7 @@ from flask import current_app
 
 from tsh.database import db
 from tsh.models import Sermon, UploadStatus
+from tsh.queue import enqueue
 
 
 def fetch_transcript(sermon: Sermon) -> None:
@@ -18,6 +19,30 @@ def embed_chunks(sermon: Sermon) -> None:
 
 def summarize_sermon(sermon: Sermon) -> None:
     """Write the AI summary for the sermon. Placeholder until S7."""
+
+
+def start_processing(sermon: Sermon) -> None:
+    """Mark a sermon PROCESSING and queue process_sermon for it.
+
+    Call this after creating or importing a sermon. It does not need storage_key,
+    since sermons come from YouTube. Without REDIS_URL the pipeline runs before this returns.
+    If the job cannot be queued, the sermon is set FAILED with a "queue: <error>" message
+    and the error is raised again, e.g. redis.ConnectionError or redis.TimeoutError when Redis is down.
+    """
+    sermon.status = UploadStatus.PROCESSING
+    sermon.processing_error = None
+    # Commit before queueing, or the worker could load the sermon before this change is saved.
+    db.session.commit()
+
+    try:
+        enqueue(process_sermon, sermon.id)
+    except Exception as e:
+        db.session.rollback()
+        # Without this the sermon would stay PROCESSING forever, since no job is coming.
+        sermon.status = UploadStatus.FAILED
+        sermon.processing_error = f"queue: {str(e) or type(e).__name__}"
+        db.session.commit()
+        raise
 
 
 def process_sermon(sermon_id: int) -> None:
