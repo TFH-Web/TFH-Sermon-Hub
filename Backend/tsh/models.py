@@ -26,7 +26,10 @@ str64 = Annotated[str, mapped_column(String(64))]
 
 class Series(db.Model):  # ty: ignore[unsupported-base]
     id: Mapped[intpk]
-    title: Mapped[str32] = mapped_column(unique=True)
+    # YouTube playlist names can be up to 150 chars
+    title: Mapped[str] = mapped_column(String(150), unique=True)
+    # The playlist this series was imported from. Playlists merged into one series keep the first one's id
+    youtube_playlist_id: Mapped[str | None] = mapped_column(String(64), unique=True, default=None)
 
 
 class Speaker(db.Model):  # ty: ignore[unsupported-base]
@@ -83,7 +86,8 @@ class UploadStatus(Enum):
 
 class Sermon(db.Model):  # ty: ignore[unsupported-base]
     id: Mapped[intpk]
-    title: Mapped[str64]
+    # YouTube video titles can be up to 100 chars, with room to spare
+    title: Mapped[str] = mapped_column(String(200))
     # Real video URLs and Spaces links are way longer than 32 chars
     video_link: Mapped[str] = mapped_column(Text)
     duration: Mapped[int]
@@ -115,3 +119,5 @@ class Sermon(db.Model):  # ty: ignore[unsupported-base]
     processing_error: Mapped[str | None] = mapped_column(Text, default=None)
     # When the worker finished processing
     processed_at: Mapped[datetime | None] = mapped_column(default=None)
+    # The YouTube video this sermon was imported from, so a re-run updates it instead of adding a copy
+    youtube_video_id: Mapped[str | None] = mapped_column(String(16), unique=True, default=None)
