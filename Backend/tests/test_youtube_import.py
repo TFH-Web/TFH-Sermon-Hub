@@ -21,7 +21,7 @@ BOILERPLATE = "Broadcasted live from The Father's House in Vacaville, CA.\nhttps
 def video(id: str, title: str, description: str = BOILERPLATE, published_at: str = "2026-09-06T17:00:00Z",
           duration: str = "PT38M25S", privacy: str = "public") -> dict:
     return {"id": id, "title": title, "description": description, "published_at": published_at,
-            "live_started_at": None, "duration": duration, "privacy": privacy}
+            "duration": duration, "privacy": privacy}
 
 
 class FakeChannel:
@@ -51,7 +51,7 @@ class FakeChannel:
             "PLnewgr": ["vOlder00001"],
             "PLworsh": ["vSong000001"],
             "PLmaster": ["vGuide00001", "vMaster0001", "vPriv000001", "vDeleted001", "vLong000001",
-                         "vNoSpk00001", "vEmpty00001", "vSr00000001"],
+                         "vNoSpk00001", "vEmpty00001", "vSr00000001", "vLive000001"],
         }
         self.videos = {v["id"]: v for v in [
             # 00:30 UTC on Monday is Sunday afternoon in Vacaville.
@@ -69,6 +69,8 @@ class FakeChannel:
             video("vNoSpk00001", "Day 17 - Don't Faint", duration="PT48S"),
             video("vEmpty00001", "Quiet Strength - Tosha Zwanziger", description="", privacy="unlisted"),
             video("vSr00000001", '"A Prayer Pattern" - Jude Fouquier Sr. - 10.22.23'),
+            # Upcoming premieres and live streams report a length of P0D until they finish.
+            video("vLive000001", "Sunday Live - Dave Patterson", duration="P0D"),
         ]}
         self.hidden = {"vPriv000001": "Private video"}
         self.items_read: list[str] = []
@@ -117,6 +119,7 @@ def test_import_report(app: Flask, channel: FakeChannel):
         "sermons_unchanged": 0,
         "skipped_playlists": ["Gone Playlist (PLgone): playlistItems: HTTP 404: playlistNotFound"],
         "skipped_private": ["vPriv000001", "vDeleted001"],
+        "skipped_not_ready": ["Sunday Live - Dave Patterson (vLive000001)"],
         "skipped_too_long": ["The Father's House - Pursuit (vLong000001): 61 min"],
         "multiple_series": ["Fire: Holy Spirit - Jon Laurenzo (vTwoSer0001): kept Holy Spirit, also in Who Is Jesus?"],
         "unknown_speakers": ["God of Restoration - Seth's Story (vTestim0001)", "Day 17 - Don't Faint (vNoSpk00001)"],
@@ -199,10 +202,10 @@ def test_import_titles_and_speakers(app: Flask, channel: FakeChannel):
 
 
 def test_import_skips_and_edge_cases(app: Flask, channel: FakeChannel):
-    """Private, deleted and too-long videos are skipped; unlisted and very short ones are imported."""
+    """Private, deleted, too-long and still-streaming videos are skipped; unlisted and very short ones are imported."""
     import_channel()
 
-    for skipped in ("vPriv000001", "vDeleted001", "vLong000001"):
+    for skipped in ("vPriv000001", "vDeleted001", "vLong000001", "vLive000001"):
         assert sermon_for(skipped) is None
     empty = sermon_for("vEmpty00001")
     assert empty.description == "Quiet Strength"
@@ -353,10 +356,10 @@ def test_import_endpoints_admin_only(client: FlaskClient, channel: FakeChannel, 
 
 
 def test_sync_inline(client: FlaskClient, channel: FakeChannel):
-    """Without Redis the sync runs in the request and returns 202 with the report."""
+    """Without Redis the sync runs in the request and returns 200 with the report, since it has already finished."""
     res = client.post("/api/import/youtube")
 
-    assert res.status_code == 202
+    assert res.status_code == 200
     assert res.json["queued"] is False
     assert res.json["report"]["sermons_created"] == 11
 
@@ -440,10 +443,11 @@ def test_import_video_bad_url(client: FlaskClient, channel: FakeChannel, body):
         ("vDeleted001", 404, "Video not found, or it is private or deleted"),
         ("vPriv000001", 404, "Video not found, or it is private or deleted"),
         ("vLong000001", 422, "Video is 61 minutes, over the 60 minute limit for sermons"),
+        ("vLive000001", 422, "Video is not finished streaming yet"),
     ],
 )
 def test_import_video_not_importable(client: FlaskClient, channel: FakeChannel, video_id: str, status_code: int, error: str):
-    """Private, deleted and too-long videos are refused with a reason, and nothing is saved."""
+    """Private, deleted, too-long and still-streaming videos are refused with a reason, and nothing is saved."""
     res = client.post("/api/import/youtube/video", json={"url": f"https://youtu.be/{video_id}"})
 
     assert res.status_code == status_code

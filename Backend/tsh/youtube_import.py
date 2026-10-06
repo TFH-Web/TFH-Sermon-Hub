@@ -52,6 +52,8 @@ class ImportReport:
     skipped_playlists: list[str] = field(default_factory=list)
     # Private, deleted or unavailable videos, by video id.
     skipped_private: list[str] = field(default_factory=list)
+    # Upcoming premieres and streams still live, which have no length yet, as "title (id)".
+    skipped_not_ready: list[str] = field(default_factory=list)
     # Videos over YOUTUBE_MAX_MINUTES, as "title (id): N min".
     skipped_too_long: list[str] = field(default_factory=list)
     # Videos in more than one series playlist, as "title (id): kept A, also in B".
@@ -113,6 +115,10 @@ def import_channel() -> ImportReport:
             report.skipped_private.append(video["id"])
             continue
         duration = parse_duration(video["duration"])
+        if duration == 0:
+            # Imported once it has finished, so it gets its real length.
+            report.skipped_not_ready.append(f"{video['title']} ({video['id']})")
+            continue
         if duration > max_seconds:
             report.skipped_too_long.append(f"{video['title']} ({video['id']}): {round(duration / 60)} min")
             continue
@@ -151,8 +157,8 @@ def import_video(video_id: str) -> tuple[Sermon, bool]:
     Returns (sermon, True) for a new sermon, which is then queued with start_processing,
     or (existing sermon, False) if the video was already imported. A new sermon that cannot be queued
     is still returned; it is left FAILED with the reason in processing_error.
-    Raises VideoImportError (404 if the video is private, deleted or missing, 422 if it is over
-    YOUTUBE_MAX_MINUTES, 502 if YouTube fails).
+    Raises VideoImportError (404 if the video is private, deleted or missing, 422 if it is still
+    streaming or not premiered yet, or over YOUTUBE_MAX_MINUTES, 502 if YouTube fails).
     """
     sermon = db.session.scalar(db.select(Sermon).where(Sermon.youtube_video_id == video_id))
     if sermon:
@@ -167,6 +173,8 @@ def import_video(video_id: str) -> tuple[Sermon, bool]:
     video = videos[0]
 
     duration = parse_duration(video["duration"])
+    if duration == 0:
+        raise VideoImportError("Video is not finished streaming yet", 422)
     max_minutes = float(current_app.config["YOUTUBE_MAX_MINUTES"])
     if duration > max_minutes * 60:
         raise VideoImportError(

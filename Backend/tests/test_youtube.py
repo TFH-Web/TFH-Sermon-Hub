@@ -111,7 +111,6 @@ def test_get_videos_batches_of_50(api: Recorded):
         "title": "T",
         "description": "D",
         "published_at": "2026-10-04T23:00:24Z",
-        "live_started_at": None,
         "duration": "PT38M25S",
         "privacy": "public",
     }

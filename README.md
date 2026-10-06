@@ -272,7 +272,7 @@ Running it again is safe: videos already imported are matched by their YouTube i
 
 Admins can also run it from the API:
 
-- `POST /api/import/youtube` imports the whole channel. With `REDIS_URL` set it goes to the worker and returns `202 {"queued": true, "jobId": ...}`; without it, it runs in the request (about 40 seconds for the full channel) and returns `202 {"queued": false, "report": {...}}`.
+- `POST /api/import/youtube` imports the whole channel. With `REDIS_URL` set it goes to the worker and returns `202 {"queued": true, "jobId": ...}`; without it, it runs in the request (about 40 seconds for the full channel) and returns `200 {"queued": false, "report": {...}}`.
 - `POST /api/import/youtube/video` with `{"url": "https://www.youtube.com/watch?v=..."}` imports one video right away. `youtu.be/` and `/shorts/` links work too. Returns `201` with the new sermon, or `200` if it was already imported.
 
 In production, run with Redis so the sync is queued. Inline mode runs the full import inside the request (about 40 seconds), which can hit server timeouts.
@@ -306,8 +306,8 @@ The frontend will be available at `http://localhost:5173`.
 | `GET` | `/sermons` | List all sermons |
 | `GET` | `/sermons/<id>` | Get a single sermon |
 | `POST` | `/sermons/<id>/reprocess` | Re-run sermon processing (Admin only, 202; 503 if Redis is down) |
-| `POST` | `/import/youtube` | Import the whole YouTube channel (Admin only, 202; 502 if YouTube fails, 503 if Redis is down) |
-| `POST` | `/import/youtube/video` | Import one video from `{"url": ...}` (Admin only; 201 new, 200 already imported, 400 bad URL, 404 private or missing, 422 too long) |
+| `POST` | `/import/youtube` | Import the whole YouTube channel (Admin only; 202 when queued, 200 when run inline; 502 if YouTube fails, 503 if Redis is down) |
+| `POST` | `/import/youtube/video` | Import one video from `{"url": ...}` (Admin only; 201 new, 200 already imported, 400 bad URL, 404 private or missing, 422 too long or still streaming) |
 | `GET` | `/series` | List all series |
 | `GET` | `/series/<id>` | Get a single series |
 | `GET` | `/speakers` | List all speakers |

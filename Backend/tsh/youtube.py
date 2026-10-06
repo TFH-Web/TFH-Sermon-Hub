@@ -54,23 +54,22 @@ def list_playlist_items(playlist_id: str) -> list[dict]:
 
 
 def get_videos(video_ids: list[str]) -> list[dict]:
-    """Return details for the given videos as {"id", "title", "description", "published_at", "live_started_at", "duration", "privacy"}.
+    """Return details for the given videos as {"id", "title", "description", "published_at", "duration", "privacy"}.
 
-    published_at and live_started_at are ISO-8601 strings (live_started_at is None unless the video was a live stream).
+    published_at is an ISO-8601 timestamp in UTC.
     duration is ISO-8601, e.g. "PT1H2M3S". Videos that are private or deleted are left out of the result.
     Raises YouTubeError if a call fails.
     """
     videos = []
     for start in range(0, len(video_ids), PAGE_SIZE):
         batch = video_ids[start:start + PAGE_SIZE]
-        data = _get("videos", {"part": "snippet,contentDetails,status,liveStreamingDetails", "id": ",".join(batch)})
+        data = _get("videos", {"part": "snippet,contentDetails,status", "id": ",".join(batch)})
         for v in data.get("items", []):
             videos.append({
                 "id": v["id"],
                 "title": v["snippet"]["title"],
                 "description": v["snippet"].get("description", ""),
                 "published_at": v["snippet"]["publishedAt"],
-                "live_started_at": v.get("liveStreamingDetails", {}).get("actualStartTime"),
                 "duration": v["contentDetails"].get("duration"),
                 "privacy": v["status"]["privacyStatus"],
             })

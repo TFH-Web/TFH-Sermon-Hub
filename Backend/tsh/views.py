@@ -262,7 +262,7 @@ def import_youtube():
     """Import every playlist and video from the YouTube channel.
 
     Returns 202 with {"queued": true, "jobId": ...} when the import was sent to the worker, or
-    {"queued": false, "report": {...}} when it already ran inline (no REDIS_URL). See ImportReport for the fields.
+    200 with {"queued": false, "report": {...}} when it already ran inline (no REDIS_URL). See ImportReport for the fields.
     Sends 401 without a valid token, 403 for non-Admins, 502 if YouTube fails during an inline run,
     and 503 if Redis cannot be reached.
     """
@@ -279,7 +279,7 @@ def import_youtube():
 
     if current_app.config["REDIS_URL"]:
         return jsonify({"queued": True, "jobId": result.id}), 202
-    return jsonify({"queued": False, "report": result.as_dict()}), 202
+    return jsonify({"queued": False, "report": result.as_dict()}), 200
 
 
 @api.post("/import/youtube/video")
@@ -290,7 +290,7 @@ def import_youtube_video():
     Accepts youtube.com/watch?v=, youtu.be/ and youtube.com/shorts/ URLs.
     Returns 201 with the new sermon, or 200 with the existing one if the video was already imported.
     Sends 400 if the URL is missing or not a YouTube video URL, 401 without a valid token, 403 for non-Admins,
-    404 if the video is private, deleted or missing, 422 if it is longer than YOUTUBE_MAX_MINUTES,
+    404 if the video is private, deleted or missing, 422 if it is still streaming or longer than YOUTUBE_MAX_MINUTES,
     and 502 if YouTube fails.
     """
     body = request.get_json(silent=True) or {}
