@@ -19,6 +19,8 @@ def app():
             "REDIS_URL": "",
             # A delay set in testing.cfg would slow every test that runs the pipeline.
             "PIPELINE_DUMMY_DELAY": 0,
+            # Tests must never call the real YouTube API with the key from .env.
+            "YOUTUBE_API_KEY": "",
         },
     )
 
