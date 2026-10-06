@@ -252,10 +252,13 @@ The other settings default to the TFH channel, so only the key is required. Over
 | `YOUTUBE_MASTER_PLAYLIST` | `TFH Latest Messages` | Playlist whose videos are imported but that never becomes a series. |
 | `YOUTUBE_IGNORE_PLAYLISTS` | `Worship Focus`, `TFH Worship Moments`, `Worship Resources To Help You Change The Atmosphere - After God's Heart - Pt2`, `Church Online` | Comma-separated playlists that are skipped entirely (worship songs and full services). |
 | `YOUTUBE_SERIES_ALIASES` | `Book of James=The Book of James` | Comma-separated `Playlist name=Series name` pairs, for playlists that should merge into one series but differ by more than case. |
+| `YOUTUBE_SPEAKER_ALIASES` | `Joesph Zwanziger=Joseph Zwanziger`, `Tosha Zwanzinger=Tosha Zwanziger`, `Alex Seely=Alex Seeley`, `Dr. Nina Baratiak=Nina Baratiak`, `Dino RIzzo=Dino Rizzo` | Comma-separated `Name in title=Speaker name` pairs, for misspelled speaker names in video titles. |
 | `YOUTUBE_MAX_MINUTES` | `60` | Videos longer than this are skipped and listed in the import report. Sermons run up to about 45 minutes and full services about 90. |
 | `YOUTUBE_TIMEZONE` | `America/Los_Angeles` | Time zone used to turn YouTube's UTC publish time into the sermon date. |
 
 Playlists can be named by title or by playlist ID. Playlists whose titles differ only by case merge into one series.
+
+The speaker is read from the end of each video title (`Title: Series - Speaker`, or the older `Series PT 2 - "Title" - Speaker - date`). Honorifics like "Dr." and "Rabbi" are dropped; "Sr." and "Jr." are kept. When a title names several speakers (`A & B`), A is the speaker and the description starts with `Speakers: A & B`. Titles with no speaker get the "Unknown Speaker" placeholder and are listed in the import report so an admin can fix them.
 
 ---
 

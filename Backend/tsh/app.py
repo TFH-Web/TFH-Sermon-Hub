@@ -38,6 +38,9 @@ def create_app(
         "YOUTUBE_IGNORE_PLAYLISTS": "Worship Focus,TFH Worship Moments,"
         "Worship Resources To Help You Change The Atmosphere - After God's Heart - Pt2,Church Online",
         "YOUTUBE_SERIES_ALIASES": "Book of James=The Book of James",
+        # Misspellings of a speaker's name in video titles.
+        "YOUTUBE_SPEAKER_ALIASES": "Joesph Zwanziger=Joseph Zwanziger,Tosha Zwanzinger=Tosha Zwanziger,"
+        "Alex Seely=Alex Seeley,Dr. Nina Baratiak=Nina Baratiak,Dino RIzzo=Dino Rizzo",
         # Sermons run up to about 45 minutes and full services about 90, so 60 catches services without cutting long sermons.
         "YOUTUBE_MAX_MINUTES": "60",
         # Sermon dates are taken in the church's time zone, not UTC.

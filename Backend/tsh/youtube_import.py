@@ -13,6 +13,7 @@ from tsh import youtube
 from tsh.database import db
 from tsh.models import Series, Sermon, Speaker, UploadStatus
 from tsh.pipeline import start_processing
+from tsh.youtube_titles import parse_title
 
 # Every description is this boilerplate plus a few links, so everything from here on is dropped.
 BOILERPLATE_START = "broadcasted live from"
@@ -38,6 +39,10 @@ class ImportReport:
     skipped_too_long: list[str] = field(default_factory=list)
     # Videos in more than one series playlist, as "title (id): kept A, also in B".
     multiple_series: list[str] = field(default_factory=list)
+    # New sermons whose title has no speaker, so they got "Unknown Speaker", as "title (id)".
+    unknown_speakers: list[str] = field(default_factory=list)
+    # New sermons naming more than one speaker, as "title (id): A & B". The first is the speaker.
+    multiple_speakers: list[str] = field(default_factory=list)
     # New sermons whose pipeline job could not be queued, as "title (id): error". They are left FAILED
     # and can be retried with the reprocess endpoint.
     queue_failures: list[str] = field(default_factory=list)
@@ -98,7 +103,7 @@ def import_channel() -> ImportReport:
         sermon = existing.get(video["id"])
         series = _series_for_video(video, playlists_for_video[video["id"]], report, is_new=sermon is None)
         if sermon is None:
-            new_sermons.append(_create_sermon(video, duration, series))
+            new_sermons.append(_create_sermon(video, duration, series, playlists_for_video[video["id"]], report))
             report.sermons_created += 1
         elif _update_sermon(sermon, video, duration, series):
             report.sermons_updated += 1
@@ -130,12 +135,19 @@ def local_date(published_at: str) -> date:
     return utc.astimezone(ZoneInfo(current_app.config["YOUTUBE_TIMEZONE"])).date()
 
 
-def clean_description(description: str, title: str) -> str:
-    """Drop the "Broadcasted live from..." boilerplate. Falls back to the title, since the frontend rejects an empty description."""
+def clean_description(description: str, title: str, all_speakers: str | None = None) -> str:
+    """Drop the "Broadcasted live from..." boilerplate and start with "Speakers: A & B" when there are several.
+
+    Falls back to the title, since the frontend rejects an empty description.
+    """
     cut = description.lower().find(BOILERPLATE_START)
     if cut != -1:
         description = description[:cut]
-    return description.strip() or title
+    description = description.strip()
+    # The sermon only has room for one speaker, so the description names them all.
+    if all_speakers:
+        description = f"Speakers: {all_speakers}\n\n{description}".strip()
+    return description or title
 
 
 def _fetch_playlists(report: ImportReport) -> list[_Playlist]:
@@ -197,7 +209,7 @@ def _get_or_create_series(playlist: _Playlist, report: ImportReport) -> Series:
     if series:
         return series
 
-    title = _aliases().get(playlist.title.lower(), playlist.title)
+    title = _series_aliases().get(playlist.title.lower(), playlist.title)
     series = db.session.scalar(db.select(Series).where(func.lower(Series.title) == title.lower()))
     if series:
         # Merged playlists keep the first playlist's id; the others match on title.
@@ -245,19 +257,35 @@ def _synced_fields(video: dict, duration: int) -> dict:
     }
 
 
-def _create_sermon(video: dict, duration: int, series: Series | None) -> Sermon:
-    """Add a sermon for one YouTube video. The speaker is the placeholder until titles are parsed (TFH-480)."""
+def _create_sermon(
+    video: dict, duration: int, series: Series | None, playlists: list[_Playlist], report: ImportReport
+) -> Sermon:
+    """Add a sermon for one YouTube video, with the title cleaned up and the speaker parsed from it.
+
+    Titles with no speaker get "Unknown Speaker" and go in report.unknown_speakers.
+    Titles naming several speakers go in report.multiple_speakers.
+    """
+    playlist_titles = [p.title for p in playlists] + ([series.title] if series else [])
+    parsed = parse_title(video["title"], playlist_titles, series is not None, _speaker_aliases())
+    if parsed.first_name is None:
+        speaker = _unknown_speaker()
+        report.unknown_speakers.append(f"{video['title']} ({video['id']})")
+    else:
+        speaker = _get_or_create_speaker(parsed.first_name, parsed.last_name)
+    if parsed.all_speakers:
+        report.multiple_speakers.append(f"{video['title']} ({video['id']}): {parsed.all_speakers}")
+
     sermon = Sermon(
         id=None,
         # Title and description are only set here, so admin edits are never undone by a re-run.
-        title=video["title"],
-        description=clean_description(video["description"], video["title"]),
+        title=parsed.title,
+        description=clean_description(video["description"], parsed.title, parsed.all_speakers),
         **_synced_fields(video, duration),
         transcript=None,
         summary=None,
         speaker_id=None,
         series_id=None,
-        speaker=_unknown_speaker(),
+        speaker=speaker,
         series=series,
         tags=[],
         youtube_video_id=video["id"],
@@ -284,6 +312,22 @@ def _update_sermon(sermon: Sermon, video: dict, duration: int, series: Series | 
     return changed
 
 
+def _get_or_create_speaker(first_name: str, last_name: str) -> Speaker:
+    """Find a speaker by first and last name (case-insensitive), or create one."""
+    speaker = db.session.scalar(
+        db.select(Speaker).where(
+            func.lower(Speaker.first_name) == first_name.lower(),
+            func.lower(Speaker.last_name) == last_name.lower(),
+        )
+    )
+    if speaker is None:
+        speaker = Speaker(id=None, first_name=first_name, last_name=last_name)
+        db.session.add(speaker)
+        # Flush so the next sermon by the same speaker finds this one instead of breaking the unique name.
+        db.session.flush()
+    return speaker
+
+
 def _unknown_speaker() -> Speaker:
     """Return the "Unknown Speaker" placeholder, creating it the first time. Sermons with it need their speaker fixed by hand."""
     speaker = db.session.scalar(
@@ -305,11 +349,21 @@ def _matches(playlist: dict, names: set[str]) -> bool:
     return playlist["title"].lower() in names or playlist["id"].lower() in names
 
 
-def _aliases() -> dict[str, str]:
+def _series_aliases() -> dict[str, str]:
     """Read YOUTUBE_SERIES_ALIASES ("Playlist=Series,...") as {lowercase playlist title: series title}."""
-    aliases = {}
-    for pair in current_app.config["YOUTUBE_SERIES_ALIASES"].split(","):
+    return _pairs("YOUTUBE_SERIES_ALIASES")
+
+
+def _speaker_aliases() -> dict[str, str]:
+    """Read YOUTUBE_SPEAKER_ALIASES ("Misspelled Name=Right Name,...") as {lowercase misspelling: right name}."""
+    return _pairs("YOUTUBE_SPEAKER_ALIASES")
+
+
+def _pairs(setting: str) -> dict[str, str]:
+    """Read a comma-separated "From=To" setting as {lowercase from: to}."""
+    pairs = {}
+    for pair in current_app.config[setting].split(","):
         if "=" in pair:
-            playlist, series = pair.split("=", 1)
-            aliases[playlist.strip().lower()] = series.strip()
-    return aliases
+            old, new = pair.split("=", 1)
+            pairs[old.strip().lower()] = new.strip()
+    return pairs
