@@ -208,6 +208,25 @@ poetry run python up.py
 
 Commit the new file in `migrations/versions/` with your model change. New non-nullable columns need a default, or the migration will fail on databases that already have rows.
 
+#### YouTube captions
+
+The transcript step downloads captions using OAuth credentials authorized as the
+TFH channel. Set the three OAuth values listed in
+[Backend/.env.example](Backend/.env.example), then run these commands from Backend:
+
+    poetry install
+    poetry run python up.py
+
+Use Refresh captions in the sermon's Transcript panel for previously imported
+sermons. The panel also displays full text and timestamp links. The step
+saves full text and timed segments together. Missing captions, permission failures,
+expired refresh tokens and quota errors set the sermon to Failed with instructions
+in processingError. After correcting the cause, reprocess it.
+
+See [caption setup and verified access](docs/youtube-captions.md) for the access
+spike, track selection, quota and token renewal details. Chunking and summarization
+remain their separate pipeline steps.
+
 #### Background jobs
 
 Sermon processing runs as a background job. Where it runs depends on `REDIS_URL`:
