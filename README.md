@@ -259,6 +259,25 @@ The other settings default to the TFH channel, so only the key is required. Over
 Playlists can be named by title or by playlist ID. Playlists whose titles differ only by case merge into one series.
 
 The speaker is read from the end of each video title (`Title: Series - Speaker`, or the older `Series PT 2 - "Title" - Speaker - date`). Honorifics like "Dr." and "Rabbi" are dropped; "Sr." and "Jr." are kept. When a title names several speakers (`A & B`), A is the speaker and the description starts with `Speakers: A & B`. Titles with no speaker get the "Unknown Speaker" placeholder and are listed in the import report so an admin can fix them.
+To run the import:
+
+```sh
+cd Backend
+
+# One-time backfill, or any time from the command line. Prints the import report.
+poetry run flask --app "tsh:create_app('testing.cfg')" import-youtube
+```
+
+Running it again is safe: videos already imported are matched by their YouTube id, and only their length, date and link are updated. Titles, descriptions, speakers, tags, transcripts and summaries edited by an admin are left alone.
+
+Admins can also run it from the API:
+
+- `POST /api/import/youtube` imports the whole channel. With `REDIS_URL` set it goes to the worker and returns `202 {"queued": true, "jobId": ...}`; without it, it runs in the request (about 40 seconds for the full channel) and returns `202 {"queued": false, "report": {...}}`.
+- `POST /api/import/youtube/video` with `{"url": "https://www.youtube.com/watch?v=..."}` imports one video right away. `youtu.be/` and `/shorts/` links work too. Returns `201` with the new sermon, or `200` if it was already imported.
+
+In production, run with Redis so the sync is queued. Inline mode runs the full import inside the request (about 40 seconds), which can hit server timeouts.
+
+New sermons are queued for processing as they are imported. If Redis is down, they are left `Failed` with the reason and listed in the report; reprocess them once Redis is back.
 
 ---
 
@@ -287,6 +306,8 @@ The frontend will be available at `http://localhost:5173`.
 | `GET` | `/sermons` | List all sermons |
 | `GET` | `/sermons/<id>` | Get a single sermon |
 | `POST` | `/sermons/<id>/reprocess` | Re-run sermon processing (Admin only, 202; 503 if Redis is down) |
+| `POST` | `/import/youtube` | Import the whole YouTube channel (Admin only, 202; 502 if YouTube fails, 503 if Redis is down) |
+| `POST` | `/import/youtube/video` | Import one video from `{"url": ...}` (Admin only; 201 new, 200 already imported, 400 bad URL, 404 private or missing, 422 too long) |
 | `GET` | `/series` | List all series |
 | `GET` | `/series/<id>` | Get a single series |
 | `GET` | `/speakers` | List all speakers |

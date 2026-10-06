@@ -61,6 +61,27 @@ def parse_title(
     )
 
 
+def series_named_in(title: str) -> str | None:
+    """Return the series a title names, or None.
+
+    "The Guide: Holy Spirit - Dave Patterson" names "Holy Spirit".
+    "Gospel of Mark PT7 - "Jesus in the Storm" - Jude Fouquier" names "Gospel of Mark".
+    Used for a single video, which comes with no playlists; the caller checks the name against existing series.
+    """
+    parts = [p.strip() for p in SEPARATOR.split(title.strip())]
+    if len(parts) > 1 and DATE_SEGMENT.match(parts[-1]):
+        parts.pop()
+    if len(parts) < 2:
+        return None
+    rest = parts[:-1]
+    match = PART_LEAD_IN.match(rest[0])
+    if len(rest) > 1:
+        return match["series"] if match else rest[0]
+    if ":" in rest[0]:
+        return rest[0].rsplit(":", 1)[1].strip() or None
+    return None
+
+
 def _lead_speaker(speakers: str, aliases: dict[str, str]) -> tuple[str, str] | None:
     """Return (first, last) for the first speaker named, or None if it does not look like a name."""
     if speakers.lower() in NOT_NAMES:

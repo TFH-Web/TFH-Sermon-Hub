@@ -75,5 +75,8 @@ def create_app(
 
     app.register_blueprint(api)
 
+    from tsh.youtube_import import import_youtube_command
+    app.cli.add_command(import_youtube_command)
+
     return app
 

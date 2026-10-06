@@ -16,6 +16,9 @@ from tsh.models import (
 )
 from tsh.pagination import paginate
 from tsh.pipeline import start_processing
+from tsh.queue import enqueue
+from tsh.youtube import YouTubeError
+from tsh.youtube_import import VideoImportError, import_channel, import_video, parse_video_id
 from tsh.schemas import (
     counted_speakers_schema,
     counted_tags_schema,
@@ -251,6 +254,57 @@ def reprocess_sermon(id: int):
         message = "The job queue is unavailable. Please try again later."
         return jsonify({"error": message, "message": message}), 503
     return sermon_schema.dump(sermon), 202
+
+
+@api.post("/import/youtube")
+@require_role("Admin")
+def import_youtube():
+    """Import every playlist and video from the YouTube channel.
+
+    Returns 202 with {"queued": true, "jobId": ...} when the import was sent to the worker, or
+    {"queued": false, "report": {...}} when it already ran inline (no REDIS_URL). See ImportReport for the fields.
+    Sends 401 without a valid token, 403 for non-Admins, 502 if YouTube fails during an inline run,
+    and 503 if Redis cannot be reached.
+    """
+    try:
+        result = enqueue(import_channel)
+    except (RedisConnectionError, RedisTimeoutError):
+        current_app.logger.exception("Could not queue the YouTube import")
+        message = "The job queue is unavailable. Please try again later."
+        return jsonify({"error": message, "message": message}), 503
+    except YouTubeError as e:
+        current_app.logger.exception("YouTube import failed")
+        message = f"YouTube import failed: {e}"
+        return jsonify({"error": message, "message": message}), 502
+
+    if current_app.config["REDIS_URL"]:
+        return jsonify({"queued": True, "jobId": result.id}), 202
+    return jsonify({"queued": False, "report": result.as_dict()}), 202
+
+
+@api.post("/import/youtube/video")
+@require_role("Admin")
+def import_youtube_video():
+    """Import one video from a YouTube URL in the body: {"url": "..."}. Runs right away, not on the worker.
+
+    Accepts youtube.com/watch?v=, youtu.be/ and youtube.com/shorts/ URLs.
+    Returns 201 with the new sermon, or 200 with the existing one if the video was already imported.
+    Sends 400 if the URL is missing or not a YouTube video URL, 401 without a valid token, 403 for non-Admins,
+    404 if the video is private, deleted or missing, 422 if it is longer than YOUTUBE_MAX_MINUTES,
+    and 502 if YouTube fails.
+    """
+    body = request.get_json(silent=True) or {}
+    url = body.get("url") if isinstance(body, dict) else None
+    video_id = parse_video_id(url) if isinstance(url, str) else None
+    if video_id is None:
+        message = "Send a YouTube video URL as {\"url\": \"...\"}, e.g. https://www.youtube.com/watch?v=..."
+        return jsonify({"error": message, "message": message}), 400
+
+    try:
+        sermon, created = import_video(video_id)
+    except VideoImportError as e:
+        return jsonify({"error": str(e), "message": str(e)}), e.status
+    return sermon_schema.dump(sermon), 201 if created else 200
 
 
 @api.route("/tags")

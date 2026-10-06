@@ -4,7 +4,9 @@ from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
+import click
 from flask import current_app
+from flask.cli import with_appcontext
 from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy import func
@@ -13,13 +15,28 @@ from tsh import youtube
 from tsh.database import db
 from tsh.models import Series, Sermon, Speaker, UploadStatus
 from tsh.pipeline import start_processing
-from tsh.youtube_titles import parse_title
+from tsh.youtube_titles import parse_title, series_named_in
 
 # Every description is this boilerplate plus a few links, so everything from here on is dropped.
 BOILERPLATE_START = "broadcasted live from"
 DURATION_RE = re.compile(r"^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$")
 # YouTube's own titles for playlist entries whose video is gone or hidden.
 HIDDEN_TITLES = {"Private video", "Deleted video"}
+VIDEO_ID = r"[A-Za-z0-9_-]{11}"
+# youtube.com/watch?v=ID, youtu.be/ID and youtube.com/shorts/ID, with or without www., m. and extra params.
+VIDEO_URL_PATTERNS = [
+    re.compile(rf"^https?://(?:www\.|m\.)?youtube\.com/watch\?(?:.*&)?v=({VIDEO_ID})(?:[&#].*)?$"),
+    re.compile(rf"^https?://youtu\.be/({VIDEO_ID})(?:[?#].*)?$"),
+    re.compile(rf"^https?://(?:www\.|m\.)?youtube\.com/shorts/({VIDEO_ID})(?:[?#/].*)?$"),
+]
+
+
+class VideoImportError(Exception):
+    """A single video could not be imported. status is the HTTP status the endpoint should send."""
+
+    def __init__(self, message: str, status: int):
+        super().__init__(message)
+        self.status = status
 
 
 @dataclass
@@ -117,6 +134,56 @@ def import_channel() -> ImportReport:
     return report
 
 
+def parse_video_id(url: str) -> str | None:
+    """Return the video id from a youtube.com/watch?v=, youtu.be/ or youtube.com/shorts/ URL, or None if it is not one."""
+    for pattern in VIDEO_URL_PATTERNS:
+        match = pattern.match(url.strip())
+        if match:
+            return match.group(1)
+    return None
+
+
+def import_video(video_id: str) -> tuple[Sermon, bool]:
+    """Import one video by id, using the same title, speaker and description rules as the full import.
+
+    The series is the one named in the title (see series_named_in), created if it does not exist yet.
+    The next full import then links it to its playlist by title.
+    Returns (sermon, True) for a new sermon, which is then queued with start_processing,
+    or (existing sermon, False) if the video was already imported. A new sermon that cannot be queued
+    is still returned; it is left FAILED with the reason in processing_error.
+    Raises VideoImportError (404 if the video is private, deleted or missing, 422 if it is over
+    YOUTUBE_MAX_MINUTES, 502 if YouTube fails).
+    """
+    sermon = db.session.scalar(db.select(Sermon).where(Sermon.youtube_video_id == video_id))
+    if sermon:
+        return sermon, False
+
+    try:
+        videos = youtube.get_videos([video_id])
+    except youtube.YouTubeError as e:
+        raise VideoImportError(f"YouTube request failed: {e}", 502) from None
+    if not videos or videos[0]["privacy"] == "private":
+        raise VideoImportError("Video not found, or it is private or deleted", 404)
+    video = videos[0]
+
+    duration = parse_duration(video["duration"])
+    max_minutes = float(current_app.config["YOUTUBE_MAX_MINUTES"])
+    if duration > max_minutes * 60:
+        raise VideoImportError(
+            f"Video is {round(duration / 60)} minutes, over the {max_minutes:g} minute limit for sermons", 422
+        )
+
+    series = _series_named_in_title(video["title"])
+    sermon = _create_sermon(video, duration, series, [], ImportReport())
+    db.session.commit()
+    try:
+        start_processing(sermon)
+    except Exception:
+        # start_processing has already set the sermon FAILED with the reason, so it can be reprocessed later.
+        current_app.logger.exception("Could not queue imported sermon %s", sermon.id)
+    return sermon, True
+
+
 def parse_duration(value: str | None) -> int:
     """Turn an ISO-8601 duration like "PT1H2M3S" into seconds. Returns 0 for anything it cannot read."""
     match = DURATION_RE.match(value or "")
@@ -203,6 +270,28 @@ def _series_for_video(video: dict, playlists: list[_Playlist], report: ImportRep
     return series_list[0] if series_list else None
 
 
+def _series_named_in_title(title: str) -> Series | None:
+    """Find or create the series a single video's title names. None if it names none, or an ignored or master playlist."""
+    name = series_named_in(title)
+    if not name or name.lower() in _names("YOUTUBE_IGNORE_PLAYLISTS") | _names("YOUTUBE_MASTER_PLAYLIST"):
+        return None
+    series = _existing_series(name)
+    if series is None:
+        # No playlist id yet; the next full import matches this series by title and fills it in.
+        series = Series(id=None, title=_series_aliases().get(name.lower(), name))
+        db.session.add(series)
+        db.session.flush()
+    return series
+
+
+def _existing_series(name: str | None) -> Series | None:
+    """Find an existing series by name (case-insensitive, after aliases), or None."""
+    if not name:
+        return None
+    name = _series_aliases().get(name.lower(), name)
+    return db.session.scalar(db.select(Series).where(func.lower(Series.title) == name.lower()))
+
+
 def _get_or_create_series(playlist: _Playlist, report: ImportReport) -> Series:
     """Find the series for a playlist by playlist id, then by title (case-insensitive, after aliases), else create it."""
     series = db.session.scalar(db.select(Series).where(Series.youtube_playlist_id == playlist.id))
@@ -210,7 +299,7 @@ def _get_or_create_series(playlist: _Playlist, report: ImportReport) -> Series:
         return series
 
     title = _series_aliases().get(playlist.title.lower(), playlist.title)
-    series = db.session.scalar(db.select(Series).where(func.lower(Series.title) == title.lower()))
+    series = _existing_series(title)
     if series:
         # Merged playlists keep the first playlist's id; the others match on title.
         if series.youtube_playlist_id is None:
@@ -367,3 +456,18 @@ def _pairs(setting: str) -> dict[str, str]:
             old, new = pair.split("=", 1)
             pairs[old.strip().lower()] = new.strip()
     return pairs
+
+
+@click.command("import-youtube")
+@with_appcontext
+def import_youtube_command() -> None:
+    """Import every playlist and video from the YouTube channel and print the report."""
+    report = import_channel().as_dict()
+    for name, value in report.items():
+        if isinstance(value, int):
+            click.echo(f"{name}: {value}")
+    for name, value in report.items():
+        if isinstance(value, list) and value:
+            click.echo(f"\n{name} ({len(value)}):")
+            for line in value:
+                click.echo(f"  {line}")
