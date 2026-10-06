@@ -18,6 +18,12 @@ from tsh.youtube_import import import_channel, parse_video_id
 BOILERPLATE = "Broadcasted live from The Father's House in Vacaville, CA.\nhttps://example.com"
 
 
+@pytest.fixture(autouse=True)
+def stub_transcript(monkeypatch):
+    """Keep metadata import tests independent of OAuth caption access."""
+    monkeypatch.setattr(pipeline, "fetch_transcript", lambda sermon: None)
+
+
 def video(id: str, title: str, description: str = BOILERPLATE, published_at: str = "2026-09-06T17:00:00Z",
           duration: str = "PT38M25S", privacy: str = "public") -> dict:
     return {"id": id, "title": title, "description": description, "published_at": published_at,

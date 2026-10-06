@@ -45,6 +45,10 @@ def create_app(
         "YOUTUBE_MAX_MINUTES": "60",
         # Sermon dates are taken in the church's time zone, not UTC.
         "YOUTUBE_TIMEZONE": "America/Los_Angeles",
+        "YOUTUBE_OAUTH_CLIENT_ID": "",
+        "YOUTUBE_OAUTH_CLIENT_SECRET": "",
+        "YOUTUBE_OAUTH_REFRESH_TOKEN": "",
+        "YOUTUBE_CAPTION_LANGUAGE": "en",
     }
     for name, default in youtube_defaults.items():
         app.config.setdefault(name, os.environ.get(name, default))

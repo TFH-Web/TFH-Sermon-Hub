@@ -13,6 +13,12 @@ from tsh.models import Sermon, UploadStatus
 from tsh.queue import JOB_TIMEOUT, QUEUE_NAME, enqueue
 
 
+@pytest.fixture(autouse=True)
+def stub_transcript(monkeypatch):
+    """Keep queue tests independent of caption access and network calls."""
+    monkeypatch.setattr(pipeline, "fetch_transcript", lambda sermon: None)
+
+
 @pytest.fixture()
 def fake_redis(app: Flask, monkeypatch) -> fakeredis.FakeStrictRedis:
     """Turn on queued mode with one shared fake Redis behind every connection."""

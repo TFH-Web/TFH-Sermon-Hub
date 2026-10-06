@@ -236,6 +236,15 @@ def get_sermon(id: int):
     return result
 
 
+@api.get("/sermons/<int:id>/transcript")
+@require_role("Internal User", "Admin")
+def get_sermon_transcript(id: int):
+    """Return saved transcript text and cue times; 401/403 without access, 404 for a missing sermon."""
+    sermon = db.get_or_404(Sermon, id, description=f"Sermon with id {id} not found")
+    # Keep the cue list out of library responses, which already load many sermons at once.
+    return {"transcript": sermon.transcript, "segments": sermon.transcript_segments or []}
+
+
 @api.post("/sermons/<int:id>/reprocess")
 @require_role("Admin")
 def reprocess_sermon(id: int):

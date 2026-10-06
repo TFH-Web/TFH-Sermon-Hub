@@ -5,9 +5,11 @@ from typing import Callable
 
 from flask import current_app
 
+from tsh import captions
 from tsh.database import db
 from tsh.models import Sermon, UploadStatus
 from tsh.queue import enqueue
+from tsh.transcripts import transcript_text
 
 
 def dummy_delay(sermon: Sermon) -> None:
@@ -21,11 +23,23 @@ def dummy_delay(sermon: Sermon) -> None:
 
 
 def fetch_transcript(sermon: Sermon) -> None:
-    """Fill in the transcript from the YouTube captions. Placeholder until S5."""
+    """Save clean YouTube caption text and timed segments; raise CaptionError on failure.
+
+    The pipeline commits both together. Chunking receives the persisted segments on the sermon.
+    """
+    # The importer also queues this pipeline, so importing its URL parser here avoids a cycle.
+    from tsh.youtube_import import parse_video_id
+
+    video_id = sermon.youtube_video_id or parse_video_id(sermon.video_link)
+    if not video_id:
+        raise captions.CaptionError("missing YouTube video id; correct the sermon video link, then reprocess")
+    segments = captions.get_transcript(video_id)
+    sermon.transcript = transcript_text(segments)
+    sermon.transcript_segments = segments
 
 
 def embed_chunks(sermon: Sermon) -> None:
-    """Split the transcript into chunks and store their embeddings. Placeholder until S6."""
+    """Chunk sermon.transcript_segments with source times and store embeddings. Placeholder until S6."""
 
 
 def summarize_sermon(sermon: Sermon) -> None:
