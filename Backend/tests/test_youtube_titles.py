@@ -30,6 +30,9 @@ ALIASES = {"joesph zwanziger": "Joseph Zwanziger", "dr. nina baratiak": "Nina Ba
         ("Tent Pegs - The More of God - Dave Patterson 11/11/17 6PM", ["Tent Pegs"], ParsedTitle("The More of God", "Dave", "Patterson")),
         ("90 Days Part 2  - Living in the Overflow  -  Dave Patterson 2/18/18 11AM", ["90 Days"],
          ParsedTitle("Living in the Overflow", "Dave", "Patterson")),
+        # No space before the dash
+        ("Where's Your Worship: A Different Kingdom- Jude Fouquier", [],
+         ParsedTitle("Where's Your Worship: A Different Kingdom", "Jude", "Fouquier")),
         # Speaker aliases and honorifics
         ("Grace Wins - Joesph Zwanziger", [], ParsedTitle("Grace Wins", "Joseph", "Zwanziger")),
         ("The Journey: Psalms of Summer - Dr. Nina Baratiak", ["Psalms of Summer"], ParsedTitle("The Journey", "Nina", "Baratiak")),
@@ -73,7 +76,7 @@ def test_no_speaker(title: str):
     assert parse_title(title, ["TFH+"], True, ALIASES) == ParsedTitle(title)
 
 
-KNOWN = {"joseph zwanziger", "dave patterson", "tosha zwanziger"}
+KNOWN = {"joseph zwanziger", "dave patterson", "tosha zwanziger", "rich harris"}
 
 
 @pytest.mark.parametrize(
@@ -108,6 +111,35 @@ def test_known_speaker_after_other_separators(title: str, expected: ParsedTitle)
 def test_unknown_name_after_other_separators(title: str):
     """Colons, en dashes, em dashes and "|" only split off a speaker who is already known."""
     assert parse_title(title, [], False, ALIASES, KNOWN) == ParsedTitle(title)
+
+
+@pytest.mark.parametrize(
+    ("title", "playlists", "expected"),
+    [
+        ("Pursuit Part 3   Beauty of Your Holiness   Rich Harris 3/18/18 11AM", ["Pursuit"],
+         ParsedTitle("Beauty of Your Holiness", "Rich", "Harris")),
+        ("Tent Pegs   Connect the Dots   Dave Patterson 11/26/17 9AM", ["Tent Pegs"],
+         ParsedTitle("Connect the Dots", "Dave", "Patterson")),
+        # Without a series the part number lead-in stays in front
+        ("Pursuit Part 3   Beauty of Your Holiness   Rich Harris 3/18/18 11AM", [],
+         ParsedTitle("Pursuit, Part 3: Beauty of Your Holiness", "Rich", "Harris")),
+    ],
+)
+def test_known_speaker_after_spaces(title: str, playlists: list[str], expected: ParsedTitle):
+    """Older titles that lost their dashes are split on runs of spaces and cleaned like dashed ones."""
+    assert parse_title(title, playlists, bool(playlists), ALIASES, KNOWN) == expected
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Tent Pegs   Connect the Dots   Stranger Person 11/26/17 9AM",
+        "Salt + Light - Stu Garrard Interview / The Beatitudes Project   11/05/17 11AM",
+    ],
+)
+def test_unknown_name_after_spaces(title: str):
+    """A run of spaces only splits off a known speaker, and an interview title stays as it is."""
+    assert parse_title(title, ["Tent Pegs"], True, ALIASES, KNOWN) == ParsedTitle(title)
 
 
 @pytest.mark.parametrize(

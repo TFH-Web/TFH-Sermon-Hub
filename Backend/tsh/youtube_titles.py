@@ -2,11 +2,15 @@
 import re
 from dataclasses import dataclass
 
-# Segments are split on a dash with spaces around it. Older titles sometimes have extra spaces.
-SEPARATOR = re.compile(r"\s+-\s+")
-# Other separators some titles use before the speaker. Study and event titles use them too
-# ("Week 2 — Gaining Spiritual Altitude — Pursuit Group Study"), so they only count before a known speaker.
-KNOWN_SPEAKER_SEPARATOR = re.compile(r"\s+[\u2013\u2014|]\s+|:\s*")
+# Segments are split on a dash with a space after it. Older titles sometimes have extra spaces, or none before
+# the dash ("A Different Kingdom- Jude Fouquier").
+SEPARATOR = re.compile(r"\s*-\s+")
+# Other separators some titles use between segments: en dash, em dash, "|", or a run of spaces where the dashes
+# were lost ("Tent Pegs   Connect the Dots   Dave Patterson 11/26/17 9AM").
+OTHER_SEPARATOR = re.compile(r"\s+[\u2013\u2014|]\s+|\s{2,}")
+# Study and event titles use these too ("Week 2 — Gaining Spiritual Altitude — Pursuit Group Study"),
+# so they, and a colon, only split off a known speaker.
+KNOWN_SPEAKER_SEPARATOR = re.compile(rf"{OTHER_SEPARATOR.pattern}|:\s*")
 _DATE = r"\d{1,2}[./-]\d{1,2}[./-]\d{2,4}(?:\s+\d{1,2}(?::\d{2})?\s*(?:AM|PM))?"
 # Older titles end in the service date, e.g. "- 10.11.20" or "- 10/21/18 9AM".
 DATE_SEGMENT = re.compile(rf"^-?{_DATE}-?$", re.IGNORECASE)
@@ -48,7 +52,8 @@ def parse_title(
     speaker_aliases maps lowercase misspelled names to the right one.
     known_speakers are lowercase "first last" names of speakers already known. A title with no " - ", like
     "You Will Receive Power: Joseph Zwanziger" or "... – Joseph Zwanziger", only takes the part after its last
-    colon, en dash, em dash or "|" as the speaker when it is one of them, since "The Guide: Holy Spirit" has the same shape.
+    colon, en dash, em dash, "|" or run of spaces as the speaker when it is one of them, since
+    "The Guide: Holy Spirit" has the same shape.
     Returns the title unchanged and no speaker when the title does not end in a name.
     """
     parts = [p.strip() for p in SEPARATOR.split(title.strip())]
@@ -76,19 +81,22 @@ def parse_title(
 def _parse_known_speaker_title(
     title: str, playlist_titles: list[str], has_series: bool, aliases: dict[str, str], known_speakers: set[str]
 ) -> ParsedTitle:
-    """Parse "<Title>: <Speaker>" (or with an en dash, em dash or "|"), taking the speaker only when it is already known."""
-    matches = list(KNOWN_SPEAKER_SEPARATOR.finditer(title))
+    """Parse "<Title>: <Speaker>" (or with an en dash, em dash, "|" or run of spaces), taking the speaker only when it is already known."""
+    stripped = title.strip()
+    matches = list(KNOWN_SPEAKER_SEPARATOR.finditer(stripped))
     if not matches:
         return ParsedTitle(title=title)
     last = matches[-1]
-    head, tail = title[:last.start()].strip(), title[last.end():].strip()
+    head, tail = stripped[:last.start()].strip(), stripped[last.end():].strip()
     speakers = TRAILING_DATE.sub("", tail).strip()
     name = _lead_speaker(speakers, aliases)
     if not head or name is None or " ".join(name).lower() not in known_speakers:
         return ParsedTitle(title=title)
     first_name, last_name = name
+    # Colons stay in the head: _clean_title reads "<Title>: <Series>" itself.
+    parts = [p.strip() for p in OTHER_SEPARATOR.split(head)]
     return ParsedTitle(
-        title=_clean_title([head], playlist_titles, has_series) or title,
+        title=_clean_title(parts, playlist_titles, has_series) or title,
         first_name=first_name,
         last_name=last_name,
         all_speakers=speakers if "&" in speakers else None,
