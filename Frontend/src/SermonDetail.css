@@ -112,29 +112,11 @@
 	color: var(--cl-foreground);
 }
 
-.SermonDetail-copy-btn {
-	padding: 5px 10px;
-	font-size: 11px;
-}
-
-.SermonDetail-upload-button {
-	padding: 5px 16px;
-	font-size: 11px;
-	color: #3d3e3b;
-}
-
 .SermonDetail-card-actions {
 	display: flex;
 	gap: 7px;
 	align-items: center;
 	padding: 10px 10px 0;
-}
-
-.SermonDetail-transcript-ai {
-	display: flex;
-	gap: 10px;
-	align-items: center;
-	padding: 20px 20px 10px;
 }
 
 .SermonDetail-regenerate-btn {
@@ -143,26 +125,81 @@
 }
 
 .SermonDetail-transcript-container {
+	max-height: 32rem;
 	padding: 20px 20px;
 	margin: 5px 20px 20px;
+	overflow: auto;
 	background: var(--cl-surface-dim);
 	border-radius: 8px;
 }
 
 .SermonDetail-transcript-paragraph {
 	margin: 0 0 16px;
-	font-size: 13px;
+	font-size: 16px;
 	line-height: 1.75;
-	color: #3d4043;
+	color: var(--cl-foreground);
 }
 
-.SermonDetail-keyword {
-	display: inline-block;
-	padding: 0px 5px;
-	font-size: 13px;
-	color: #55644e;
-	background: #d4ddd0;
-	border-radius: 4px;
+.SermonDetail-transcript-tools,
+.SermonDetail-transcript-source,
+.SermonDetail-transcript-controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+}
+
+.SermonDetail-transcript-tools {
+	justify-content: space-between;
+	padding: 16px 20px 0;
+}
+
+.SermonDetail-transcript-source {
+	font-size: 14px;
+}
+
+.SermonDetail-transcript-controls .Button {
+	min-height: 44px;
+}
+
+.SermonDetail-transcript-controls .Button[aria-pressed="true"] {
+	color: var(--cl-on-accent);
+	background: var(--cl-accent);
+}
+
+.SermonDetail-transcript-error,
+.SermonDetail-transcript-notice {
+	padding: 12px 16px;
+	margin: 16px 20px 0;
+	border-radius: 8px;
+}
+
+.SermonDetail-transcript-error {
+	color: var(--cl-on-error-container);
+	overflow-wrap: anywhere;
+	background: var(--cl-error-container);
+}
+
+.SermonDetail-transcript-cue {
+	display: grid;
+	grid-template-columns: 64px minmax(0, 1fr);
+	gap: 12px;
+	padding: 8px 0;
+	border-bottom: 1px solid var(--cl-outline);
+}
+
+.SermonDetail-transcript-cue a {
+	display: flex;
+	align-items: center;
+	min-height: 44px;
+	font-variant-numeric: tabular-nums;
+	color: var(--cl-foreground);
+}
+
+.SermonDetail-transcript-cue p {
+	margin: 0;
+	line-height: 1.75;
+	overflow-wrap: anywhere;
 }
 
 .SermonDetail-summary-container {
