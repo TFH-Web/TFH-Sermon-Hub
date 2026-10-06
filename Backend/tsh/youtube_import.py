@@ -15,7 +15,7 @@ from tsh import youtube
 from tsh.database import db
 from tsh.models import Series, Sermon, Speaker, UploadStatus
 from tsh.pipeline import start_processing
-from tsh.youtube_titles import parse_title, series_named_in
+from tsh.youtube_titles import ParsedTitle, parse_title, series_named_in
 
 # Every description is this boilerplate plus a few links, so everything from here on is dropped.
 BOILERPLATE_START = "broadcasted live from"
@@ -109,6 +109,9 @@ def import_channel() -> ImportReport:
         for s in db.session.scalars(db.select(Sermon).where(Sermon.youtube_video_id.in_(list(found))))
     }
     new_sermons = []
+    # New sermons left with "Unknown Speaker", with the playlists they were parsed against, retried below.
+    unknown: list[tuple[Sermon, dict, list[_Playlist]]] = []
+    known = _known_speakers()
     max_seconds = float(current_app.config["YOUTUBE_MAX_MINUTES"]) * 60
     for video in videos:
         if video["privacy"] == "private":
@@ -126,12 +129,19 @@ def import_channel() -> ImportReport:
         sermon = existing.get(video["id"])
         series = _series_for_video(video, playlists_for_video[video["id"]], report, is_new=sermon is None)
         if sermon is None:
-            new_sermons.append(_create_sermon(video, duration, series, playlists_for_video[video["id"]], report))
+            playlists_in = playlists_for_video[video["id"]]
+            sermon = _create_sermon(video, duration, series, playlists_in, report, known)
+            if sermon.speaker.first_name == "Unknown" and sermon.speaker.last_name == "Speaker":
+                unknown.append((sermon, video, playlists_in))
+            new_sermons.append(sermon)
             report.sermons_created += 1
         elif _update_sermon(sermon, video, duration, series):
             report.sermons_updated += 1
         else:
             report.sermons_unchanged += 1
+
+    # A "<Title>: <Speaker>" title only matches a known speaker, who may first appear later in the run.
+    _retry_unknown_speakers(unknown, report)
 
     # Save everything first: start_processing commits, and a job must not run before its sermon is saved.
     db.session.commit()
@@ -182,7 +192,7 @@ def import_video(video_id: str) -> tuple[Sermon, bool]:
         )
 
     series = _series_named_in_title(video["title"])
-    sermon = _create_sermon(video, duration, series, [], ImportReport())
+    sermon = _create_sermon(video, duration, series, [], ImportReport(), _known_speakers())
     db.session.commit()
     try:
         start_processing(sermon)
@@ -355,20 +365,26 @@ def _synced_fields(video: dict, duration: int) -> dict:
 
 
 def _create_sermon(
-    video: dict, duration: int, series: Series | None, playlists: list[_Playlist], report: ImportReport
+    video: dict,
+    duration: int,
+    series: Series | None,
+    playlists: list[_Playlist],
+    report: ImportReport,
+    known: set[str],
 ) -> Sermon:
     """Add a sermon for one YouTube video, with the title cleaned up and the speaker parsed from it.
 
+    known holds lowercase "first last" names of known speakers (see parse_title); new speakers are added to it.
     Titles with no speaker get "Unknown Speaker" and go in report.unknown_speakers.
     Titles naming several speakers go in report.multiple_speakers.
     """
-    playlist_titles = [p.title for p in playlists] + ([series.title] if series else [])
-    parsed = parse_title(video["title"], playlist_titles, series is not None, _speaker_aliases())
+    parsed = _parse(video, playlists, series, known)
     if parsed.first_name is None:
         speaker = _unknown_speaker()
         report.unknown_speakers.append(f"{video['title']} ({video['id']})")
     else:
         speaker = _get_or_create_speaker(parsed.first_name, parsed.last_name)
+        known.add(f"{speaker.first_name} {speaker.last_name}".lower())
     if parsed.all_speakers:
         report.multiple_speakers.append(f"{video['title']} ({video['id']}): {parsed.all_speakers}")
 
@@ -389,6 +405,42 @@ def _create_sermon(
     )
     db.session.add(sermon)
     return sermon
+
+
+def _parse(video: dict, playlists: list[_Playlist], series: Series | None, known: set[str]) -> ParsedTitle:
+    """Parse a video title against the playlists it is in and its series."""
+    playlist_titles = [p.title for p in playlists] + ([series.title] if series else [])
+    return parse_title(video["title"], playlist_titles, series is not None, _speaker_aliases(), known)
+
+
+def _retry_unknown_speakers(unknown: list[tuple[Sermon, dict, list[_Playlist]]], report: ImportReport) -> None:
+    """Parse this run's "Unknown Speaker" sermons again, now that every speaker in the run is known.
+
+    A sermon that now finds its speaker gets that speaker, the cleaned title and description,
+    and leaves report.unknown_speakers.
+    """
+    if not unknown:
+        return
+    known = _known_speakers()
+    for sermon, video, playlists in unknown:
+        parsed = _parse(video, playlists, sermon.series, known)
+        if parsed.first_name is None:
+            continue
+        sermon.speaker = _get_or_create_speaker(parsed.first_name, parsed.last_name)
+        sermon.title = parsed.title
+        sermon.description = clean_description(video["description"], parsed.title, parsed.all_speakers)
+        report.unknown_speakers.remove(f"{video['title']} ({video['id']})")
+        if parsed.all_speakers:
+            report.multiple_speakers.append(f"{video['title']} ({video['id']}): {parsed.all_speakers}")
+
+
+def _known_speakers() -> set[str]:
+    """Lowercase "first last" names of every speaker except the "Unknown Speaker" placeholder."""
+    return {
+        f"{s.first_name} {s.last_name}".lower()
+        for s in db.session.scalars(db.select(Speaker))
+        if (s.first_name, s.last_name) != ("Unknown", "Speaker")
+    }
 
 
 def _update_sermon(sermon: Sermon, video: dict, duration: int, series: Series | None) -> bool:

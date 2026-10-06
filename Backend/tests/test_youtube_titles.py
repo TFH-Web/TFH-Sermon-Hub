@@ -73,6 +73,43 @@ def test_no_speaker(title: str):
     assert parse_title(title, ["TFH+"], True, ALIASES) == ParsedTitle(title)
 
 
+KNOWN = {"joseph zwanziger", "dave patterson", "tosha zwanziger"}
+
+
+@pytest.mark.parametrize(
+    ("title", "expected"),
+    [
+        ("You Will Receive Power: Joseph Zwanziger", ParsedTitle("You Will Receive Power", "Joseph", "Zwanziger")),
+        ("You Will Receive Power \u2013 Joseph Zwanziger", ParsedTitle("You Will Receive Power", "Joseph", "Zwanziger")),
+        ("You Will Receive Power \u2014 Joseph Zwanziger", ParsedTitle("You Will Receive Power", "Joseph", "Zwanziger")),
+        ("You Will Receive Power | Joseph Zwanziger", ParsedTitle("You Will Receive Power", "Joseph", "Zwanziger")),
+        # Aliases apply before the known-speaker check
+        ("Grace Wins: Joesph Zwanziger", ParsedTitle("Grace Wins", "Joseph", "Zwanziger")),
+        # Only the last colon splits off the speaker
+        ("The Guide: Holy Spirit: Dave Patterson", ParsedTitle("The Guide", "Dave", "Patterson")),
+        ("Marriage: Joseph & Tosha Zwanziger", ParsedTitle("Marriage", "Joseph", "Zwanziger", "Joseph & Tosha Zwanziger")),
+    ],
+)
+def test_known_speaker_after_other_separators(title: str, expected: ParsedTitle):
+    """With no " - ", a known speaker after a colon, en dash, em dash or "|" is still found."""
+    assert parse_title(title, ["Holy Spirit"], True, ALIASES, KNOWN) == expected
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        # Series after a colon, not a speaker
+        "The Guide: Holy Spirit",
+        # Looks like a name, but nobody by that name has spoken
+        "Faith: Stranger Person",
+        "Week 2 \u2014  Gaining Spiritual Altitude \u2014 Pursuit Group Study",
+    ],
+)
+def test_unknown_name_after_other_separators(title: str):
+    """Colons, en dashes, em dashes and "|" only split off a speaker who is already known."""
+    assert parse_title(title, [], False, ALIASES, KNOWN) == ParsedTitle(title)
+
+
 @pytest.mark.parametrize(
     ("title", "series"),
     [

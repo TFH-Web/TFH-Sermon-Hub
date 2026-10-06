@@ -212,6 +212,29 @@ def test_import_skips_and_edge_cases(app: Flask, channel: FakeChannel):
     assert sermon_for("vNoSpk00001").duration == 48
 
 
+def test_import_speaker_after_colon(app: Flask, channel: FakeChannel):
+    """A "<Title>: <Speaker>" title finds a speaker already in the database, or one who first appears later in the run."""
+    # Read before vMulti00001, which is the first video to name Joseph Zwanziger.
+    channel.items["PLholy"].insert(0, "vColon00001")
+    channel.items["PLmaster"].append("vColon00002")
+    channel.videos["vColon00001"] = video("vColon00001", "You Will Receive Power: Joseph Zwanziger")
+    # Tosha Zwanziger is already in the test database.
+    channel.videos["vColon00002"] = video("vColon00002", "Strength for Today | Tosha Zwanziger")
+
+    report = import_channel()
+
+    power = sermon_for("vColon00001")
+    assert power.title == "You Will Receive Power"
+    assert (power.speaker.first_name, power.speaker.last_name) == ("Joseph", "Zwanziger")
+    assert power.speaker == sermon_for("vMulti00001").speaker
+    assert power.description == "You Will Receive Power"
+    strength = sermon_for("vColon00002")
+    assert strength.title == "Strength for Today"
+    assert (strength.speaker.first_name, strength.speaker.last_name) == ("Tosha", "Zwanziger")
+    assert not any("vColon" in line for line in report.unknown_speakers)
+    assert count(Speaker, Speaker.first_name == "Joseph", Speaker.last_name == "Zwanziger") == 1
+
+
 def test_rerun_creates_nothing(app: Flask, channel: FakeChannel):
     """A second run with nothing new on YouTube creates nothing and changes nothing."""
     import_channel()
