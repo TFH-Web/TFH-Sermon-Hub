@@ -12,7 +12,7 @@ TAG_MAX_LEN = 32
 SYSTEM = "You tag church sermons by topic. Respond with JSON only, no commentary."
 
 
-def get_existing_tag_name() -> list[str]:
+def get_existing_tag_names() -> list[str]:
     return list(db.session.scalars(db.select(Tag.name).order_by(Tag.name)))
 
 
