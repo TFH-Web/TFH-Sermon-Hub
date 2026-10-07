@@ -78,7 +78,7 @@ class _Playlist:
     video_ids: list[str] = field(default_factory=list)
 
 
-def import_channel() -> ImportReport:
+def import_channel(*, process: bool = True) -> ImportReport:
     """Import every playlist and video on YOUTUBE_CHANNEL_ID.
 
     Ignored playlists (YOUTUBE_IGNORE_PLAYLISTS) are skipped. The master playlist (YOUTUBE_MASTER_PLAYLIST)
@@ -146,7 +146,8 @@ def import_channel() -> ImportReport:
     # Save everything first: start_processing commits, and a job must not run before its sermon is saved.
     db.session.commit()
 
-    _queue_new_sermons(new_sermons, report)
+    if process:
+        _queue_new_sermons(new_sermons, report)
     return report
 
 
@@ -519,10 +520,11 @@ def _pairs(setting: str) -> dict[str, str]:
 
 
 @click.command("import-youtube")
+@click.option("--skip-processing", is_flag=True, help="Import metadata only; backfill captions in limited batches later.")
 @with_appcontext
-def import_youtube_command() -> None:
+def import_youtube_command(skip_processing: bool) -> None:
     """Import every playlist and video from the YouTube channel and print the report."""
-    report = import_channel().as_dict()
+    report = import_channel(process=not skip_processing).as_dict()
     for name, value in report.items():
         if isinstance(value, int):
             click.echo(f"{name}: {value}")

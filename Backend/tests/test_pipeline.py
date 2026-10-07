@@ -11,6 +11,12 @@ from tsh.models import Sermon, UploadStatus
 from tsh.queue import enqueue
 
 
+@pytest.fixture(autouse=True)
+def stub_transcript(monkeypatch):
+    """Keep these tests on pipeline state; caption downloads have separate integration tests."""
+    monkeypatch.setattr(pipeline, "fetch_transcript", lambda sermon: None)
+
+
 def sermon_with_status(status: UploadStatus) -> Sermon:
     return db.session.scalars(db.select(Sermon).where(Sermon.status == status)).first()
 

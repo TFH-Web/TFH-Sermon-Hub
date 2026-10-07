@@ -7,6 +7,7 @@ from sqlalchemy import (
     Column,
     FetchedValue,
     ForeignKey,
+    JSON,
     String,
     UniqueConstraint,
     Text,
@@ -18,6 +19,7 @@ from sqlalchemy.orm import Mapped, mapped_column, query_expression, relationship
 from sqlalchemy.util.typing import Annotated
 
 from tsh.database import db
+from tsh.transcripts import TranscriptSegment
 
 intpk = Annotated[int, mapped_column(primary_key=True, server_default=FetchedValue())]
 str32 = Annotated[str, mapped_column(String(32))]
@@ -121,3 +123,5 @@ class Sermon(db.Model):  # ty: ignore[unsupported-base]
     processed_at: Mapped[datetime | None] = mapped_column(default=None)
     # The YouTube video this sermon was imported from, so a re-run updates it instead of adding a copy
     youtube_video_id: Mapped[str | None] = mapped_column(String(16), unique=True, default=None)
+    # Persist cue times so chunking can use them again after a worker restart or retry.
+    transcript_segments: Mapped[list[TranscriptSegment] | None] = mapped_column(JSON, default=None, repr=False)

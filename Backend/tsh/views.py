@@ -2,7 +2,7 @@ from flask import Blueprint, current_app, g, jsonify, request
 from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy import false, func
-from sqlalchemy.orm import with_expression
+from sqlalchemy.orm import defer, with_expression
 from tsh.auth import require_role
 
 from tsh.database import db
@@ -150,7 +150,9 @@ def get_speaker(id: int):
 @api.route("/sermons")
 @require_role("Internal User", "Admin")
 def get_sermons():
-    query = db.select(Sermon)
+    query = db.select(Sermon).options(
+        defer(Sermon.transcript), defer(Sermon.transcript_segments)
+    )
 
     # 1. Status filter
     status_param = request.args.get("status", "").strip()
@@ -234,6 +236,15 @@ def get_sermon(id: int):
     sermon = db.get_or_404(Sermon, id, description=f"Sermon with id {id} not found")
     result = sermon_schema.dump(sermon)
     return result
+
+
+@api.get("/sermons/<int:id>/transcript")
+@require_role("Internal User", "Admin")
+def get_sermon_transcript(id: int):
+    """Return saved transcript text and cue times; 401/403 without access, 404 for a missing sermon."""
+    sermon = db.get_or_404(Sermon, id, description=f"Sermon with id {id} not found")
+    # Keep the cue list out of library responses, which already load many sermons at once.
+    return {"transcript": sermon.transcript, "segments": sermon.transcript_segments or []}
 
 
 @api.post("/sermons/<int:id>/reprocess")

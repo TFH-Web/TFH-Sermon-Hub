@@ -21,6 +21,9 @@ def app():
             "PIPELINE_DUMMY_DELAY": 0,
             # Tests must never call the real YouTube API with the key from .env.
             "YOUTUBE_API_KEY": "",
+            "YOUTUBE_OAUTH_CLIENT_ID": "",
+            "YOUTUBE_OAUTH_CLIENT_SECRET": "",
+            "YOUTUBE_OAUTH_REFRESH_TOKEN": "",
         },
     )
 

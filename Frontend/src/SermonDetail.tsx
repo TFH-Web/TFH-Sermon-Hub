@@ -7,9 +7,9 @@ import { useNavigate, useParams } from 'react-router';
 import Button from '$/components/Button';
 import { Card } from '$/components/Card.tsx';
 import ErrorBox from '$/components/ErrorBox.tsx';
-import FileUploadButton from '$/components/FileUploadButton.tsx';
 import Loading from '$/components/Loading.tsx';
 import MainLayout from '$/components/MainLayout';
+import SermonTranscript from '$/components/SermonTranscript';
 import Tag from '$/components/Tag.tsx';
 import { useToast } from '$/components/ToastContext.tsx';
 import DeleteSermonModal from '$/modals/DeleteSermonModal.tsx';
@@ -17,36 +17,13 @@ import EditSermonModal from '$/modals/EditSermonModal.tsx';
 import { durationToString, Sermon } from '$/types/sermon';
 import { getFullName } from '$/types/speaker.ts';
 
-// The server sends the transcript and summary as one long piece of text, but the page shows separate paragraphs.
+// The server sends the summary as one long piece of text, but the page shows separate paragraphs.
 // A blank line is the only thing marking where a paragraph ends, so split on those and throw away the empty pieces.
 function toParagraphs(text: string) {
 	return text
 		.split(/\n\s*\n/)
 		.map(paragraph => paragraph.trim())
 		.filter(paragraph => paragraph.length > 0);
-}
-
-function highlightKeywords(text: string, keywords: string[]) {
-	const escaped = keywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-	const pattern = new RegExp(`(${escaped.join('|')})`, 'gi');
-	const parts = text.split(pattern);
-
-	let offset = 0;
-	return parts.map(part => {
-		const key = offset;
-		offset += part.length;
-		const isKeyword = keywords.some(
-			k => k.toLowerCase() === part.toLowerCase(),
-		);
-		if (isKeyword) {
-			return (
-				<span key={key} className="SermonDetail-keyword">
-					{part}
-				</span>
-			);
-		}
-		return part;
-	});
 }
 
 // A 404 from the server means "no sermon has that id". We treat that differently from a real failure.
@@ -56,7 +33,6 @@ function isNotFound(error: unknown): boolean {
 
 export default function SermonDetail() {
 	const { showToast } = useToast(); // let's up pop up a little message at the corner of the screen
-	const [_transcript, setTranscript] = useState(''); // remembers a transcript the user uploads from their computer
 
 	const [_summary, setSummary] = useState<string | null>(null); // Starts as nothing. It only holds text once the user types their own summary.
 
@@ -78,6 +54,8 @@ export default function SermonDetail() {
 		},
 		// A sermon that does not exist will still not exist on the third try, so only keep trying for real failures like the server being down.
 		retry: (failureCount, error) => !isNotFound(error) && failureCount < 3,
+		refetchInterval: query =>
+			query.state.data?.status === 'Processing' ? 2000 : false,
 	});
 
 	//ask server for data of all sermons
@@ -136,10 +114,7 @@ export default function SermonDetail() {
 	const sermons = sermonsQuery.data ?? [];
 
 	// The server sends one long block of text. Cut it into separate paragraphs so the page can show them one under the other.
-	// If the sermon has no transcript or summary saved, we end up with nothing to show.
-	const transcriptParagraphs = sermon.transcript
-		? toParagraphs(sermon.transcript)
-		: [];
+	// If the sermon has no summary saved, we end up with nothing to show.
 	const summaryParagraphs = sermon.summary ? toParagraphs(sermon.summary) : [];
 
 	// Filters list of sermons to a new array containing only sermons in the same series
@@ -218,7 +193,14 @@ export default function SermonDetail() {
 								))}
 							</div>
 							<div className="SermonDetail-btn-group">
-								<Button variant="primary">Watch</Button>
+								<a
+									className="Button Button--primary"
+									href={sermon.videoLink}
+									target="_blank"
+									rel="noreferrer"
+								>
+									Watch
+								</a>
 								<Button
 									variant="secondary"
 									onClick={() => setEditSermonOpen(true)}
@@ -235,61 +217,7 @@ export default function SermonDetail() {
 						</div>
 					</div>
 				</div>
-				{/* Transcript Section */}
-				<Card className="SermonDetail-transcript">
-					<div className="SermonDetail-card-header">
-						<h2 className="SermonDetail-card-title">Transcript</h2>
-						<div className="SermonDetail-card-actions">
-							<Button variant="ghost" className="SermonDetail-copy-btn">
-								Copy
-							</Button>
-							<FileUploadButton
-								onFileRead={setTranscript}
-								className="SermonDetail-upload-button"
-							>
-								Upload Transcript
-							</FileUploadButton>
-						</div>
-					</div>
-
-					<div className="SermonDetail-transcript-ai">
-						<span>
-							<Tag variant="blue">AI Generated</Tag>
-						</span>
-						<span>
-							<Button
-								variant="ghost"
-								className="SermonDetail-regenerate-btn"
-								onClick={() =>
-									showToast('Regenerating transcript via AI...', 'info')
-								}
-							>
-								Regenerate with AI
-							</Button>
-						</span>
-					</div>
-
-					<div className="SermonDetail-transcript-container">
-						{/* Some Sermons have no transcript saved yet. Show a short message instead of leaving it empty grey box. */}
-						{transcriptParagraphs.length > 0 ? (
-							transcriptParagraphs.map(paragraph => (
-								<p
-									key={paragraph}
-									className="SermonDetail-transcript-paragraph"
-								>
-									{highlightKeywords(
-										paragraph,
-										sermon.tags.map(t => t.name),
-									)}
-								</p>
-							))
-						) : (
-							<p className="SermonDetail-transcript-paragraph">
-								No transcript yet. Upload one or generate it with AI.
-							</p>
-						)}
-					</div>
-				</Card>
+				<SermonTranscript sermon={sermon} />
 
 				{/* Summary Section */}
 				<Card className="SermonDetail-summary">

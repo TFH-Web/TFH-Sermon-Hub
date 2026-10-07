@@ -143,4 +143,4 @@ class SermonSchema(CamelCaseSchema):
 
 
 sermon_schema = SermonSchema()
-sermons_schema = SermonSchema(many=True)
+sermons_schema = SermonSchema(many=True, exclude=("transcript",))

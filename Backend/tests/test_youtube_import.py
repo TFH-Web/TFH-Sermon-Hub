@@ -18,6 +18,12 @@ from tsh.youtube_import import import_channel, parse_video_id
 BOILERPLATE = "Broadcasted live from The Father's House in Vacaville, CA.\nhttps://example.com"
 
 
+@pytest.fixture(autouse=True)
+def stub_transcript(monkeypatch):
+    """Keep metadata import tests independent of OAuth caption access."""
+    monkeypatch.setattr(pipeline, "fetch_transcript", lambda sermon: None)
+
+
 def video(id: str, title: str, description: str = BOILERPLATE, published_at: str = "2026-09-06T17:00:00Z",
           duration: str = "PT38M25S", privacy: str = "public") -> dict:
     return {"id": id, "title": title, "description": description, "published_at": published_at,
@@ -494,3 +500,19 @@ def test_cli_prints_report(runner: FlaskCliRunner, channel: FakeChannel):
     assert "sermons_created: 11" in result.output
     assert "unknown_speakers (2):" in result.output
     assert "  Day 17 - Don't Faint (vNoSpk00001)" in result.output
+
+
+def test_cli_metadata_only_does_not_start_caption_jobs(runner, channel, monkeypatch):
+    """A large import can save metadata without consuming caption quota or queuing jobs."""
+    from tsh import youtube_import
+
+    monkeypatch.setattr(youtube_import, "start_processing", lambda *args: pytest.fail("unexpected processing"))
+    result = runner.invoke(args=["import-youtube", "--skip-processing"])
+    assert result.exit_code == 0
+    assert "sermons_created: 11" in result.output
+    imported = db.session.scalars(db.select(Sermon).where(Sermon.youtube_video_id.is_not(None))).all()
+    assert len(imported) == 11
+    assert all(sermon.status == UploadStatus.DRAFT and sermon.transcript is None for sermon in imported)
+    result = runner.invoke(args=["import-youtube", "--skip-processing"])
+    assert result.exit_code == 0
+    assert "sermons_created: 0" in result.output

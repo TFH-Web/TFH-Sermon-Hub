@@ -16,6 +16,30 @@ from tsh.models import Sermon
 from tsh.schemas import sermon_schema
 
 
+def test_caption_segments_round_trip_and_downgrade_keeps_text(migration_app):
+    """Caption times survive a new session; removing the column preserves transcript and tags."""
+    up.main()
+    with migration_app.app_context():
+        populate(migration_app)
+        sermon = db.session.get(Sermon, 1)
+        segments = [{"start": 0.24, "end": 3.429, "text": "Welcome to church."}]
+        sermon.transcript = "Welcome to church."
+        sermon.transcript_segments = segments
+        db.session.commit()
+        db.session.remove()
+        assert db.session.get(Sermon, 1).transcript_segments == segments
+        downgrade(directory=str(up.MIGRATIONS), revision="9ec1bf424e99")
+        with db.engine.connect() as connection:
+            assert connection.execute(text("SELECT transcript FROM sermon WHERE id=1")).scalar() == "Welcome to church."
+            assert connection.execute(text("SELECT COUNT(*) FROM Sermon_Tag WHERE sermon_id=1")).scalar() == 2
+        upgrade(directory=str(up.MIGRATIONS))
+        db.session.remove()
+        sermon = db.session.get(Sermon, 1)
+        assert sermon.transcript == "Welcome to church."
+        assert sermon.transcript_segments is None
+        assert len(sermon.tags) == 2
+
+
 @pytest.fixture()
 def migration_app(tmp_path, monkeypatch):
     app = create_app(

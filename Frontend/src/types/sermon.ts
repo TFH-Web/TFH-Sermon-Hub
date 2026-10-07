@@ -23,6 +23,8 @@ export const Sermon = z.object({
 	speaker: Speaker,
 	series: Series.nullish(),
 	status: Status,
+	processingError: z.string().nullish(),
+	processedAt: z.string().nullish(),
 });
 export type Sermon = z.infer<typeof Sermon>;
 
