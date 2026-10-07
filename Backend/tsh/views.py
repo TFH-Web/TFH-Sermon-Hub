@@ -2,7 +2,7 @@ from flask import Blueprint, current_app, g, jsonify, request
 from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy import false, func
-from sqlalchemy.orm import with_expression
+from sqlalchemy.orm import defer, with_expression
 from tsh.auth import require_role
 
 from tsh.database import db
@@ -150,7 +150,9 @@ def get_speaker(id: int):
 @api.route("/sermons")
 @require_role("Internal User", "Admin")
 def get_sermons():
-    query = db.select(Sermon)
+    query = db.select(Sermon).options(
+        defer(Sermon.transcript), defer(Sermon.transcript_segments)
+    )
 
     # 1. Status filter
     status_param = request.args.get("status", "").strip()
