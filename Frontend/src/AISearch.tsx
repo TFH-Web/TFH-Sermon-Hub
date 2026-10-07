@@ -5,7 +5,7 @@ import Loading from '$/components/Loading';
 import MainLayout from '$/components/MainLayout';
 import SearchBar from '$/components/SearchBar';
 import SearchFilters from '$/components/SearchFilters';
-import useAISearch from '$/hooks/useAISearchPage';
+import useAISearch from '$/hooks/useAISearch';
 import type { AISearchResultPreview } from '$/types/aiSearch';
 import './AISearch.css';
 
