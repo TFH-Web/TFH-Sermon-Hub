@@ -140,6 +140,13 @@
 	color: var(--cl-foreground);
 }
 
+.SermonDetail-keyword {
+	padding: 0 0.15em;
+	color: var(--cl-on-accent);
+	background: var(--cl-accent);
+	border-radius: 3px;
+}
+
 .SermonDetail-transcript-tools,
 .SermonDetail-transcript-source,
 .SermonDetail-transcript-controls {

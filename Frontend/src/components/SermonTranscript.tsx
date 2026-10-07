@@ -1,7 +1,7 @@
 // Show saved captions in the sermon page and retry the real processing pipeline.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Sermon } from '$/types/sermon';
 import { Transcript } from '$/types/transcript';
 import { useUser } from '$/types/user';
@@ -32,12 +32,36 @@ function keyed<T>(values: T[], identify: (value: T) => string) {
 	});
 }
 
+function highlightKeywords(text: string, pattern: RegExp | null) {
+	if (!pattern) return text;
+	let offset = 0;
+	return text.split(pattern).map((part, index) => {
+		const key = offset;
+		offset += part.length;
+		return index % 2 ? (
+			<mark key={key} className="SermonDetail-keyword">
+				{part}
+			</mark>
+		) : (
+			part
+		);
+	});
+}
+
 /** Render the saved transcript, source timestamps, and the Admin caption refresh action. */
 export default function SermonTranscript({ sermon }: { sermon: Sermon }) {
 	const { showToast } = useToast();
 	const user = useUser();
 	const queryClient = useQueryClient();
 	const [timed, setTimed] = useState(false);
+	const keywordPattern = useMemo(() => {
+		const keywords = [
+			...new Set(sermon.tags.map(tag => tag.name.trim()).filter(Boolean)),
+		]
+			.sort((a, b) => b.length - a.length)
+			.map(keyword => keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+		return keywords.length ? new RegExp(`(${keywords.join('|')})`, 'gi') : null;
+	}, [sermon.tags]);
 	const key = ['sermon-transcript', sermon.id];
 	const query = useQuery({
 		queryKey: [...key, sermon.status, sermon.processedAt ?? null],
@@ -193,13 +217,13 @@ export default function SermonTranscript({ sermon }: { sermon: Sermon }) {
 							>
 								{timestamp(segment.start)}
 							</a>
-							<p>{segment.text}</p>
+							<p>{highlightKeywords(segment.text, keywordPattern)}</p>
 						</div>
 					))
 				) : text ? (
 					paragraphs.map(({ value: paragraph, key }) => (
 						<p className="SermonDetail-transcript-paragraph" key={key}>
-							{paragraph}
+							{highlightKeywords(paragraph, keywordPattern)}
 						</p>
 					))
 				) : (

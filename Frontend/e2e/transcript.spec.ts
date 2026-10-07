@@ -22,7 +22,9 @@ async function captionRoutes(page: Page) {
 	await page.route('**/api/**', async route => {
 		const path = new URL(route.request().url()).pathname;
 		if (path === '/api/sermons') {
-			return route.fulfill({ json: [state.sermon] });
+			return route.fulfill({
+				json: [{ ...state.sermon, transcript: undefined }],
+			});
 		}
 		if (path === '/api/sermons/1') {
 			if (state.finishAfterPolling && state.sermon.status === 'Processing') {
@@ -67,6 +69,29 @@ test('shows saved full text and timestamp links from the transcript API', async 
 	await page.getByRole('button', { name: 'Full text', exact: true }).click();
 	await expect(panel).toHaveText('Welcome to church. God is good.');
 	expect(errors).toEqual([]);
+});
+
+test('tag keywords stay highlighted in full text and timestamp views', async ({
+	page,
+}) => {
+	const state = await captionRoutes(page);
+	state.sermon.tags = [
+		{ name: 'God', source: 'ai' },
+		{ name: 'C++', source: 'manual' },
+	];
+	state.sermon.transcript = 'GOD is good. C++ is literal; <script> is text.';
+	state.segments = [{ start: 1, end: 4, text: state.sermon.transcript }];
+	await page.goto('/sermons/1');
+	const panel = page.getByRole('region', { name: 'Sermon transcript' });
+	await expect(panel.locator('mark')).toHaveText(['GOD', 'C++']);
+	await expect(panel).toHaveText(state.sermon.transcript);
+	await expect(panel.locator('script')).toHaveCount(0);
+	await page.getByRole('button', { name: 'Timestamps', exact: true }).click();
+	await expect(panel.locator('mark')).toHaveText(['GOD', 'C++']);
+	await expect(panel.getByRole('link')).toHaveAttribute(
+		'href',
+		'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y&t=1',
+	);
 });
 
 test('refresh disables the action until the saved caption text is updated', async ({
