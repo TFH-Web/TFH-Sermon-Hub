@@ -5,7 +5,7 @@ from tsh import llm
 CHUNK_CHARS = 4000
 MAX_REDUCE_ROUNDS = 5
 SYSTEM = (
-    "You summarize church sermon transcripts accurately and concisely."
+    "You summarize church sermon transcripts accurately and concisely. "
     "Only use what is in the text. Do not invent scripture references or quotes."
 )
 
@@ -41,7 +41,8 @@ def summarize_transcript(text: str) -> str:
     chunks = chunk_text(text)
 
     partials = [
-        llm.generate(f"Summarize this part of a sermon in 3-4 sentences:\n\n{c}", system=SYSTEM)
+        llm.generate(
+            f"Summarize this part of a sermon in 3-4 sentences. "f"Respond with only the summary itself, no preamble or introduction.\n\n{c}", system=SYSTEM,)
         for c in chunks
     ]
     if len(partials) == 1:
@@ -49,7 +50,7 @@ def summarize_transcript(text: str) -> str:
 
     combined = "\n\n".join(partials)
     for _ in range(MAX_REDUCE_ROUNDS):
-        if len(combined) <= CHUNK_CHARS:
+        if len(combined) <= CHUNK_CHARS * 2:
             break
         partials = [
             llm.generate(f"Condense these sermon notes:\n\n{g}", system=SYSTEM)
