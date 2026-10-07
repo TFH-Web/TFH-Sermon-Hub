@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, app
 from tsh.views import api
 
 
@@ -12,6 +12,7 @@ def create_app(config_path: str) -> Flask:
     from tsh.auth import jwt
     jwt.init_app(app)
 
-    app.register_blueprint(api)
+    # Put all API routes under /api to match the frontend.
+    app.register_blueprint(api, url_prefix="/api")
 
     return app
