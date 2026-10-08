@@ -73,14 +73,16 @@ export default function AISearch() {
 						aria-busy={isLoading}
 					>
 						{isLoading ? (
-							<Loading />
-						) : isError ? (
-							<div>
-								<ErrorBox message="Unable to search sermons. Please try again." />
-								<button type="button" onClick={retry}>
-									Retry
-								</button>
+							// Announce loading and preserve the status checked by the test.
+							<div role="status">
+								<Loading />
 							</div>
+						) : isError ? (
+							// The shared ErrorBox provides the Retry button.
+							<ErrorBox
+								message="Unable to search sermons. Please try again."
+								onRetry={retry}
+							/>
 						) : (
 							<>
 								<p className="AISearch-resultsMeta">
