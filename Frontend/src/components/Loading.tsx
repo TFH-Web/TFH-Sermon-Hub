@@ -1,8 +1,16 @@
-// Shared message displayed while a request is running.
-export default function Loading() {
+import clsx from 'clsx';
+import './Loading.css';
+import { Icon } from '@iconify-icon/react';
+
+export interface LoadingProps {
+	vertical?: boolean;
+}
+
+export default function Loading({ vertical = false }: LoadingProps) {
 	return (
-		<div role="status" className="Loading">
-			<h2>Loading...</h2>
-		</div>
+		<h2 className={clsx('Loading', vertical && 'is-vertical')}>
+			Loading...
+			<Icon icon="eos-icons:loading" className="Loading-icon" />
+		</h2>
 	);
 }

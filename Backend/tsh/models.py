@@ -1,18 +1,25 @@
-from dataclasses import asdict
+from __future__ import annotations
+
+from datetime import date, datetime
 from enum import Enum
-from datetime import date
-from tsh.database import db
+
 from sqlalchemy import (
-    String,
-    UniqueConstraint,
-    ForeignKey,
     Column,
     FetchedValue,
+    ForeignKey,
+    JSON,
+    String,
+    UniqueConstraint,
+    Text,
+)
+from sqlalchemy import (
     Enum as SAEnum,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, query_expression, relationship
 from sqlalchemy.util.typing import Annotated
-from typing import Optional, List, Any, Iterable
+
+from tsh.database import db
+from tsh.transcripts import TranscriptSegment
 
 intpk = Annotated[int, mapped_column(primary_key=True, server_default=FetchedValue())]
 str32 = Annotated[str, mapped_column(String(32))]
@@ -21,13 +28,18 @@ str64 = Annotated[str, mapped_column(String(64))]
 
 class Series(db.Model):  # ty: ignore[unsupported-base]
     id: Mapped[intpk]
-    title: Mapped[Optional[str32]] = mapped_column(unique=True)
+    # YouTube playlist names can be up to 150 chars
+    title: Mapped[str] = mapped_column(String(150), unique=True)
+    # The playlist this series was imported from. Playlists merged into one series keep the first one's id
+    youtube_playlist_id: Mapped[str | None] = mapped_column(String(64), unique=True, default=None)
 
 
 class Speaker(db.Model):  # ty: ignore[unsupported-base]
     id: Mapped[intpk]
-    first_name: Mapped[Optional[str64]]
-    last_name: Mapped[Optional[str64]]
+    first_name: Mapped[str64]
+    last_name: Mapped[str64]
+    role: Mapped[str64] = mapped_column(default='Guest Speaker')
+    sermon_count: Mapped[int] = query_expression()
     __table_args__ = (UniqueConstraint("first_name", "last_name"),)
 
 
@@ -56,50 +68,60 @@ class Tag(db.Model):  # ty: ignore[unsupported-base]
     source: Mapped[TagSource] = mapped_column(
         SAEnum(TagSource, create_constraint=True, validate_strings=True)
     )
+    sermons: Mapped[list[Sermon]] = relationship(
+        secondary=sermon_tag_m2m, back_populates="tags"
+    )
+    count: Mapped[int] = query_expression()
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Tag):
+            return False
+        return self.name == other.name and self.source == other.source
 
 
 class UploadStatus(Enum):
-    DRAFT = "draft"
-    PROCESSING = "processing"
-    PUBLISHED = "published"
-    FAILED = "failed"
+    DRAFT = "Draft"
+    PROCESSING = "Processing"
+    PUBLISHED = "Published"
+    FAILED = "Failed"
 
 
 class Sermon(db.Model):  # ty: ignore[unsupported-base]
     id: Mapped[intpk]
-    title: Mapped[str64]
-    video_link: Mapped[str32]
+    # YouTube video titles can be up to 100 chars, with room to spare
+    title: Mapped[str] = mapped_column(String(200))
+    # Real video URLs and Spaces links are way longer than 32 chars
+    video_link: Mapped[str] = mapped_column(Text)
     duration: Mapped[int]
     date: Mapped[date]
     description: Mapped[str]
-    tags: Mapped[List[Tag]] = relationship(secondary=sermon_tag_m2m)
-    transcript: Mapped[Optional[str]]
-    summary: Mapped[Optional[str]]
+    tags: Mapped[list[Tag]] = relationship(
+        secondary=sermon_tag_m2m, back_populates="sermons"
+    )
+    transcript: Mapped[str | None]
+    summary: Mapped[str | None]
     speaker_id: Mapped[int] = mapped_column(
         ForeignKey(Speaker.id, onupdate="CASCADE", ondelete="RESTRICT")
     )
     speaker: Mapped[Speaker] = relationship()
-    series_id: Mapped[Optional[int]] = mapped_column(
+    series_id: Mapped[int | None] = mapped_column(
         ForeignKey(Series.id, onupdate="CASCADE", ondelete="RESTRICT")
     )
-    series: Mapped[Optional[Series]] = relationship()
+    series: Mapped[Series | None] = relationship()
     status: Mapped[UploadStatus] = mapped_column(
         SAEnum(UploadStatus, create_constraint=True, validate_strings=True),
         default=UploadStatus.DRAFT,
     )
-
-
-def serialize_to_dict(obj: Any) -> dict:
-    def dict_enum_factory(data):
-        def convert_value(obj):
-            if isinstance(obj, Enum):
-                return obj.value
-            return obj
-
-        return {k: convert_value(v) for k, v in data}
-
-    return asdict(obj, dict_factory=dict_enum_factory)
-
-
-def serialize_many_to_dicts(objs: Iterable[Any]) -> List[dict]:
-    return [serialize_to_dict(obj) for obj in objs]
+    # Sprint 7 upload + processing pipeline
+    # Where the original video lives in Spaces
+    storage_key: Mapped[str | None] = mapped_column(String(512), default=None)
+    # Where the extracted audio lives in Spaces, used for transcription
+    audio_key: Mapped[str | None] = mapped_column(String(512), default=None)
+    # Why processing failed, if it did, so admins can see it and processing
+    processing_error: Mapped[str | None] = mapped_column(Text, default=None)
+    # When the worker finished processing
+    processed_at: Mapped[datetime | None] = mapped_column(default=None)
+    # The YouTube video this sermon was imported from, so a re-run updates it instead of adding a copy
+    youtube_video_id: Mapped[str | None] = mapped_column(String(16), unique=True, default=None)
+    # Persist cue times so chunking can use them again after a worker restart or retry.
+    transcript_segments: Mapped[list[TranscriptSegment] | None] = mapped_column(JSON, default=None, repr=False)

@@ -142,6 +142,28 @@ button {
 	}
 }
 
+:where(fieldset) {
+	padding: 0;
+	margin: 0;
+	border: none;
+}
+
+:where(.u-dropdowns),
+:where(fieldset:has(> select)) {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	min-width: 0;
+}
+
+:where(.u-dropdown),
+:where(select) {
+	padding: 0.25em 0.5em;
+	font: inherit;
+	border: 2px solid var(--cl-outline);
+	border-radius: 0.25rem;
+}
+
 progress {
 	color: var(--cl-accent);
 	background: var(--cl-outline);

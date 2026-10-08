@@ -1,18 +1,13 @@
-import type { Speaker } from '../types/speaker';
+import {
+	type CountedSpeaker,
+	getFullName,
+	getInitials,
+	speakerHue,
+} from '$/types/speaker';
 import './SpeakerCard.css';
 
 interface SpeakerCardProps {
-	speaker: Speaker;
-}
-
-//function that gets the initals of a given name
-function getInitials(name: string): string {
-	return name
-		.trim() //trims whitespace from front and back
-		.split(/\s+/) //makes an array of objects from name, divided by spaces
-		.map(part => part[0]) //reduces each part of name to single starting initial
-		.join('') //joins initials together
-		.toUpperCase(); //capitalizes initials
+	speaker: CountedSpeaker;
 }
 
 //speaker card that displays icon with initials, name, role, and amount of sermons recorded in our system
@@ -23,24 +18,17 @@ export default function SpeakerCard({ speaker }: SpeakerCardProps) {
 			 */}
 			<div
 				className="speaker-icon"
-				style={{
-					backgroundColor: speaker.color,
-				}}
+				style={{ '--h': speakerHue(speaker) } as React.CSSProperties}
 			>
-				<b>{getInitials(speaker.name)}</b>
+				{getInitials(speaker)}
 			</div>
 
 			{/* speaker info section with Name header, role, and sermon count*/}
-			<div className="speaker-name">
-				<p>
-					<b>{speaker.name}</b>
-				</p>
-			</div>
-			<div className="speaker-info">
-				<p>
-					{speaker.role} • {speaker.sermoncount} sermons
-				</p>
-			</div>
+			<h2 className="speaker-name">{getFullName(speaker)}</h2>
+			<p className="speaker-info">
+				{speaker.role} • {speaker.sermonCount} sermon
+				{speaker.sermonCount !== 1 && 's'}
+			</p>
 		</div>
 	);
 }

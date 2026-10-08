@@ -1,18 +1,30 @@
+from pathlib import Path
+
 from flask import Flask
 from flask.testing import FlaskClient, FlaskCliRunner
+from flask_migrate import upgrade
 from tsh import create_app
 from tests.populate import populate
 import pytest
 
 
 @pytest.fixture()
-def app() -> Flask:
-    app = create_app("testing.cfg")
-    app.config.update(
-        {
+def app():
+    app = create_app(
+        "testing.cfg",
+        settings={
             "TESTING": True,
             "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
-        }
+            # Always run jobs inline, even when .env or devenv sets REDIS_URL for the whole shell.
+            "REDIS_URL": "",
+            # A delay set in testing.cfg would slow every test that runs the pipeline.
+            "PIPELINE_DUMMY_DELAY": 0,
+            # Tests must never call the real YouTube API with the key from .env.
+            "YOUTUBE_API_KEY": "",
+            "YOUTUBE_OAUTH_CLIENT_ID": "",
+            "YOUTUBE_OAUTH_CLIENT_SECRET": "",
+            "YOUTUBE_OAUTH_REFRESH_TOKEN": "",
+        },
     )
 
     with app.app_context():
@@ -20,7 +32,7 @@ def app() -> Flask:
         from tsh.models import Series, Speaker, Tag, Sermon, sermon_tag_m2m  # noqa: F401
 
         # setup
-        db.create_all()
+        upgrade(directory=str(Path(__file__).resolve().parents[1] / "migrations"))
         populate(app)
 
         yield app

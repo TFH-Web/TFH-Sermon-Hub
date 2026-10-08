@@ -2,7 +2,7 @@ import type { User } from '$/types/user';
 
 export const testUsers: User[] = [
 	{
-		id: 0,
+		id: '0',
 		firstName: 'Samip',
 		lastName: 'Gurung',
 		email: 'samip@tfh.org',
@@ -10,7 +10,7 @@ export const testUsers: User[] = [
 		lastActive: new Date('2026-04-07T12:00:00Z'),
 	},
 	{
-		id: 1,
+		id: '1',
 		firstName: 'Givin',
 		lastName: 'Yang',
 		email: 'givin@tfh.org',
@@ -18,7 +18,7 @@ export const testUsers: User[] = [
 		lastActive: new Date('2026-04-05T12:00:00Z'),
 	},
 	{
-		id: 2,
+		id: '2',
 		firstName: 'Nicole',
 		lastName: 'Espinoza',
 		email: 'nicole@tfh.org',
@@ -26,7 +26,7 @@ export const testUsers: User[] = [
 		lastActive: new Date('2026-04-06T12:00:00Z'),
 	},
 	{
-		id: 3,
+		id: '3',
 		firstName: 'June',
 		lastName: 'Paulino',
 		email: 'june@tfh.org',

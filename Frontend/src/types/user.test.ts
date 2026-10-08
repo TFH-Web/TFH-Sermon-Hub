@@ -2,7 +2,7 @@ import { expect, suite, test } from 'vitest';
 import { canRemove, getFullName, getInitials, type User } from './user';
 
 const testAdmin: User = {
-	id: 0,
+	id: '0',
 	firstName: 'Jane',
 	lastName: 'Doe',
 	email: 'janedow@tfh.org',
@@ -11,7 +11,7 @@ const testAdmin: User = {
 };
 
 const testUser: User = {
-	id: 1,
+	id: '1',
 	firstName: 'John',
 	lastName: 'Doe',
 	email: 'johndoe@tfh.org',

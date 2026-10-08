@@ -9,13 +9,13 @@ import {
 	dateRelative,
 	getFullName,
 	getInitials,
-	getUser,
 	userHue,
+	useUser,
 } from '$/types/user';
 
 export default function UserManagement() {
 	const [addUserOpen, setAddUserOpen] = useState(false);
-	const currentUser = getUser();
+	const currentUser = useUser();
 
 	return (
 		<MainLayout title="User Management">
