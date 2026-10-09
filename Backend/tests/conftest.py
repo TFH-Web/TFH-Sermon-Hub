@@ -41,6 +41,25 @@ def app():
         db.drop_all()
 
 
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "real_llm: leave tsh.llm.generate unpatched (for tests of llm.py itself)")
+
+
+@pytest.fixture(autouse=True)
+def no_real_llm(request, monkeypatch):
+    """Keep the suite off the network. TFH-461."""
+    if request.node.get_closest_marker("real_llm"):
+        return
+
+    def fake_generate(prompt: str, system: str = "", **kwargs) -> str:
+        if "Return JSON" in prompt:
+            return '{"tags": []}'
+        return "Test summary."
+
+    monkeypatch.setattr("tsh.llm.generate", fake_generate)
+
+
 @pytest.fixture()
 def client(app: Flask) -> FlaskClient:
     return app.test_client()
