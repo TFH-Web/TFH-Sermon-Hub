@@ -11,9 +11,7 @@ DEFAULT_NUM_CTX = 8192
 class LLMError(RuntimeError):
     """Raised when the model can't be reached or returns something unusable."""
 
-def generate (
-    prompt: str, system: str = "", max_tokens: int = 1024, json_mode: bool = False
-) -> str:
+def generate (prompt: str, system: str = "", max_tokens: int = 1024, json_mode: bool = False) -> str:
     """Ask the active provider for a completion. 
     
     json mode will constrain the reply to valid JSON where the provider supports it. Small local models ignore
@@ -62,11 +60,16 @@ def _anthropic(prompt: str, system: str, max_tokens: int) -> str:
         raise LLMError("Run 'poetry add anthropic' to use LLM_PROVIDER=anthropic") from e
 
     client = anthropic.Anthropic()
-    msg = client.messages.create(
-        model=model,
-        max_tokens=max_tokens,
-        system=system,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    try:
+        msg = client.messages.create(
+            model=model,
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except anthropic.APIError as e:
+        raise LLMError(f"Anthropic request failed (model {model}): {e}") from e
 
+    if not msg.content:
+        raise LLMError("Anthropic returned an empty response")
     return msg.content[0].text.strip()

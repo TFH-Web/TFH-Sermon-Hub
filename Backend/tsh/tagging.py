@@ -4,6 +4,7 @@ import re
 from tsh import llm
 from tsh.database import db
 from tsh.models import Sermon, Tag, TagSource
+from sqlalchemy.exc import IntegrityError
 
 MAX_TAGS = 6
 MAX_NEW_TAGS = 2
@@ -20,8 +21,8 @@ def parse_tag_response(raw: str) -> list[str]:
     """Pull a list of tag strings out of a model reply, tolerating code fences and chatter"""
     match = re.search(r"\{.*\}", raw, re.DOTALL)
     if not match:
-        return[]
-    try: 
+        return []
+    try:
         data = json.loads(match.group(0))
     except json.JSONDecodeError:
         return []
@@ -59,7 +60,7 @@ def suggest_tags(summary: str, existing: list[str] | None = None) -> list[str]:
         seen.add(key)
         if key in canonical:
             result.append(canonical[key])
-        elif len(name) <= TAG_MAX_LEN and new_count < MAX_NEW_TAGS:
+        elif len(name) <= TAG_MAX_LEN and new_count < (MAX_NEW_TAGS if existing else MAX_TAGS):
             # Seeds the tags in lowercase
             result.append(name.lower())
             new_count += 1
@@ -78,8 +79,13 @@ def save_ai_tags(sermon: Sermon, names: list[str]) -> list[Tag]:
         key = name.lower()
         tag = by_lower.get(key)
         if tag is None:
-            tag = Tag(name=name, source=TagSource.AI, sermons=[])
-            db.session.add(tag)
+            try:
+                with db.session.begin_nested():
+                    tag = Tag(name=name, source=TagSource.AI, sermons=[])
+                    db.session.add(tag)
+                    db.session.flush()
+            except IntegrityError:
+                tag = db.session.scalars(db.select(Tag).where(Tag.name == name)).first()
             by_lower[key] = tag
         if key not in attached:
             sermon.tags.append(tag)
