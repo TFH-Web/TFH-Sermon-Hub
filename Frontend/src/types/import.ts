@@ -34,3 +34,14 @@ export const SyncResult = z.discriminatedUnion('queued', [
 	z.object({ queued: z.literal(false), report: ImportReport }),
 ]);
 export type SyncResult = z.infer<typeof SyncResult>;
+
+// A "Sync from YouTube" run that has ended, for the pop-up that reports it. The server stores nothing
+// about a run, so this only exists in the page that started it.
+export interface BulkImport {
+	// The dates that were sent, as YYYY-MM-DD. Empty when that end was left open.
+	from: string;
+	to: string;
+	// One of these is set: the response, or why the request failed.
+	result?: SyncResult;
+	error?: string;
+}

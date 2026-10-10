@@ -5,18 +5,27 @@ import { useEffect, useRef, useState } from 'react';
 import './ImportUpload.css';
 import Button from '$/components/Button';
 import { Card, CardHeader } from '$/components/Card';
+import ErrorBox from '$/components/ErrorBox';
 import { FormField, FormRow } from '$/components/FormField';
-import ImportItem from '$/components/ImportItem';
-import ImportSyncResult from '$/components/ImportSyncResult';
+import Loading from '$/components/Loading';
 import MainLayout from '$/components/MainLayout';
+import Pagination from '$/components/Pagination';
+import SermonImportItem from '$/components/SermonImportItem';
 import TabBar from '$/components/TabBar';
 import Tag from '$/components/Tag';
 import { useToast } from '$/components/ToastContext';
 import UploadZone from '$/components/UploadZone';
-import { activeImports, failedImports, importHistory } from '$/data/imports';
+import {
+	IMPORT_SERMONS_KEY,
+	invalidateSermonData,
+	useImportSermons,
+	useProcessingCount,
+} from '$/hooks/useImportSermons';
 import { apiErrorMessage } from '$/lib/api';
+import BulkImportModal from '$/modals/BulkImportModal';
 import UploadSermonModal from '$/modals/UploadSermonModal';
-import { SyncResult } from '$/types/import';
+import { type BulkImport, SyncResult } from '$/types/import';
+import type { Status } from '$/types/sermon';
 
 const tabs = ['Upload New', 'Bulk Import', 'Import History', 'Failed Imports'];
 
@@ -38,7 +47,9 @@ export default function ImportUpload() {
 	const [dateFrom, setDateFrom] = useState('');
 	const [dateTo, setDateTo] = useState('');
 	const [dateError, setDateError] = useState('');
-	// A sync can outlast this page, so its callbacks read this to know if there is still a card to show the result in.
+	// The sync that just ended, shown in a pop-up until it is closed.
+	const [finishedRun, setFinishedRun] = useState<BulkImport | null>(null);
+	// A sync can outlast this page, so its callbacks read this to know if the page is still there to show the outcome.
 	const mountedRef = useRef(true);
 	useEffect(() => {
 		mountedRef.current = true;
@@ -47,13 +58,36 @@ export default function ImportUpload() {
 		};
 	}, []);
 
+	// The lists refetch on a timer only while something is processing.
+	const processing = useProcessingCount() > 0;
+	// That timer stops with the last sermon, so fetch once more to show where it ended up.
+	const wasProcessing = useRef(false);
+	useEffect(() => {
+		if (wasProcessing.current && !processing) {
+			invalidateSermonData(queryClient);
+		}
+		wasProcessing.current = processing;
+	}, [processing, queryClient]);
+
+	// LIMITATION (backend): the "Syncing…" state does not survive a reload. A sync is one long request, which
+	// the browser drops when the page reloads, and the backend keeps no record of a running sync to ask about.
+	// The sync still finishes on the server, but this page cannot tell, and its result pop-up never appears.
+	// Fixing it needs the backend to record sync runs and expose the latest one.
 	const sync = useMutation({
-		mutationFn: async (range: { from?: string; to?: string }) => {
-			const response = await axios.post('/api/import/youtube', range);
+		mutationFn: async (range: Pick<BulkImport, 'from' | 'to'>) => {
+			// Only the dates that were filled in are sent. With neither, the whole channel is synced.
+			const response = await axios.post('/api/import/youtube', {
+				from: range.from || undefined,
+				to: range.to || undefined,
+			});
 			return SyncResult.parse(response.data);
 		},
-		onSuccess: result => {
-			if (result.queued) {
+		onSuccess: (result, range) => {
+			invalidateSermonData(queryClient);
+			if (mountedRef.current) {
+				setFinishedRun({ ...range, result });
+			} else if (result.queued) {
+				// The page is gone, so there is nowhere to pop the result up. Say it in a toast instead.
 				showToast('Sync queued.', 'info');
 			} else {
 				const { report } = result;
@@ -62,21 +96,14 @@ export default function ImportUpload() {
 					'success',
 				);
 			}
-
-			const stale = [
-				'sermons',
-				'paginated-sermons',
-				'series',
-				'speakers',
-				'paginated-speakers',
-			];
-			for (const key of stale) {
-				queryClient.invalidateQueries({ queryKey: [key] });
-			}
 		},
-		onError: failure => {
-			// The card shows the error itself while this page is open.
-			if (!mountedRef.current) showToast(syncErrorMessage(failure), 'error');
+		onError: (failure, range) => {
+			const error = syncErrorMessage(failure);
+			if (mountedRef.current) {
+				setFinishedRun({ ...range, error });
+			} else {
+				showToast(error, 'error');
+			}
 		},
 	});
 
@@ -87,8 +114,7 @@ export default function ImportUpload() {
 			setDateError('The start date must be on or before the end date.');
 			return;
 		}
-		// Only the dates that were filled in are sent. With neither, the whole channel is synced.
-		sync.mutate({ from: dateFrom || undefined, to: dateTo || undefined });
+		sync.mutate({ from: dateFrom, to: dateTo });
 	}
 
 	return (
@@ -128,18 +154,12 @@ export default function ImportUpload() {
 					</div>
 
 					<div>
-						<Card>
-							<CardHeader title="Active Imports" />
-							<div className="Card-body">
-								{activeImports.length > 0 ? (
-									activeImports.map(job => (
-										<ImportItem key={job.id} job={job} />
-									))
-								) : (
-									<p className="ImportUpload-empty">No active imports</p>
-								)}
-							</div>
-						</Card>
+						<ImportSermonList
+							title="Active Imports"
+							status="Processing"
+							emptyText="No active imports"
+							poll={processing}
+						/>
 					</div>
 				</div>
 			)}
@@ -197,6 +217,7 @@ export default function ImportUpload() {
 											/>
 										</FormRow>
 									</FormField>
+									{/* The result pops up in BulkImportModal when the sync ends. */}
 									<Button
 										variant="primary"
 										disabled={sync.isPending}
@@ -205,12 +226,6 @@ export default function ImportUpload() {
 									>
 										{sync.isPending ? 'Syncing…' : 'Sync from YouTube'}
 									</Button>
-									{sync.isError && (
-										<p className="ImportUpload-syncError" role="alert">
-											{syncErrorMessage(sync.error)}
-										</p>
-									)}
-									{sync.data && <ImportSyncResult result={sync.data} />}
 								</>
 							) : (
 								<p className="ImportUpload-empty">Unavailable</p>
@@ -218,50 +233,114 @@ export default function ImportUpload() {
 						</div>
 					</Card>
 
-					<Card>
-						<CardHeader title="Active Imports" />
-						<div className="Card-body">
-							{activeImports.map(job => (
-								<ImportItem key={job.id} job={job} />
-							))}
-						</div>
-					</Card>
+					<ImportSermonList
+						title="Active Imports"
+						status="Processing"
+						emptyText="No active imports"
+						poll={processing}
+					/>
 				</div>
 			)}
 
 			{activeTab === 'Import History' && (
-				<Card>
-					<CardHeader title="Import History" />
-					<div className="Card-body">
-						{importHistory.length > 0 ? (
-							importHistory.map(job => <ImportItem key={job.id} job={job} />)
-						) : (
-							<p className="ImportUpload-empty">No import history yet</p>
-						)}
-					</div>
-				</Card>
+				<ImportSermonList
+					title="Import History"
+					status="Published"
+					emptyText="No import history yet"
+					poll={processing}
+				/>
 			)}
 
 			{activeTab === 'Failed Imports' && (
-				<Card>
-					<CardHeader
-						title="Failed Imports"
-						action={<Tag variant="red">{failedImports.length} items</Tag>}
-					/>
-					<div className="Card-body">
-						{failedImports.length > 0 ? (
-							failedImports.map(job => <ImportItem key={job.id} job={job} />)
-						) : (
-							<p className="ImportUpload-empty">No failed imports</p>
-						)}
-					</div>
-				</Card>
+				<ImportSermonList
+					title="Failed Imports"
+					status="Failed"
+					emptyText="No failed imports"
+					poll={processing}
+					showCount
+				/>
 			)}
 
 			<UploadSermonModal
 				isOpen={uploadOpen}
 				onClose={() => setUploadOpen(false)}
 			/>
+			{finishedRun && (
+				<BulkImportModal
+					run={finishedRun}
+					isOpen
+					onClose={() => setFinishedRun(null)}
+				/>
+			)}
 		</MainLayout>
+	);
+}
+
+interface ImportSermonListProps {
+	title: string;
+	status: Status;
+	emptyText: string;
+	poll: boolean;
+	// Show the number of sermons in the card header, as the Failed Imports card does.
+	showCount?: boolean;
+}
+
+/** A card listing the sermons with one status, ten to a page, with its own loading, error and empty states. */
+function ImportSermonList({
+	title,
+	status,
+	emptyText,
+	poll,
+	showCount = false,
+}: ImportSermonListProps) {
+	const queryClient = useQueryClient();
+	const [page, setPage] = useState(1);
+	const query = useImportSermons(status, page, poll);
+	const totalPages = query.data?.totalPages ?? 0;
+
+	// Sermons leave a list as they finish, which can leave the page being shown past the end.
+	useEffect(() => {
+		if (totalPages > 0 && page > totalPages) setPage(totalPages);
+	}, [page, totalPages]);
+
+	return (
+		<Card>
+			<CardHeader
+				title={title}
+				action={
+					showCount && <Tag variant="red">{query.data?.total ?? 0} items</Tag>
+				}
+			/>
+			<div className="Card-body">
+				{query.isPending ? (
+					<Loading />
+				) : query.isError ? (
+					<ErrorBox
+						message={`Failed to load ${title.toLowerCase()}.`}
+						// Refetch every import query, not just this one, so polling picks up again too.
+						onRetry={() =>
+							queryClient.invalidateQueries({ queryKey: [IMPORT_SERMONS_KEY] })
+						}
+					/>
+				) : query.data.total === 0 ? (
+					<p className="ImportUpload-empty">{emptyText}</p>
+				) : (
+					<>
+						{query.data.items.map(sermon => (
+							<SermonImportItem key={sermon.id} sermon={sermon} />
+						))}
+						{totalPages > 1 && (
+							<Pagination
+								className="ImportUpload-pagination"
+								pageInfo={query.data}
+								onPageChange={setPage}
+								// True only while another page loads, so a poll does not flicker the buttons.
+								isLoading={query.isPlaceholderData}
+							/>
+						)}
+					</>
+				)}
+			</div>
+		</Card>
 	);
 }

@@ -9,7 +9,7 @@ import Button from '$/components/Button';
 import { FormField, FormRow } from '$/components/FormField';
 import Modal from '$/components/Modal';
 import { useToast } from '$/components/ToastContext';
-import UploadZone from '$/components/UploadZone';
+import { invalidateSermonData } from '$/hooks/useImportSermons';
 import { apiErrorMessage } from '$/lib/api';
 import { normalizeYouTubeUrl, youtubeLinkError } from '$/lib/youtube';
 import { linkTo, Sermon } from '$/types/sermon';
@@ -94,12 +94,7 @@ export default function UploadSermonModal({
 				);
 			}
 
-			const stale = ['sermons', 'paginated-sermons'];
-			// A new sermon can also bring a new speaker or series with it.
-			if (created) stale.push('series', 'speakers', 'paginated-speakers');
-			for (const key of stale) {
-				queryClient.invalidateQueries({ queryKey: [key] });
-			}
+			invalidateSermonData(queryClient);
 			if (openRef.current) setImported(sermon);
 		},
 		onError: failure => {
@@ -180,12 +175,10 @@ export default function UploadSermonModal({
 				)
 			}
 		>
-			<UploadZone />
-
 			{/* noValidate: the browser's own URL check would block links pasted without https:// before ours runs. */}
 			<form id={formId} onSubmit={handleSubmit} noValidate>
 				<FormField
-					label="Or paste a YouTube link"
+					label="Paste a YouTube link"
 					hint="Accepts youtube.com/watch?v=…, youtu.be/… and youtube.com/shorts/… links."
 					error={error}
 				>

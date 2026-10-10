@@ -49,11 +49,9 @@
 	background: var(--cl-surface-dim);
 }
 
-.ImportUpload-syncError {
-	margin: 16px 0 0;
-	font-size: 13px;
-	color: var(--cl-error);
-	overflow-wrap: anywhere;
+/* Pagination leaves room for a full page; inside a card it needs less. */
+.Pagination.ImportUpload-pagination {
+	margin-block: 1rem 0;
 }
 
 .ImportUpload-checkboxGroup {
