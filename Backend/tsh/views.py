@@ -5,6 +5,17 @@ from sqlalchemy import false, func
 from sqlalchemy.orm import defer, with_expression
 from tsh.auth import require_role
 
+# API routes for series, speakers, and sermons
+from datetime import date
+from marshmallow import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
+
+from tsh.schemas import {
+    speaker_schema,
+    series_schema,
+    tags_schema,
+}
+
 from tsh.database import db
 from tsh.models import (
     Series,
@@ -229,6 +240,99 @@ def get_sermons():
 
     return pagination
 
+                                                                                # Post Sermon
+@api.post("/sermons")
+@require_role("Internal User", "Admin")
+def create_sermon():
+    """Create a new sermon from validated data and existing related records."""
+    payload = request.json(silent=True)
+
+    if not isinstance(payload, dict):
+        return jsonify({"message": "Validation failed", "errors": {"_schema": ["A JSON object is required"]}}), 422
+
+    # Require references to existing records
+    errors = {}
+    speakers_data = payload.get("speakers")
+    series_data = payload.get("series")
+    tag_data = payload.get("tags", [])
+                                                                                # Speaker
+    if not isinstance(speakers_data, dict) or not isinstance(speakers_data.get("id"), int) or isinstance(speakers_data.get("id"), bool):
+        errors["speakers"] = ["A valid speaker ID is required"]
+                                                                                # Series
+    if series_data is not None and (not isinstance(series_data, dict) or not isinstance(series_data.get("id"), int) or isinstance(series_data.get("id"), bool)):
+        errors["series"] = ["A valid series ID is required"]
+                                                                                # Tags
+    if not isinstance(tag_data, list):
+        errors["tags"] = ["Tags must be a list."]
+    
+    elif any(not isinstance(tag, dict) or not isinstance(tag.get("name"), str) for tag in tag_data):
+        errors["tags"] = ["Each tag must contain the name of an existing tag."]
+
+    if errors:
+        return jsonify({"message": "Validation failed", "errors": errors}), 422
+
+    # Resolve relationships without creating new speakers, series, or tags
+    speaker = db.session.get(Speaker, speakers_data["id"]) 
+
+                                                                                # Speaker
+    if speaker is None:
+        errors["speakers"] = ["Speaker not found"]
+                                                                                # Series
+    series = None
+    if series_data is not None:
+        series = db.session.get(Series, series_data["id"])
+    if series is None:
+        errors["series"] = ["Series not found"]
+                                                                                # Tags
+    tags = []
+    if isinstance(tag_data, list):
+        tag_names = [tag["name"] for tag in tag_data]
+    if len(tag_names) != len(set(tag_names)):
+            errors["tags"] = ["Duplicate tag names are not allowed"]
+    else:
+        for tag_name in tag_names:
+            tag = db.session.execute(db.select(Tag).filter_by(name=tag_name)).scalar_one_or_none()
+            if tag is None:
+                errors.setdefault("tags", []).append(f'Tag "{tag_name}" not found')
+            else:
+                tags.append(tag)
+
+    if errors:
+        return jsonify({"message": "Validation failed", "errors": errors}), 422
+
+    # Build trusted nested data from database records, not client-supplied
+    # speaker names, series titles, or tag source values.
+    normalized = dict(payload)
+                                                                                # Speaker
+    normalized["speaker"] = speaker_schema.dump(speaker)
+                                                                                # Series
+    normalized["series"] = (
+        series_schema.dump(series) if series is not None else None
+    )
+                                                                                # Tags
+    normalized["tags"] = tags_schema.dump(tags)
+
+    # New normally manually created sermons start as drafts
+    normalized.setdefault("status", "draft")
+
+    try:
+        sermon = sermon_schema.load(normalized)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 422
+
+    # Ensure relationships poiont to existing database records
+    sermon.speaker = speaker
+    sermon.series = series
+    sermon.tags = tags
+
+    try:
+        db.session.add(sermon)
+        db.session.commit()
+    except SQLAlchemyError as err:
+        db.session.rollback()
+        current_app.logger.exception("Failed to create sermon")
+        return jsonify({"message": "Failed to save sermon", "errors": str(err)}), 500
+    return sermon_schema.dump(sermon), 201
 
 @api.route("/sermons/<int:id>")
 @require_role("Internal User", "Admin")
