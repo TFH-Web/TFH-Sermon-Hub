@@ -43,6 +43,19 @@
 	text-align: center;
 }
 
+/* Locked while a sync runs. Doubling up on .FormField outranks its own input and select rules. */
+.FormField.ImportUpload-locked input:not([type="checkbox"]),
+.FormField.ImportUpload-locked select {
+	background: var(--cl-surface-dim);
+}
+
+.ImportUpload-syncError {
+	margin: 16px 0 0;
+	font-size: 13px;
+	color: var(--cl-error);
+	overflow-wrap: anywhere;
+}
+
 .ImportUpload-checkboxGroup {
 	display: flex;
 	flex-direction: column;

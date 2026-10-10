@@ -78,11 +78,13 @@ class _Playlist:
     video_ids: list[str] = field(default_factory=list)
 
 
-def import_channel(*, process: bool = True) -> ImportReport:
+def import_channel(date_from: date | None = None, date_to: date | None = None, *, process: bool = True) -> ImportReport:
     """Import every playlist and video on YOUTUBE_CHANNEL_ID.
 
     Ignored playlists (YOUTUBE_IGNORE_PLAYLISTS) are skipped. The master playlist (YOUTUBE_MASTER_PLAYLIST)
     adds its videos without a series. Every other playlist becomes a series.
+    With date_from or date_to, only videos whose sermon date (see local_date) is in that range, ends included,
+    are imported or updated. The rest are left out and not listed in the report.
     Everything is fetched from YouTube before anything is saved, so a failed run saves nothing.
     Safe to run again: videos already imported are matched on youtube_video_id and only their
     duration, date and link are updated (see _update_sermon). New sermons are queued with start_processing;
@@ -116,6 +118,10 @@ def import_channel(*, process: bool = True) -> ImportReport:
     for video in videos:
         if video["privacy"] == "private":
             report.skipped_private.append(video["id"])
+            continue
+        sermon_date = local_date(video["published_at"])
+        if (date_from and sermon_date < date_from) or (date_to and sermon_date > date_to):
+            # Not reported: with a date range this is most of the channel.
             continue
         duration = parse_duration(video["duration"])
         if duration == 0:
