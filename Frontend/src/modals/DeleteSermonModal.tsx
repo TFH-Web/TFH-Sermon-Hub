@@ -1,6 +1,7 @@
 import './DeleteSermonModal.css';
 import { Icon } from '@iconify-icon/react';
 import { useNavigate } from 'react-router-dom';
+import{ useState } from 'react';
 import Button from '$/components/Button';
 import Modal from '$/components/Modal';
 import { useToast } from '$/components/ToastContext';
@@ -20,10 +21,40 @@ export default function DeleteSermonModal({
 	const { showToast } = useToast();
 	const navigate = useNavigate();
 
-	const handleDelete = () => {
+	const [isDeleting, setIsDeleting] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+
+	const handleDelete = async () => {
+		if(!sermon || isDeleting) return;
+
+		setIsDeleting(true);
+		setError(null);
+		try {
+			const token = localStorage.getItem('token');
+
+			const response = await fetch(`/api/sermons/${sermon.id}`, {
+				method: 'DELETE',
+				headers: {
+					'Authorization': `Bearer ${token}`,
+				},
+			});
+
+			if (!response.ok) {
+				const result = await response.json().catch(() => null);
+				throw new Error(result?.message || `Failed to delete sermon (${response.status})`);
+			}
+
 		onClose();
 		showToast('Sermon deleted successfully', 'success');
 		navigate('/sermons');
+
+		} catch (err) {
+			const message = err instanceof Error ? err.message : 'Failed to delete sermon';
+			setError(message);
+			showToast(message, 'error');
+		} finally {
+			setIsDeleting(false);
+		}
 	};
 
 	return (
@@ -37,7 +68,7 @@ export default function DeleteSermonModal({
 						Cancel
 					</Button>
 					<Button variant="danger" onClick={handleDelete}>
-						Delete Sermon
+						{isDeleting ? 'Deleting...' : 'Delete Sermon'}
 					</Button>
 				</>
 			}
@@ -51,6 +82,7 @@ export default function DeleteSermonModal({
 					This will permanently remove the sermon, transcript, tags, and all
 					associated metadata. This action cannot be undone.
 				</p>
+				{error && (<p className="DeleteSermonModal-error">{error}</p>)}
 			</div>
 		</Modal>
 	);
