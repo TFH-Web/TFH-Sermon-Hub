@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta
 from enum import Enum
 
 from sqlalchemy import (
+    CHAR,
+    JSON,
     Column,
     FetchedValue,
     ForeignKey,
-    JSON,
     String,
-    UniqueConstraint,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy import (
     Enum as SAEnum,
@@ -31,14 +32,16 @@ class Series(db.Model):  # ty: ignore[unsupported-base]
     # YouTube playlist names can be up to 150 chars
     title: Mapped[str] = mapped_column(String(150), unique=True)
     # The playlist this series was imported from. Playlists merged into one series keep the first one's id
-    youtube_playlist_id: Mapped[str | None] = mapped_column(String(64), unique=True, default=None)
+    youtube_playlist_id: Mapped[str | None] = mapped_column(
+        String(64), unique=True, default=None
+    )
 
 
 class Speaker(db.Model):  # ty: ignore[unsupported-base]
     id: Mapped[intpk]
     first_name: Mapped[str64]
     last_name: Mapped[str64]
-    role: Mapped[str64] = mapped_column(default='Guest Speaker')
+    role: Mapped[str64] = mapped_column(default="Guest Speaker")
     sermon_count: Mapped[int] = query_expression()
     __table_args__ = (UniqueConstraint("first_name", "last_name"),)
 
@@ -122,6 +125,31 @@ class Sermon(db.Model):  # ty: ignore[unsupported-base]
     # When the worker finished processing
     processed_at: Mapped[datetime | None] = mapped_column(default=None)
     # The YouTube video this sermon was imported from, so a re-run updates it instead of adding a copy
-    youtube_video_id: Mapped[str | None] = mapped_column(String(16), unique=True, default=None)
+    youtube_video_id: Mapped[str | None] = mapped_column(
+        String(16), unique=True, default=None
+    )
     # Persist cue times so chunking can use them again after a worker restart or retry.
-    transcript_segments: Mapped[list[TranscriptSegment] | None] = mapped_column(JSON, default=None, repr=False)
+    transcript_segments: Mapped[list[TranscriptSegment] | None] = mapped_column(
+        JSON, default=None, repr=False
+    )
+
+
+class SermonChunk(db.Model):  # ty: ignore[unsupported-base]
+    id: Mapped[intpk]
+    sermon_id: Mapped[int] = mapped_column(
+        ForeignKey(Sermon.id, onupdate="CASCADE", ondelete="CASCADE"), primary_key=True
+    )
+    sermon: Mapped[Sermon] = relationship()
+    hash: Mapped[str] = mapped_column(CHAR(32))
+    text: Mapped[str] = mapped_column(Text())
+    start_time: Mapped[time]
+    duration: Mapped[timedelta]
+
+
+class SermonChunkEmbedding(db.Model):  # ty: ignore[unsupported-base]
+    sermon_chunk_id: Mapped[int] = mapped_column(
+        ForeignKey(SermonChunk.id, onupdate="CASCADE", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    sermon_chunk: Mapped[SermonChunk] = relationship()
+    embedding: Mapped[list[float]] = mapped_column(JSON())
