@@ -32,6 +32,8 @@ export default function EditSermonModal({
 	const [tags, setTags] = useState('');
 	const [notes, setNotes] = useState('');
 	const [transcript, setTranscript] = useState('');
+	const [isSaving, setIsSaving] = useState(false);
+	const [saveError, setSaveError] = useState('');
 
 	useEffect(() => {
 		if (sermon) {
@@ -49,7 +51,7 @@ export default function EditSermonModal({
 		}
 	}, [sermon]);
 
-	const handleSave = () => {
+	const handleSave = async() => {
 		let valid = true;
 		if (!title.trim()) {
 			setTitleError('Sermon title is required');
@@ -59,12 +61,41 @@ export default function EditSermonModal({
 			setSpeakerError('Speaker is required');
 			valid = false;
 		}
-		if (!valid) {
+		if (!valid || !sermon || isSaving) {
 			showToast('Please fill in all required fields', 'error');
 			return;
 		}
-		onClose();
-		showToast('Sermon updated successfully', 'success');
+		setIsSaving(true);
+		setSaveError('');
+
+		try {
+			const token = localStorage.getItem('token');
+
+			const payload = {
+				title: title.trim(),
+				tags: tags.split(',').map(t => t.trim()).filter(Boolean).map(name => ({ name })),
+			};
+			const reponse = await fetch(`/api/sermons/${sermon.id}`, {
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',...(token ? { 'Authorization': `Bearer ${token}` } : {})
+				},
+				body: JSON.stringify(payload)
+			});
+			if (!reponse.ok) {
+				const result = await reponse.json().catch(() => null);
+				throw new Error(result?.message || `Failed to update sermon (${reponse.status})`);
+			}
+
+			onClose();
+			showToast('Sermon updated successfully', 'success');
+		} catch (error: any) {
+			const message = error instanceof Error ? error.message : 'Failed to update sermon';
+			setSaveError(message);
+			showToast(message,'error');
+		} finally {
+			setIsSaving(false);
+		}
 	};
 
 	return (
@@ -79,11 +110,12 @@ export default function EditSermonModal({
 						Cancel
 					</Button>
 					<Button variant="primary" onClick={handleSave}>
-						Save Changes
+						{isSaving ? 'Saving...' : 'Save Changes'}
 					</Button>
 				</>
 			}
 		>
+			{saveError && (<p role="alert" className="EditSermonModal">{saveError}</p>)}
 			<FormRow>
 				<FormField label="Sermon Title *" error={titleError}>
 					<input
