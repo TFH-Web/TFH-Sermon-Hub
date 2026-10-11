@@ -1,6 +1,10 @@
 """Batch caps, quota stops and restart behavior use a real DB and fake downloads."""
 
+from collections.abc import Callable, Sequence
+
 import pytest
+from flask import Flask
+from flask.testing import FlaskCliRunner
 
 from tsh import captions, pipeline
 from tsh.caption_backfill import QUOTA_ERROR
@@ -9,10 +13,15 @@ from tsh.models import Sermon, UploadStatus
 
 SEGMENTS = [{"start": 1, "end": 2, "text": "Saved captions."}]
 
+Calls = list[Callable[[str], list[dict[str, int | str]]]]
+Pending = tuple[Sequence[Sermon], Calls]
+
 
 @pytest.fixture()
-def pending(app, monkeypatch):
-    sermons = db.session.scalars(db.select(Sermon).order_by(Sermon.id)).all()
+def pending(app: Flask, monkeypatch: pytest.MonkeyPatch) -> Pending:
+    sermons: Sequence[Sermon] = db.session.scalars(
+        db.select(Sermon).order_by(Sermon.id)
+    ).all()
     for index, sermon in enumerate(sermons):
         sermon.youtube_video_id = f"video{index:06d}"
         sermon.status = UploadStatus.DRAFT
@@ -22,28 +31,32 @@ def pending(app, monkeypatch):
     db.session.commit()
     for name in captions.OAUTH_SETTINGS:
         app.config[name] = "fake-oauth-value"
-    calls = []
+    calls: Calls = []
     monkeypatch.setattr(
         captions, "get_transcript", lambda video_id: calls.append(video_id) or SEGMENTS
     )
     return sermons, calls
 
 
-def test_batch_limit_and_resume_skip_completed_transcripts(runner, pending):
+def test_batch_limit_and_resume_skip_completed_transcripts(
+    runner: FlaskCliRunner, pending: Pending
+):
     _, calls = pending
     assert runner.invoke(args=["backfill-captions", "--limit", "2"]).exit_code == 0
     assert len(calls) == 2
     assert runner.invoke(args=["backfill-captions", "--limit", "2"]).exit_code == 0
     assert len(calls) == len(set(calls)) == 4
     db.session.expire_all()
-    saved = db.session.scalars(
+    saved: Sequence[Sermon] = db.session.scalars(
         db.select(Sermon).where(Sermon.transcript.is_not(None))
     ).all()
     assert len(saved) == 4
     assert all(sermon.transcript_segments == SEGMENTS for sermon in saved)
 
 
-def test_quota_stops_batch_and_later_run_resumes(runner, pending, monkeypatch):
+def test_quota_stops_batch_and_later_run_resumes(
+    runner: FlaskCliRunner, pending: Pending, monkeypatch: pytest.MonkeyPatch
+):
     _, calls = pending
 
     def download(video_id):
@@ -72,7 +85,7 @@ def test_quota_stops_batch_and_later_run_resumes(runner, pending, monkeypatch):
 
 
 def test_failed_only_retries_old_caption_without_reprocessing_other_rows(
-    runner, pending
+    runner: FlaskCliRunner, pending: Pending
 ):
     sermons, calls = pending
     sermon = sermons[0]
@@ -87,7 +100,9 @@ def test_failed_only_retries_old_caption_without_reprocessing_other_rows(
     assert sermon.processing_error is None
 
 
-def test_default_backfill_skips_other_failures_and_processing_jobs(runner, pending):
+def test_default_backfill_skips_other_failures_and_processing_jobs(
+    runner: FlaskCliRunner, pending: Pending
+):
     sermons, calls = pending
     sermons[0].status = UploadStatus.FAILED
     sermons[0].processing_error = "fetch_transcript: no usable captions"
@@ -100,7 +115,9 @@ def test_default_backfill_skips_other_failures_and_processing_jobs(runner, pendi
     assert sermons[1].youtube_video_id not in calls
 
 
-def test_dry_run_needs_no_credentials_and_changes_nothing(app, runner, pending):
+def test_dry_run_needs_no_credentials_and_changes_nothing(
+    app: Flask, runner: FlaskCliRunner, pending: Pending
+):
     sermons, calls = pending
     for name in captions.OAUTH_SETTINGS:
         app.config[name] = ""
@@ -114,7 +131,9 @@ def test_dry_run_needs_no_credentials_and_changes_nothing(app, runner, pending):
     )
 
 
-def test_missing_credentials_fail_before_processing(app, runner, pending):
+def test_missing_credentials_fail_before_processing(
+    app: Flask, runner: FlaskCliRunner, pending: Pending
+):
     sermons, calls = pending
     app.config["YOUTUBE_OAUTH_REFRESH_TOKEN"] = ""
     result = runner.invoke(args=["backfill-captions"])
@@ -124,7 +143,9 @@ def test_missing_credentials_fail_before_processing(app, runner, pending):
     assert all(sermon.status == UploadStatus.DRAFT for sermon in sermons)
 
 
-def test_revoked_token_stops_after_first_attempt(runner, pending, monkeypatch):
+def test_revoked_token_stops_after_first_attempt(
+    runner: FlaskCliRunner, pending: Pending, monkeypatch: pytest.MonkeyPatch
+):
     _, calls = pending
 
     def download(video_id):
@@ -141,7 +162,10 @@ def test_revoked_token_stops_after_first_attempt(runner, pending, monkeypatch):
 
 
 def test_batch_checks_results_inline_even_with_redis_configured(
-    app, runner, pending, monkeypatch
+    app: Flask,
+    runner: FlaskCliRunner,
+    pending: Pending,
+    monkeypatch: pytest.MonkeyPatch,
 ):
     _, calls = pending
     app.config["REDIS_URL"] = "redis://unreachable:6379/0"
@@ -154,7 +178,9 @@ def test_batch_checks_results_inline_even_with_redis_configured(
 
 
 @pytest.mark.parametrize("limit", ["0", "-1", "41"])
-def test_invalid_batch_limits_do_not_process(runner, pending, limit):
+def test_invalid_batch_limits_do_not_process(
+    runner: FlaskCliRunner, pending: Pending, limit: int
+):
     _, calls = pending
     result = runner.invoke(args=["backfill-captions", "--limit", limit])
     assert result.exit_code == 2
