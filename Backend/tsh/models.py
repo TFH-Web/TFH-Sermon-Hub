@@ -142,8 +142,8 @@ class SermonChunk(db.Model):  # ty: ignore[unsupported-base]
     sermon: Mapped[Sermon] = relationship()
     hash: Mapped[str] = mapped_column(CHAR(32))
     text: Mapped[str] = mapped_column(Text())
-    start_time: Mapped[time]
-    duration: Mapped[timedelta]
+    start: Mapped[float]
+    end: Mapped[float]
 
 
 class SermonChunkEmbedding(db.Model):  # ty: ignore[unsupported-base]
