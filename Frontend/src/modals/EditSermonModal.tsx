@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import './EditSermonModal.css';
+import { useMsal } from '@azure/msal-react';
 import Button from '$/components/Button';
 import FileUploadButton from '$/components/FileUploadButton';
 import { FormField, FormRow } from '$/components/FormField';
@@ -7,7 +8,6 @@ import Modal from '$/components/Modal';
 import { useToast } from '$/components/ToastContext';
 import type { Sermon } from '$/types/sermon';
 import { getFullName } from '$/types/speaker';
-import { useMsal } from '@azure/msal-react';
 
 interface EditSermonModalProps {
 	isOpen: boolean;
@@ -52,7 +52,7 @@ export default function EditSermonModal({
 		}
 	}, [sermon]);
 
-	const handleSave = async() => {
+	const handleSave = async () => {
 		let valid = true;
 		if (!title.trim()) {
 			setTitleError('Sermon title is required');
@@ -68,7 +68,7 @@ export default function EditSermonModal({
 		}
 		setIsSaving(true);
 		setSaveError('');
-		
+
 		// Authentication with Microsoft using MSAL to acquire an access token
 		try {
 			const account = accounts[0];
@@ -76,28 +76,39 @@ export default function EditSermonModal({
 				throw new Error('Sign in with Microsoft again');
 			}
 
-			const response = await instance.acquireTokenSilent({account, scopes: ['openid', 'profile'],});
+			const response = await instance.acquireTokenSilent({
+				account,
+				scopes: ['openid', 'profile'],
+			});
 
 			const payload = {
 				title: title.trim(),
-				tags: tags.split(',').map(t => t.trim()).filter(Boolean).map(name => ({ name })),
+				tags: tags
+					.split(',')
+					.map(t => t.trim())
+					.filter(Boolean)
+					.map(name => ({ name })),
 			};
 			const result = await fetch(`/api/sermons/${sermon.id}`, {
 				method: 'PATCH',
 				headers: {
-					'Content-Type': 'application/json',...(response?.accessToken ? { 'Authorization': `Bearer ${response.accessToken}` } : {})
+					'Content-Type': 'application/json',
+					...(response?.accessToken
+						? { Authorization: `Bearer ${response.accessToken}` }
+						: {}),
 				},
-				body: JSON.stringify(payload)
+				body: JSON.stringify(payload),
 			});
-			if (!result.ok) 
+			if (!result.ok)
 				throw new Error(`Failed to update sermon (${result.status})`);
 
 			onClose();
 			showToast('Sermon updated successfully', 'success');
 		} catch (error: any) {
-			const message = error instanceof Error ? error.message : 'Failed to update sermon';
+			const message =
+				error instanceof Error ? error.message : 'Failed to update sermon';
 			setSaveError(message);
-			showToast(message,'error');
+			showToast(message, 'error');
 		} finally {
 			setIsSaving(false);
 		}
@@ -120,7 +131,11 @@ export default function EditSermonModal({
 				</>
 			}
 		>
-			{saveError && (<p role="alert" className="EditSermonModal">{saveError}</p>)}
+			{saveError && (
+				<p role="alert" className="EditSermonModal">
+					{saveError}
+				</p>
+			)}
 			<FormRow>
 				<FormField label="Sermon Title *" error={titleError}>
 					<input
