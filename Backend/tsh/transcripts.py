@@ -3,29 +3,35 @@ from __future__ import annotations
 
 import html
 import re
-from dataclasses import dataclass
+from typing import TypedDict
 
 
-@dataclass
-class TranscriptSegment:
+class TranscriptSegment(TypedDict):
     """One caption segment, with start and end in seconds from the video start."""
 
     start: float
     end: float
     text: str
 
-    def __len__(self) -> int:
-        return len(self.text.split(' '))
 
-    def __lt__(self, other: object) -> float:
-        if not isinstance(other, TranscriptSegment):
-            return NotImplemented
-        return self.end < other.start
+def segment_length(self: TranscriptSegment) -> int:
+    return len(self["text"].split(" "))
 
-    def __add__(self, other: object) -> TranscriptSegment:
-        if not isinstance(other, TranscriptSegment):
-            return NotImplemented
-        return TranscriptSegment(self.start, other.end, f"{self.text} {other.text}")
+
+def is_before(self: TranscriptSegment, other: object) -> float:
+    if not isinstance(other, dict):
+        return NotImplemented
+    return self["end"] < other["start"]
+
+
+def concatenate(self: TranscriptSegment, other: object) -> TranscriptSegment:
+    if not isinstance(other, dict):
+        return NotImplemented
+    return {
+        "start": self["start"],
+        "end": other["end"],
+        "text": f"{self['text']} {other['text']}",
+    }
 
 
 STAMP = r"(?:\d{2,}:)?[0-5]\d:[0-5]\d\.\d{3}"

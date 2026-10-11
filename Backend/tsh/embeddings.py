@@ -24,10 +24,10 @@ def chunk(sermon: Sermon, segments: list[TranscriptSegment]) -> list[SermonChunk
         SermonChunk(
             id=None,
             sermon_id=sermon.id,
-            hash=blake3(chunk.text.encode()).digest(),
-            text=chunk.text,
-            start=chunk.start,
-            end=chunk.end,
+            hash=blake3(chunk["text"].encode()).digest(),
+            text=chunk["text"],
+            start=chunk["start"],
+            end=chunk["end"],
         )
         for chunk in _chunk(segments)
     ]
@@ -53,7 +53,7 @@ def embed(sermon: Sermon) -> list[SermonChunkEmbedding]:
 
 
 def _chunk(segments: list[TranscriptSegment]) -> list[TranscriptSegment]:
-    segments.sort()
+    segments.sort(key=lambda s: s["start"])
 
     window = []
     window_len = 0
