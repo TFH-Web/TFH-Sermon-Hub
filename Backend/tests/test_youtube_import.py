@@ -352,6 +352,71 @@ def test_redis_down_stops_queueing(app: Flask, channel: FakeChannel, monkeypatch
     assert count(Sermon, Sermon.processing_error == "queue: Redis unavailable", Sermon.status == UploadStatus.FAILED) == 10
 
 
+def spread_dates(channel: FakeChannel) -> None:
+    """Move one video to August and one to October. Every other fake video is dated 6 September 2026 in Vacaville."""
+    channel.videos["vTwoSer0001"]["published_at"] = "2026-08-02T17:00:00Z"
+    channel.videos["vJames00001"]["published_at"] = "2026-10-04T17:00:00Z"
+
+
+def test_import_date_range_limits_what_is_imported(app: Flask, channel: FakeChannel):
+    """Only videos dated inside the range are imported. The rest create no sermon or series and are not reported."""
+    spread_dates(channel)
+    # Too long as well as out of range. It must be left out quietly, not listed as skipped.
+    channel.videos["vLong000001"]["published_at"] = "2026-10-04T17:00:00Z"
+
+    report = import_channel(date(2026, 9, 1), date(2026, 9, 30))
+
+    assert report.sermons_created == 9
+    assert sermon_for("vGuide00001") is not None
+    assert sermon_for("vTwoSer0001") is None
+    assert sermon_for("vJames00001") is None
+    # The October video is the only one in this playlist, so its series is never made.
+    assert count(Series, Series.title == "The Book of James") == 0
+    assert report.skipped_too_long == []
+
+
+def test_import_date_range_ends_are_included(app: Flask, channel: FakeChannel):
+    """Both ends of the range count, and a video's date is taken in the church's time zone, not UTC."""
+    # vGuide00001 was published at 00:30 UTC on the 7th, which is still the 6th in Vacaville.
+    assert import_channel(date(2026, 9, 7), None).sermons_created == 0
+    assert sermon_for("vGuide00001") is None
+
+    report = import_channel(date(2026, 9, 6), date(2026, 9, 6))
+
+    assert report.sermons_created == 11
+    assert sermon_for("vGuide00001").date == date(2026, 9, 6)
+
+
+@pytest.mark.parametrize(
+    ("date_from", "date_to", "left_out"),
+    [
+        (date(2026, 9, 1), None, "vTwoSer0001"),
+        (None, date(2026, 9, 30), "vJames00001"),
+    ],
+)
+def test_import_date_range_open_ended(
+    app: Flask, channel: FakeChannel, date_from: date | None, date_to: date | None, left_out: str
+):
+    """With only one end given, the range has no limit on the other side."""
+    spread_dates(channel)
+
+    report = import_channel(date_from, date_to)
+
+    assert report.sermons_created == 10
+    assert sermon_for(left_out) is None
+
+
+def test_import_date_range_leaves_other_sermons_alone(app: Flask, channel: FakeChannel):
+    """A sermon that is already imported is not updated by a run whose range does not include it."""
+    import_channel()
+    channel.videos["vGuide00001"]["duration"] = "PT45M"
+
+    report = import_channel(date(2026, 10, 1), None)
+
+    assert (report.sermons_created, report.sermons_updated, report.sermons_unchanged) == (0, 0, 0)
+    assert sermon_for("vGuide00001").duration == 38 * 60 + 25
+
+
 @pytest.mark.parametrize(
     ("url", "video_id"),
     [
@@ -426,6 +491,56 @@ def test_sync_redis_down(client: FlaskClient, channel: FakeChannel, monkeypatch)
 
     assert res.status_code == 503
     assert res.json["error"] == "The job queue is unavailable. Please try again later."
+
+
+def test_sync_date_range(client: FlaskClient, channel: FakeChannel):
+    """The sync imports only videos dated inside the "from" and "to" it is sent. An empty date is no limit."""
+    res = client.post("/api/import/youtube", json={"from": "2026-09-07"})
+
+    assert res.status_code == 200
+    assert res.json["report"]["sermons_created"] == 0
+
+    res = client.post("/api/import/youtube", json={"from": "2026-09-01", "to": "2026-09-30"})
+
+    assert res.json["report"]["sermons_created"] == 11
+
+    # With no limit every sermon is looked at again. A range that left them out would report none unchanged.
+    res = client.post("/api/import/youtube", json={"from": "", "to": ""})
+
+    assert res.status_code == 200
+    assert res.json["report"]["sermons_unchanged"] == 11
+
+
+def test_sync_date_range_queued(app: Flask, client: FlaskClient, channel: FakeChannel, monkeypatch):
+    """A queued sync carries its date range to the worker as the job's arguments."""
+    fake = fakeredis.FakeStrictRedis()
+    monkeypatch.setattr(Redis, "from_url", lambda *args, **kwargs: fake)
+    app.config["REDIS_URL"] = "redis://fake:6379/0"
+
+    res = client.post("/api/import/youtube", json={"from": "2026-09-01", "to": "2026-09-30"})
+
+    assert res.status_code == 202
+    job = Queue(QUEUE_NAME, connection=fake).fetch_job(res.json["jobId"])
+    assert tuple(job.args) == (date(2026, 9, 1), date(2026, 9, 30))
+    assert channel.items_read == []
+
+
+@pytest.mark.parametrize(
+    ("body", "error"),
+    [
+        ({"from": "next week"}, '"from" must be a date like 2026-09-01'),
+        ({"to": "09/30/2026"}, '"to" must be a date like 2026-09-01'),
+        ({"from": 20260901}, '"from" must be a date like 2026-09-01'),
+        ({"from": "2026-09-30", "to": "2026-09-01"}, '"from" must be on or before "to"'),
+    ],
+)
+def test_sync_bad_date_range(client: FlaskClient, channel: FakeChannel, body: dict, error: str):
+    """A date that cannot be read, or a range that ends before it starts, sends 400 and imports nothing."""
+    res = client.post("/api/import/youtube", json=body)
+
+    assert res.status_code == 400
+    assert res.json["error"] == error
+    assert channel.items_read == []
 
 
 def test_import_video(client: FlaskClient, channel: FakeChannel):
