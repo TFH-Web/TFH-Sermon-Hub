@@ -52,7 +52,10 @@ export function useProcessingCount(): number {
 	return query.data ?? 0;
 }
 
-/** Refetch everything a new or reprocessed sermon can change: the import lists, the sermon lists, and series and speakers. */
+/**
+ * Refetch everything a new or reprocessed sermon can change: the import lists, the sermon lists, and series and speakers.
+ * The promise settles once the lists on screen have been refetched, for callers that want to wait for that.
+ */
 export function invalidateSermonData(queryClient: QueryClient) {
 	const stale = [
 		IMPORT_SERMONS_KEY,
@@ -62,7 +65,7 @@ export function invalidateSermonData(queryClient: QueryClient) {
 		'speakers',
 		'paginated-speakers',
 	];
-	for (const key of stale) {
-		queryClient.invalidateQueries({ queryKey: [key] });
-	}
+	return Promise.all(
+		stale.map(key => queryClient.invalidateQueries({ queryKey: [key] })),
+	);
 }
