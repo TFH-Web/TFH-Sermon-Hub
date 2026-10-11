@@ -1,15 +1,31 @@
 # Parse WebVTT into clean transcript text with source cue times.
+from __future__ import annotations
+
 import html
 import re
-from typing import TypedDict
+from dataclasses import dataclass
 
 
-class TranscriptSegment(TypedDict):
+@dataclass
+class TranscriptSegment:
     """One caption segment, with start and end in seconds from the video start."""
 
     start: float
     end: float
     text: str
+
+    def __len__(self) -> int:
+        return len(self.text.split(' '))
+
+    def __lt__(self, other: object) -> float:
+        if not isinstance(other, TranscriptSegment):
+            return NotImplemented
+        return self.end < other.start
+
+    def __add__(self, other: object) -> TranscriptSegment:
+        if not isinstance(other, TranscriptSegment):
+            return NotImplemented
+        return TranscriptSegment(self.start, other.end, f"{self.text} {other.text}")
 
 
 STAMP = r"(?:\d{2,}:)?[0-5]\d:[0-5]\d\.\d{3}"
@@ -38,14 +54,16 @@ def parse_vtt(document: str, *, rolling: bool = False) -> list[TranscriptSegment
         if not lines or re.match(r"^(WEBVTT|NOTE|STYLE|REGION)(?:\s|$)", lines[0]):
             continue
         timing_index = 0 if "-->" in lines[0] else 1
-        if timing_index >= len(lines) or not (match := TIMING.fullmatch(lines[timing_index])):
+        if timing_index >= len(lines) or not (
+            match := TIMING.fullmatch(lines[timing_index])
+        ):
             raise ValueError("Invalid WebVTT cue timing")
         start, end = _seconds(match["start"]), _seconds(match["end"])
         if end <= start or start < previous_start:
             raise ValueError("Invalid WebVTT cue order or duration")
         previous_start = start
 
-        raw_lines = [line for line in lines[timing_index + 1:] if line.strip()]
+        raw_lines = [line for line in lines[timing_index + 1 :] if line.strip()]
         clean_lines = [_clean(line) for line in raw_lines]
         pairs = [(raw, clean) for raw, clean in zip(raw_lines, clean_lines) if clean]
         clean_lines = [clean for _, clean in pairs]
@@ -60,7 +78,7 @@ def parse_vtt(document: str, *, rolling: bool = False) -> list[TranscriptSegment
                         break
         text = " ".join(clean_lines[repeated:])
         if text:
-            segments.append({"start": start, "end": end, "text": text})
+            segments.append(TranscriptSegment(start, end, text))
         previous_lines = clean_lines
         previous_end = end
 
@@ -71,7 +89,7 @@ def parse_vtt(document: str, *, rolling: bool = False) -> list[TranscriptSegment
 
 def transcript_text(segments: list[TranscriptSegment]) -> str:
     """Join clean segment text in caption order for Sermon.transcript."""
-    return " ".join(segment["text"] for segment in segments)
+    return " ".join(segment.text for segment in segments)
 
 
 def _seconds(stamp: str) -> float:
@@ -82,4 +100,4 @@ def _seconds(stamp: str) -> float:
 
 
 def _clean(text: str) -> str:
-    return " ".join(html.unescape(TAG.sub("", text)).split())
+    return " ".join(s.strip() for s in html.unescape(TAG.sub("", text)).split())

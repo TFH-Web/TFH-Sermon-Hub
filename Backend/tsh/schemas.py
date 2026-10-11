@@ -2,7 +2,15 @@ from __future__ import annotations
 
 from marshmallow import Schema, fields, post_load
 
-from tsh.models import Series, Sermon, Speaker, Tag, TagSource, UploadStatus
+from tsh.models import (
+    Series,
+    Sermon,
+    SermonChunk,
+    Speaker,
+    Tag,
+    TagSource,
+    UploadStatus, SermonChunkEmbedding,
+)
 
 
 def camelcase(s):
@@ -46,6 +54,7 @@ class SpeakerSchema(CamelCaseSchema):
 speaker_schema = SpeakerSchema()
 speakers_schema = SpeakerSchema(many=True)
 
+
 # A separate schema from SeriesSchema on purpose.
 # SeriesSchema is nested inside every sermon, so adding these fields there would attach series statistics to every sermon the API sends.
 class SeriesCardScheme(CamelCaseSchema):
@@ -58,6 +67,7 @@ class SeriesCardScheme(CamelCaseSchema):
     last_date = fields.Date(allow_none=True)
     speakers = fields.Nested(SpeakerSchema, many=True)
 
+
 class SeriesPageScheme(CamelCaseSchema):
     items = fields.Nested(SeriesCardScheme, many=True)
 
@@ -66,7 +76,9 @@ class SeriesPageScheme(CamelCaseSchema):
     page = fields.Integer()
     per_page = fields.Integer()
 
+
 series_page_schema = SeriesPageScheme()
+
 
 class CountedSpeakerSchema(CamelCaseSchema):
     id = id_field()
@@ -78,6 +90,7 @@ class CountedSpeakerSchema(CamelCaseSchema):
     @post_load
     def make_speaker(self, data, **kwargs) -> Speaker:
         return Speaker(**{k: v for k, v in data.items() if k != "sermon_count"})
+
 
 counted_speaker_schema = CountedSpeakerSchema()
 counted_speakers_schema = CountedSpeakerSchema(many=True)
@@ -112,6 +125,12 @@ counted_tag_schema = CountedTagSchema()
 counted_tags_schema = CountedTagSchema(many=True)
 
 
+class TranscriptSegmentSchema(CamelCaseSchema):
+    start = fields.Float()
+    end = fields.Float()
+    text = fields.String()
+
+
 class SermonSchema(CamelCaseSchema):
     id = id_field()
     title = fields.String(required=True)
@@ -131,6 +150,9 @@ class SermonSchema(CamelCaseSchema):
     audio_key = fields.String(allow_none=True)
     processing_error = fields.String(allow_none=True)
     processed_at = fields.DateTime(allow_none=True)
+    youtube_video_id = fields.String(allow_none=True)
+
+    transcript_segment = fields.Nested(TranscriptSegmentSchema, many=True)
 
     @post_load
     def make_sermon(self, data, **kwargs) -> Sermon:
@@ -144,3 +166,34 @@ class SermonSchema(CamelCaseSchema):
 
 sermon_schema = SermonSchema()
 sermons_schema = SermonSchema(many=True, exclude=("transcript",))
+
+
+class SermonChunkSchema(CamelCaseSchema):
+    id = id_field()
+    sermon = fields.Nested(Sermon, required=True)
+    hash = fields.String(required=True)
+    text = fields.String(required=True)
+    start = fields.Float(required=True)
+    end = fields.Float(required=True)
+
+    @post_load
+    def make_sermon_chunk(self, data, **kwargs) -> SermonChunk:
+        return SermonChunk(**data)
+
+
+sermon_chunk_schema = SermonChunkSchema()
+sermon_chunks_schema = SermonChunkSchema(many=True)
+
+
+class SermonChunkEmbeddingSchema(CamelCaseSchema):
+    sermon_chunk = fields.Nested(SermonChunk, required=True)
+    embedding = fields.List(fields.Float(required=True))
+    stale = fields.Bool(required=True)
+
+    @post_load
+    def make_sermon_chunk_embedding(self, data, **kwargs) -> SermonChunkEmbedding:
+        return SermonChunkEmbedding(**data)
+
+
+sermon_chunk_embedding_schema = SermonChunkEmbeddingSchema()
+sermon_chunk_embeddings_schema = SermonChunkEmbeddingSchema(many=True)

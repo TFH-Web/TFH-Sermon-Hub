@@ -1,13 +1,16 @@
 # Processing pipeline for a sermon: transcript, then embeddings, then summary.
+from sqlalchemy.dialects.sqlite import insert
 import time
-from datetime import datetime, timezone
-from typing import Callable
+from collections.abc import Callable
+from datetime import UTC, datetime
 
+import ollama
+from blake3 import blake3
 from flask import current_app
 
-from tsh import captions
+from tsh import captions, embeddings
 from tsh.database import db
-from tsh.models import Sermon, UploadStatus
+from tsh.models import Sermon, SermonChunk, SermonChunkEmbedding, UploadStatus
 from tsh.queue import enqueue
 from tsh.transcripts import transcript_text
 
@@ -32,14 +35,27 @@ def fetch_transcript(sermon: Sermon) -> None:
 
     video_id = sermon.youtube_video_id or parse_video_id(sermon.video_link)
     if not video_id:
-        raise captions.CaptionError("missing YouTube video id; correct the sermon video link, then reprocess")
+        raise captions.CaptionError(
+            "missing YouTube video id; correct the sermon video link, then reprocess"
+        )
     segments = captions.get_transcript(video_id)
     sermon.transcript = transcript_text(segments)
     sermon.transcript_segments = segments
+    db.session.commit()
 
 
 def embed_chunks(sermon: Sermon) -> None:
     """Chunk sermon.transcript_segments with source times and store embeddings. Placeholder until S6."""
+    if not sermon.transcript_segments:
+        raise embeddings.NotTranscribedError
+
+    chunks = embeddings.chunk(sermon, sermon.transcript_segments)
+    query = insert(SermonChunk).values(chunks).on_conflict_do_nothing()
+    db.session.execute(query)
+
+    chunk_embeddings = embeddings.embed(sermon);
+    db.session.add_all(chunk_embeddings)
+    db.session.commit()
 
 
 def summarize_sermon(sermon: Sermon) -> None:
@@ -81,7 +97,9 @@ def process_sermon(sermon_id: int) -> None:
     """
     sermon = db.session.get(Sermon, sermon_id)
     if sermon is None:
-        current_app.logger.warning("Sermon %s was deleted before it could be processed", sermon_id)
+        current_app.logger.warning(
+            "Sermon %s was deleted before it could be processed", sermon_id
+        )
         return
 
     # Set here as well as in start_processing, so a job queued any other way still shows as processing.
@@ -99,6 +117,8 @@ def process_sermon(sermon_id: int) -> None:
         error = _run_step(name, step, sermon_id)
         if error:
             sermon = db.session.get(Sermon, sermon_id)
+            if not sermon:
+                return
             sermon.status = UploadStatus.FAILED
             sermon.processing_error = error
             db.session.commit()
@@ -107,10 +127,12 @@ def process_sermon(sermon_id: int) -> None:
     # Search and chat only need the transcript and embeddings, so a failed summary still publishes.
     error = _run_step("summarize_sermon", summarize_sermon, sermon_id)
     sermon = db.session.get(Sermon, sermon_id)
+    if not sermon:
+        return
     sermon.status = UploadStatus.PUBLISHED
     sermon.processing_error = error
     # The column has no time zone, so store UTC without tzinfo.
-    sermon.processed_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    sermon.processed_at = datetime.now(UTC).replace(tzinfo=None)
     db.session.commit()
 
 
@@ -128,6 +150,8 @@ def regenerate_summary(sermon_id: int) -> None:
 
     error = _run_step("summarize_sermon", summarize_sermon, sermon_id)
     sermon = db.session.get(Sermon, sermon_id)
+    if not sermon:
+        return
     if error:
         sermon.processing_error = error
     elif (sermon.processing_error or "").startswith("summarize_sermon:"):
@@ -138,6 +162,8 @@ def regenerate_summary(sermon_id: int) -> None:
 def _run_step(name: str, step: Callable[[Sermon], None], sermon_id: int) -> str | None:
     """Run one step and commit what it changed. Returns "<name>: <error>" if it raised, else None."""
     sermon = db.session.get(Sermon, sermon_id)
+    if not sermon:
+        return
     try:
         step(sermon)
         db.session.commit()
