@@ -140,10 +140,11 @@ class SermonChunk(db.Model):  # ty: ignore[unsupported-base]
         ForeignKey(Sermon.id, onupdate="CASCADE", ondelete="CASCADE"), primary_key=True
     )
     sermon: Mapped[Sermon] = relationship()
-    hash: Mapped[str] = mapped_column(CHAR(32))
+    hash: Mapped[str] = mapped_column(CHAR(32), unique=True)
     text: Mapped[str] = mapped_column(Text())
     start: Mapped[float]
     end: Mapped[float]
+    stale: Mapped[bool] = mapped_column(default=False)
 
 
 class SermonChunkEmbedding(db.Model):  # ty: ignore[unsupported-base]

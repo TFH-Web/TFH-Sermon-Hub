@@ -1,5 +1,4 @@
 # Processing pipeline for a sermon: transcript, then embeddings, then summary.
-from sqlalchemy.dialects.sqlite import insert
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -7,6 +6,8 @@ from datetime import UTC, datetime
 import ollama
 from blake3 import blake3
 from flask import current_app
+from sqlalchemy import delete, update
+from sqlalchemy.dialects.sqlite import insert
 
 from tsh import captions, embeddings
 from tsh.database import db
@@ -44,18 +45,44 @@ def fetch_transcript(sermon: Sermon) -> None:
     db.session.commit()
 
 
-def embed_chunks(sermon: Sermon) -> None:
+def embed_chunks(sermon: Sermon, reprocess: bool = False) -> None:
     """Chunk sermon.transcript_segments with source times and store embeddings. Placeholder until S6."""
     if not sermon.transcript_segments:
         raise embeddings.NotTranscribedError
 
-    chunks = embeddings.chunk(sermon, sermon.transcript_segments)
-    query = insert(SermonChunk).values(chunks).on_conflict_do_nothing()
-    db.session.execute(query)
+    if reprocess:
+        statement = (
+            update(SermonChunk)
+            .where(SermonChunk.sermon_id == sermon.id)
+            .values(stale=True)
+        )
+        db.session.execute(statement)
 
-    chunk_embeddings = embeddings.embed(sermon);
+    chunks = embeddings.chunk(sermon, sermon.transcript_segments)
+    statement = insert(SermonChunk).values(chunks)
+    if reprocess:
+        statement = statement.on_conflict_do_update(
+            index_elements=["hash"], set_={"stale": False}
+        ).on_conflict_do_update(
+            index_elements=["sermon_id"],
+            set_={
+                "hash": statement.excluded.hash,
+                "text": statement.excluded.text,
+                "start": statement.excluded.start,
+                "end": statement.excluded.end,
+                "stale": False,
+            },
+        )
+    else:
+        statement = statement.on_conflict_do_nothing()
+    db.session.execute(statement)
+
+    chunk_embeddings = embeddings.embed(sermon)
     db.session.add_all(chunk_embeddings)
     db.session.commit()
+
+    statement = delete(SermonChunk).where(SermonChunk.stale)
+    db.session.execute(statement)
 
 
 def summarize_sermon(sermon: Sermon) -> None:
