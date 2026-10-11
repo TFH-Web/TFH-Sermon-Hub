@@ -10,12 +10,6 @@ from datetime import date
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
-from tsh.schemas import {
-    speaker_schema,
-    series_schema,
-    tags_schema,
-}
-
 from tsh.database import db
 from tsh.models import (
     Series,
@@ -38,6 +32,7 @@ from tsh.schemas import (
     sermon_schema,
     sermons_schema,
     speaker_schema,
+    tags_schema,
 )
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -245,14 +240,14 @@ def get_sermons():
 @require_role("Internal User", "Admin")
 def create_sermon():
     """Create a new sermon from validated data and existing related records."""
-    payload = request.json(silent=True)
+    payload = request.get_json(silent=True)
 
     if not isinstance(payload, dict):
         return jsonify({"message": "Validation failed", "errors": {"_schema": ["A JSON object is required"]}}), 422
 
     # Require references to existing records
     errors = {}
-    speakers_data = payload.get("speakers")
+    speakers_data = payload.get("speaker", payload.get("speakers"))
     series_data = payload.get("series")
     tag_data = payload.get("tags", [])
                                                                                 # Speaker
@@ -281,14 +276,18 @@ def create_sermon():
     series = None
     if series_data is not None:
         series = db.session.get(Series, series_data["id"])
-    if series is None:
-        errors["series"] = ["Series not found"]
+        if series is None:
+            errors["series"] = ["Series not found"]
                                                                                 # Tags
     tags = []
-    if isinstance(tag_data, list):
-        tag_names = [tag["name"] for tag in tag_data]
-    if len(tag_names) != len(set(tag_names)):
-            errors["tags"] = ["Duplicate tag names are not allowed"]
+    tag_names = [tag["name"].strip() for tag in tag_data]
+
+    if any(not name for name in tag_names):
+        errors["tags"] = ["Tag names cannot be empty."]
+
+    elif len(tag_names) != len(set(tag_names)):
+        errors["tags"] = ["Duplicate tag names are not allowed."]
+
     else:
         for tag_name in tag_names:
             tag = db.session.execute(db.select(Tag).filter_by(name=tag_name)).scalar_one_or_none()
@@ -303,24 +302,19 @@ def create_sermon():
     # Build trusted nested data from database records, not client-supplied
     # speaker names, series titles, or tag source values.
     normalized = dict(payload)
-                                                                                # Speaker
-    normalized["speaker"] = speaker_schema.dump(speaker)
-                                                                                # Series
-    normalized["series"] = (
-        series_schema.dump(series) if series is not None else None
-    )
-                                                                                # Tags
-    normalized["tags"] = tags_schema.dump(tags)
+    normalized.pop("speakers", None)
+    normalized.pop("speaker", None)
+    normalized.pop("series", None)
+    normalized.pop("tags", None)
 
-    # New normally manually created sermons start as drafts
-    normalized.setdefault("status", "draft")
+    normalized["status"] = "draft"
 
     try:
         sermon = sermon_schema.load(normalized)
     except ValidationError as err:
         return jsonify({"message": "Validation failed", "errors": err.messages}), 422
 
-    # Ensure relationships poiont to existing database records
+    # Ensure relationships point to existing database records
     sermon.speaker = speaker
     sermon.series = series
     sermon.tags = tags
@@ -328,10 +322,10 @@ def create_sermon():
     try:
         db.session.add(sermon)
         db.session.commit()
-    except SQLAlchemyError as err:
+    except SQLAlchemyError:
         db.session.rollback()
         current_app.logger.exception("Failed to create sermon")
-        return jsonify({"message": "Failed to save sermon", "errors": str(err)}), 500
+        return jsonify({"message": "Failed to save sermon"}), 500
     return sermon_schema.dump(sermon), 201
 
 @api.route("/sermons/<int:id>")
