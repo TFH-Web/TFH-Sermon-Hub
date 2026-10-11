@@ -12,7 +12,7 @@ from sqlalchemy.dialects.sqlite import insert
 
 from tsh import captions, embeddings
 from tsh.database import db
-from tsh.models import Sermon, SermonChunk, SermonChunkEmbedding, UploadStatus
+from tsh.models import Sermon, SermonChunk, UploadStatus
 from tsh.queue import enqueue
 from tsh.transcripts import transcript_text
 
@@ -42,7 +42,7 @@ def fetch_transcript(sermon: Sermon) -> None:
         )
     segments = captions.get_transcript(video_id)
     sermon.transcript = transcript_text(segments)
-    sermon.transcript_segments = transcript_segments_schema.dump(segments)
+    sermon.transcript_segments = segments
     db.session.commit()
 
 
