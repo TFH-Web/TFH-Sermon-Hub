@@ -6,6 +6,7 @@ import Button from '$/components/Button';
 import Modal from '$/components/Modal';
 import { useToast } from '$/components/ToastContext';
 import type { Sermon } from '../types/sermon';
+import { useMsal } from '@azure/msal-react';
 
 interface DeleteSermonModalProps {
 	isOpen: boolean;
@@ -20,7 +21,7 @@ export default function DeleteSermonModal({
 }: DeleteSermonModalProps) {
 	const { showToast } = useToast();
 	const navigate = useNavigate();
-
+	const { instance, accounts } = useMsal();
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -29,20 +30,26 @@ export default function DeleteSermonModal({
 
 		setIsDeleting(true);
 		setError(null);
+
+		// Authentication with Microsoft using MSAL to acquire an access token
 		try {
-			const token = localStorage.getItem('token');
+			const account = accounts[0];
+			if (!account) {
+				throw new Error('Sign in with Microsoft again');
+			}
+
+			const responseToken = await instance.acquireTokenSilent({account, scopes: ['openid', 'profile'],});
 
 			const response = await fetch(`/api/sermons/${sermon.id}`, {
 				method: 'DELETE',
 				headers: {
-					'Authorization': `Bearer ${token}`,
+					'Authorization': `Bearer ${responseToken.accessToken}`,
 				},
 			});
 
-			if (!response.ok) {
-				const result = await response.json().catch(() => null);
-				throw new Error(result?.message || `Failed to delete sermon (${response.status})`);
-			}
+			if (!response.ok) 
+				throw new Error(`Failed to delete sermon (${response.status})`);
+			
 
 		onClose();
 		showToast('Sermon deleted successfully', 'success');

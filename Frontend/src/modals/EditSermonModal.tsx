@@ -7,6 +7,7 @@ import Modal from '$/components/Modal';
 import { useToast } from '$/components/ToastContext';
 import type { Sermon } from '$/types/sermon';
 import { getFullName } from '$/types/speaker';
+import { useMsal } from '@azure/msal-react';
 
 interface EditSermonModalProps {
 	isOpen: boolean;
@@ -20,7 +21,7 @@ export default function EditSermonModal({
 	sermon,
 }: EditSermonModalProps) {
 	const { showToast } = useToast();
-
+	const { instance, accounts } = useMsal();
 	const [title, setTitle] = useState('');
 	const [titleError, setTitleError] = useState('');
 	const [speaker, setSpeaker] = useState('');
@@ -67,25 +68,29 @@ export default function EditSermonModal({
 		}
 		setIsSaving(true);
 		setSaveError('');
-
+		
+		// Authentication with Microsoft using MSAL to acquire an access token
 		try {
-			const token = localStorage.getItem('token');
+			const account = accounts[0];
+			if (!account) {
+				throw new Error('Sign in with Microsoft again');
+			}
+
+			const response = await instance.acquireTokenSilent({account, scopes: ['openid', 'profile'],});
 
 			const payload = {
 				title: title.trim(),
 				tags: tags.split(',').map(t => t.trim()).filter(Boolean).map(name => ({ name })),
 			};
-			const reponse = await fetch(`/api/sermons/${sermon.id}`, {
+			const result = await fetch(`/api/sermons/${sermon.id}`, {
 				method: 'PATCH',
 				headers: {
-					'Content-Type': 'application/json',...(token ? { 'Authorization': `Bearer ${token}` } : {})
+					'Content-Type': 'application/json',...(response?.accessToken ? { 'Authorization': `Bearer ${response.accessToken}` } : {})
 				},
 				body: JSON.stringify(payload)
 			});
-			if (!reponse.ok) {
-				const result = await reponse.json().catch(() => null);
-				throw new Error(result?.message || `Failed to update sermon (${reponse.status})`);
-			}
+			if (!result.ok) 
+				throw new Error(`Failed to update sermon (${result.status})`);
 
 			onClose();
 			showToast('Sermon updated successfully', 'success');
