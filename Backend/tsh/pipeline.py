@@ -1,4 +1,5 @@
 # Processing pipeline for a sermon: transcript, then embeddings, then summary.
+from tsh.schemas import transcript_segments_schema
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -41,7 +42,7 @@ def fetch_transcript(sermon: Sermon) -> None:
         )
     segments = captions.get_transcript(video_id)
     sermon.transcript = transcript_text(segments)
-    sermon.transcript_segments = segments
+    sermon.transcript_segments = transcript_segments_schema.dump(segments)
     db.session.commit()
 
 

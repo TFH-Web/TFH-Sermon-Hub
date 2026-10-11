@@ -130,6 +130,8 @@ class TranscriptSegmentSchema(CamelCaseSchema):
     end = fields.Float()
     text = fields.String()
 
+transcript_segment_schema = TranscriptSegmentSchema()
+transcript_segments_schema = TranscriptSegmentSchema(many=True)
 
 class SermonSchema(CamelCaseSchema):
     id = id_field()
