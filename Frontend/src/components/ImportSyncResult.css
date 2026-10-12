@@ -1,0 +1,41 @@
+.ImportSyncResult {
+	margin: 16px 0 0;
+	font-size: 13px;
+}
+
+.ImportSyncResult-title {
+	margin: 0 0 8px;
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.ImportSyncResult-counts {
+	margin: 0 0 12px;
+}
+
+.ImportSyncResult-count {
+	display: flex;
+	justify-content: space-between;
+	padding: 4px 0;
+}
+
+.ImportSyncResult-count dd {
+	margin: 0;
+	font-weight: 600;
+}
+
+.ImportSyncResult-list {
+	padding: 6px 0;
+	border-top: 1px solid var(--cl-outline);
+}
+
+.ImportSyncResult-list summary {
+	cursor: pointer;
+}
+
+.ImportSyncResult-list ul {
+	padding-left: 18px;
+	margin: 6px 0 0;
+	color: var(--cl-on-surface-muted);
+	overflow-wrap: anywhere;
+}
