@@ -261,7 +261,7 @@ def create_sermon():
                                                                                 # Tags
     if not isinstance(tag_data, list):
         errors["tags"] = ["Tags must be a list."]
-    
+
     elif any(not isinstance(tag, dict) or not isinstance(tag.get("name"), str) for tag in tag_data):
         errors["tags"] = ["Each tag must contain the name of an existing tag."]
 
@@ -269,7 +269,7 @@ def create_sermon():
         return jsonify({"message": "Validation failed", "errors": errors}), 422
 
     # Resolve relationships without creating new speakers, series, or tags
-    speaker = db.session.get(Speaker, speakers_data["id"]) 
+    speaker = db.session.get(Speaker, speakers_data["id"])
 
                                                                                 # Speaker
     if speaker is None:

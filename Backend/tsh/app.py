@@ -77,7 +77,8 @@ def create_app(
         app.logger.exception(e)
         return jsonify({"error": "Internal server error", "message": "Internal server error"}), 500
 
-    app.register_blueprint(api)
+    # Put all API routes under /api to match the frontend.
+    app.register_blueprint(api, url_prefix="/api")
 
     from tsh.youtube_import import import_youtube_command
     app.cli.add_command(import_youtube_command)

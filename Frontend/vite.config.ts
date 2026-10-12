@@ -21,5 +21,18 @@ export default defineConfig({
 	},
 	test: {
 		include: ['src/**/*.test.{ts,tsx}', 'tests/**/*.test.{ts,tsx}'],
+
+		coverage: {
+			provider: 'v8',
+
+			// Show results in the terminal and create a browser-readable report.
+			reporter: ['text', 'html'],
+
+			// Include source files even when no unit test imports them.
+			include: ['src/**/*.{ts,tsx}'],
+
+			// Test files and TypeScript declarations are not application code.
+			exclude: ['**/*.test.{ts,tsx}', '**/*.d.ts'],
+		},
 	},
 });
