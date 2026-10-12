@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import struct
 from datetime import date, datetime, time, timedelta
 from enum import Enum
 
@@ -9,8 +10,10 @@ from sqlalchemy import (
     Column,
     FetchedValue,
     ForeignKey,
+    LargeBinary,
     String,
     Text,
+    TypeDecorator,
     UniqueConstraint,
 )
 from sqlalchemy import (
@@ -25,6 +28,27 @@ from tsh.transcripts import TranscriptSegment
 intpk = Annotated[int, mapped_column(primary_key=True, server_default=FetchedValue())]
 str32 = Annotated[str, mapped_column(String(32))]
 str64 = Annotated[str, mapped_column(String(64))]
+
+
+class Float32Vector(TypeDecorator):
+    """A list of floats stored as packed little-endian float32 bytes.
+
+    The sqlite-vec vec0 table stores vectors in this format and returns them as raw
+    bytes on read, so a JSON column type cannot decode them.
+    """
+
+    impl = LargeBinary
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        return struct.pack(f"<{len(value)}f", *value)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        return list(struct.unpack(f"<{len(value) // 4}f", value))
 
 
 class Series(db.Model):  # ty: ignore[unsupported-base]
@@ -153,4 +177,4 @@ class SermonChunkEmbedding(db.Model):  # ty: ignore[unsupported-base]
         primary_key=True,
     )
     sermon_chunk: Mapped[SermonChunk] = relationship()
-    embedding: Mapped[list[float]] = mapped_column(JSON())
+    embedding: Mapped[list[float]] = mapped_column(Float32Vector())

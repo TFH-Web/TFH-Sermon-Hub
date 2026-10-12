@@ -1,4 +1,5 @@
 # Tests for pipeline.embed_chunks: chunk rows and embeddings, with ollama.embed faked by conftest.
+import pytest
 from flask import Flask
 
 from tsh import pipeline
@@ -53,3 +54,26 @@ def test_embed_chunks_skips_sermon_without_segments(app: Flask):
     pipeline.embed_chunks(sermon)
 
     assert chunks_for(sermon) == []
+
+
+def test_embedding_round_trips_through_vec0(app: Flask):
+    """A saved embedding reads back as the same list of floats."""
+    sermon = first_sermon()
+    sermon.transcript_segments = [
+        {"start": 0.0, "end": 4.0, "text": "Grace and peace."}
+    ]
+    db.session.commit()
+    pipeline.embed_chunks(sermon)
+
+    # The fake embed returns 0.1, which float32 cannot store exactly.
+    saved = db.session.scalars(db.select(SermonChunkEmbedding)).one()
+    assert saved.embedding == pytest.approx([0.1] * 768)
+
+    # Multiples of 0.5 are exact in float32, so this comparison can be strict.
+    vector = [i * 0.5 for i in range(768)]
+    saved.embedding = vector
+    db.session.commit()
+    db.session.expire_all()
+
+    saved = db.session.scalars(db.select(SermonChunkEmbedding)).one()
+    assert saved.embedding == vector
