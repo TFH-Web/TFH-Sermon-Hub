@@ -8,6 +8,8 @@ on seed data it does not own.
 """
 
 import json
+import sys
+import types
 from datetime import date
 
 import pytest
@@ -86,6 +88,49 @@ def test_provider_is_read_per_call(monkeypatch):
     assert llm.generate("hi") == "from-ollama"
     monkeypatch.setenv("LLM_PROVIDER", "anthropic")
     assert llm.generate("hi") == "from-anthropic"
+
+
+def fake_anthropic(monkeypatch, *, content=None, error=None):
+    """Install a stand-in anthropic module whose client returns `content` or raises `error`.
+
+    anthropic is not a project dependency, so llm._anthropic imports whatever sits in
+    sys.modules. Returns the module so tests can raise its APIError.
+    """
+    module = types.ModuleType("anthropic")
+
+    class APIError(Exception):
+        pass
+
+    class Messages:
+        def create(self, **kwargs):
+            if error is not None:
+                raise error(module)
+            return types.SimpleNamespace(content=content)
+
+    class Anthropic:
+        def __init__(self):
+            self.messages = Messages()
+
+    module.APIError = APIError
+    module.Anthropic = Anthropic
+    monkeypatch.setitem(sys.modules, "anthropic", module)
+    monkeypatch.setenv("LLM_PROVIDER", "anthropic")
+    monkeypatch.setenv("LLM_MODEL", "test-model")
+    return module
+
+
+@pytest.mark.real_llm
+def test_anthropic_api_error_becomes_llm_error(monkeypatch):
+    fake_anthropic(monkeypatch, error=lambda module: module.APIError("overloaded"))
+    with pytest.raises(llm.LLMError, match="Anthropic request failed"):
+        llm.generate("hi")
+
+
+@pytest.mark.real_llm
+def test_anthropic_empty_content_raises(monkeypatch):
+    fake_anthropic(monkeypatch, content=[])
+    with pytest.raises(llm.LLMError, match="empty response"):
+        llm.generate("hi")
 
 
 class FakeResponse:
