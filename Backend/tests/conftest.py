@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from pathlib import Path
 
 from flask import Flask
@@ -6,6 +7,32 @@ from flask_migrate import upgrade
 from tsh import create_app
 from tests.populate import populate
 import pytest
+
+# Matches the FLOAT[768] column on sermon_chunk_embedding.
+FAKE_EMBEDDING_DIM = 768
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "real_embeddings: leave ollama.embed unpatched (for tests that need the real model)",
+    )
+
+
+@pytest.fixture(autouse=True)
+def no_real_embeddings(request, monkeypatch):
+    """Replace ollama.embed with a fake that returns one fixed-length vector per input.
+
+    Keeps the suite off the network and independent of a running Ollama server.
+    Tests marked real_embeddings get the real ollama.embed.
+    """
+    if request.node.get_closest_marker("real_embeddings"):
+        return
+
+    def fake_embed(model: str, input: list[str], **kwargs) -> SimpleNamespace:
+        return SimpleNamespace(embeddings=[[0.1] * FAKE_EMBEDDING_DIM for _ in input])
+
+    monkeypatch.setattr("ollama.embed", fake_embed)
 
 
 @pytest.fixture()

@@ -137,7 +137,7 @@ class Sermon(db.Model):  # ty: ignore[unsupported-base]
 class SermonChunk(db.Model):  # ty: ignore[unsupported-base]
     id: Mapped[intpk]
     sermon_id: Mapped[int] = mapped_column(
-        ForeignKey(Sermon.id, onupdate="CASCADE", ondelete="CASCADE"), primary_key=True
+        ForeignKey(Sermon.id, onupdate="CASCADE", ondelete="CASCADE")
     )
     sermon: Mapped[Sermon] = relationship()
     hash: Mapped[str] = mapped_column(CHAR(32), unique=True)

@@ -60,7 +60,18 @@ def embed_chunks(sermon: Sermon, reprocess: bool = False) -> None:
         db.session.execute(statement)
 
     chunks = embeddings.chunk(sermon, sermon.transcript_segments)
-    statement = insert(SermonChunk).values(chunks)
+    # insert().values() takes plain column values, not model objects. stale is left to its column default.
+    rows = [
+        {
+            "sermon_id": chunk.sermon_id,
+            "hash": chunk.hash,
+            "text": chunk.text,
+            "start": chunk.start,
+            "end": chunk.end,
+        }
+        for chunk in chunks
+    ]
+    statement = insert(SermonChunk).values(rows)
     if reprocess:
         statement = statement.on_conflict_do_update(
             index_elements=["hash"], set_={"stale": False}

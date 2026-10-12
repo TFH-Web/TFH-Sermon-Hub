@@ -8,7 +8,7 @@ from blake3 import blake3
 
 from tsh.database import db
 from tsh.models import Sermon, SermonChunk, SermonChunkEmbedding
-from tsh.transcripts import TranscriptSegment
+from tsh.transcripts import TranscriptSegment, concatenate, segment_length
 
 CHUNK_SIZE_MAX = int(os.environ.get("CHUNK_SIZE_MAX", "500"))
 CHUNK_OVERLAP_PERCENT_MIN = int(os.environ.get("CHUNK_OVERLAP_PERCENT_MIN", "30"))
@@ -20,6 +20,7 @@ def chunk(sermon: Sermon, segments: list[TranscriptSegment]) -> list[SermonChunk
         SermonChunk(
             id=None,
             sermon_id=sermon.id,
+            sermon=sermon,
             hash=blake3(chunk["text"].encode()).digest(),
             text=chunk["text"],
             start=chunk["start"],
@@ -42,6 +43,7 @@ def embed(sermon: Sermon) -> list[SermonChunkEmbedding]:
     return [
         SermonChunkEmbedding(
             sermon_chunk_id=chunk.id,
+            sermon_chunk=chunk,
             embedding=embedding,
         )
         for (chunk, embedding) in zip(chunks, batch.embeddings, strict=True)
@@ -56,7 +58,7 @@ def _chunk(segments: list[TranscriptSegment]) -> list[TranscriptSegment]:
     chunks = []
 
     for segment in segments:
-        segment_len = len(segment)
+        segment_len = segment_length(segment)
         if window_len + segment_len > CHUNK_SIZE_MAX:
             _append_new_chunk(window, chunks)
             window_len = _shift_window(window, window_len)
@@ -69,14 +71,14 @@ def _chunk(segments: list[TranscriptSegment]) -> list[TranscriptSegment]:
 
 def _shift_window(window: list[TranscriptSegment], window_len: int) -> int:
     new_window_len = ceil(len(window) * CHUNK_OVERLAP_PERCENT_MIN / 100)
-    while window_len - len(window[0]) > new_window_len:
+    while window_len - segment_length(window[0]) > new_window_len:
         chunk = window.pop(0)
-        window_len -= len(chunk)
+        window_len -= segment_length(chunk)
     return window_len
 
 
 def _append_new_chunk(
     window: list[TranscriptSegment], chunks: list[TranscriptSegment]
 ) -> None:
-    chunk = reduce(lambda acc, segment: acc + segment, window)
+    chunk = reduce(concatenate, window)
     chunks.append(chunk)
