@@ -42,6 +42,7 @@ export default function SermonDetail() {
 	const [isEditingSummary, setIsEditingSummary] = useState(false); // Remembers if the summary edit box is open
 	const [editSermonOpen, setEditSermonOpen] = useState(false); //	Remembers if the Edit popup is open
 	const [deleteSermonOpen, setDeleteSermonOpen] = useState(false); // Remembers if the Delete popup is open
+	const [isRegenerating, setIsRegenerating] = useState(false); // Stops a second click from queueing the same summary job twice
 
 	const playerRef = useRef<YouTubePlayer | null>(null); //creates reference for youtube player
 	const [playerReady, setPlayerReady] = useState(false); //remembers if the player is ready (video is loaded)
@@ -65,6 +66,29 @@ export default function SermonDetail() {
 		refetchInterval: query =>
 			query.state.data?.status === 'Processing' ? 2000 : false,
 	});
+
+	// Ask the server for a new AI summary, then reload the sermon so the card shows it.
+	// With the job queue on, the new summary only appears once the worker finishes, so the toast says it may take a moment.
+	const regenerateSummary = async () => {
+		if (isRegenerating) return;
+		setIsRegenerating(true);
+		try {
+			await axios.post(`/api/sermons/${id}/regenerate-summary`);
+			showToast(
+				'Regenerating summary with AI. It may take a moment to appear.',
+				'info',
+			);
+			await query.refetch();
+		} catch (error) {
+			// The server sends a readable message for the cases people can act on, like the job queue being down.
+			const message =
+				(axios.isAxiosError(error) && error.response?.data?.error) ||
+				'Could not regenerate the summary';
+			showToast(message, 'error');
+		} finally {
+			setIsRegenerating(false);
+		}
+	};
 
 	//ask server for data of all sermons
 	const sermonsQuery = useQuery({
@@ -308,11 +332,10 @@ export default function SermonDetail() {
 							<Button
 								variant="ghost"
 								className="SermonDetail-regenerate-btn"
-								onClick={() =>
-									showToast('Regenerating summary via AI...', 'info')
-								}
+								onClick={regenerateSummary}
+								disabled={isRegenerating}
 							>
-								Regenerate with AI
+								{isRegenerating ? 'Regenerating...' : 'Regenerate with AI'}
 							</Button>
 						</div>
 					</div>

@@ -8,6 +8,20 @@ from tests.populate import populate
 import pytest
 
 
+def pytest_configure(config):
+    """Register the markers that let a test opt out of the network fakes in this file.
+
+    Kept as the only pytest_configure here, since a second definition would silently replace this one.
+    """
+    config.addinivalue_line(
+        "markers", "real_llm: leave tsh.llm.generate unpatched (for tests of llm.py itself)"
+    )
+    config.addinivalue_line(
+        "markers",
+        "real_embeddings: leave ollama.embed unpatched (for tests that need the real model)",
+    )
+
+
 @pytest.fixture()
 def app():
     app = create_app(
@@ -39,6 +53,21 @@ def app():
 
         # teardown
         db.drop_all()
+
+
+
+@pytest.fixture(autouse=True)
+def no_real_llm(request, monkeypatch):
+    """Keep the suite off the network. TFH-461."""
+    if request.node.get_closest_marker("real_llm"):
+        return
+
+    def fake_generate(prompt: str, system: str = "", **kwargs) -> str:
+        if "Return JSON" in prompt:
+            return '{"tags": []}'
+        return "Test summary."
+
+    monkeypatch.setattr("tsh.llm.generate", fake_generate)
 
 
 @pytest.fixture()
