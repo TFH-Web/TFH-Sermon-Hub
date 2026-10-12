@@ -410,3 +410,64 @@ def test_full_pipeline_run_populates_summary_and_tags(app, monkeypatch):
         assert saved.processing_error is None
         assert saved.summary == "A summary about grace."
         assert NEW_TAG in [t.name for t in saved.tags]
+
+# ---------- 504: another worker creates the same tag first ----------
+
+
+def hide_from_tag_lists(monkeypatch, name: str) -> None:
+    """Make full tag listings skip `name`, as if another worker created it after this one looked.
+
+    Only reads with no WHERE clause are filtered, which are the two list reads in tagging.py.
+    The lookup by name that save_ai_tags runs after an IntegrityError still sees the real row.
+    """
+    real_scalars = db.session.scalars
+
+    def scalars(statement, *args, **kwargs):
+        rows = real_scalars(statement, *args, **kwargs)
+        if statement.whereclause is not None:
+            return rows
+        return [row for row in rows if getattr(row, "name", row) != name]
+
+    monkeypatch.setattr(db.session, "scalars", scalars)
+
+
+def tag_rows(name: str) -> int:
+    return db.session.scalar(
+        db.select(db.func.count()).select_from(Tag).where(Tag.name == name)
+    )
+
+
+def test_save_attaches_tag_another_worker_created(app, monkeypatch):
+    """The insert hits the unique name, so the existing row is attached instead of a second one."""
+    with app.app_context():
+        make_tag(NEW_TAG, TagSource.AI)
+        sermon = make_sermon()
+        hide_from_tag_lists(monkeypatch, NEW_TAG)
+        # Proves the tag is hidden, so only the IntegrityError fallback can find it.
+        assert NEW_TAG not in tagging.get_existing_tag_names()
+
+        added = tagging.save_ai_tags(sermon, [NEW_TAG])
+        db.session.commit()
+        monkeypatch.undo()
+
+        assert [t.name for t in added] == [NEW_TAG]
+        assert [t.name for t in reload(sermon.id).tags] == [NEW_TAG]
+        assert tag_rows(NEW_TAG) == 1
+
+
+def test_tag_insert_race_keeps_the_summary(app, monkeypatch):
+    """Only the savepoint rolls back on the duplicate tag, so the summary from the same step survives."""
+    patch_llm(monkeypatch, fake_llm(tags=[NEW_TAG]))
+    with app.app_context():
+        make_tag(NEW_TAG, TagSource.AI)
+        sermon = make_sermon()
+        hide_from_tag_lists(monkeypatch, NEW_TAG)
+
+        error = pipeline._run_step("summarize_sermon", pipeline.summarize_sermon, sermon.id)
+        monkeypatch.undo()
+
+        assert error is None
+        saved = reload(sermon.id)
+        assert saved.summary == "A summary about grace."
+        assert [t.name for t in saved.tags] == [NEW_TAG]
+        assert tag_rows(NEW_TAG) == 1
