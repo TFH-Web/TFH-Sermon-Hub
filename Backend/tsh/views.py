@@ -20,7 +20,7 @@ from tsh.models import (
     sermon_tag_m2m,
 )
 from tsh.pagination import paginate
-from tsh.pipeline import start_processing
+from tsh.pipeline import regenerate_summary, start_processing
 from tsh.queue import enqueue
 from tsh.youtube import YouTubeError
 from tsh.youtube_import import VideoImportError, import_channel, import_video, parse_video_id
@@ -491,6 +491,26 @@ def reprocess_sermon(id: int):
         start_processing(sermon)
     except (RedisConnectionError, RedisTimeoutError):
         current_app.logger.exception("Could not queue sermon %s", id)
+        message = "The job queue is unavailable. Please try again later."
+        return jsonify({"error": message, "message": message}), 503
+    return sermon_schema.dump(sermon), 202
+
+
+@api.post("/sermons/<int:id>/regenerate-summary")
+@require_role("Admin")
+def regenerate_sermon_summary(id: int):
+    """Queue a new AI summary and tags for one sermon, for the "Regenerate with AI" button.
+
+    Returns 202 with the sermon. Without REDIS_URL the job has already run, so the summary is the new one;
+    with Redis the old summary stays until the worker finishes. The job skips sermons that are not PUBLISHED.
+    Sends 401 without a valid token, 403 for non-Admins, 404 if the sermon does not exist,
+    and 503 if Redis cannot be reached.
+    """
+    sermon = db.get_or_404(Sermon, id, description=f"Sermon with id {id} not found")
+    try:
+        enqueue(regenerate_summary, sermon.id)
+    except (RedisConnectionError, RedisTimeoutError):
+        current_app.logger.exception("Could not queue summary for sermon %s", id)
         message = "The job queue is unavailable. Please try again later."
         return jsonify({"error": message, "message": message}), 503
     return sermon_schema.dump(sermon), 202

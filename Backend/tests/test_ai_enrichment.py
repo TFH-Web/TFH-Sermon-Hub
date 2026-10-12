@@ -13,8 +13,10 @@ import types
 from datetime import date
 
 import pytest
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import TimeoutError as RedisTimeoutError
 
-from tsh import llm, pipeline, summarize, tagging
+from tsh import llm, pipeline, summarize, tagging, views
 from tsh.database import db
 from tsh.models import Sermon, Speaker, Tag, TagSource, UploadStatus, sermon_tag_m2m
 
@@ -575,3 +577,77 @@ def test_tag_insert_race_keeps_the_summary(app, monkeypatch):
         assert saved.summary == "A summary about grace."
         assert [t.name for t in saved.tags] == [NEW_TAG]
         assert tag_rows(NEW_TAG) == 1
+
+
+# ---------- POST /api/sermons/<id>/regenerate-summary ----------
+
+
+def published_sermon() -> Sermon:
+    """Return a new PUBLISHED sermon with a transcript and an old summary."""
+    sermon = make_sermon()
+    sermon.status = UploadStatus.PUBLISHED
+    sermon.summary = "Old summary."
+    db.session.commit()
+    return sermon
+
+
+def test_regenerate_summary_endpoint(app, client, monkeypatch):
+    """Admins get 202 with the sermon; inline mode has already written the new summary and tags."""
+    patch_llm(monkeypatch, fake_llm(tags=[NEW_TAG]))
+    sermon = published_sermon()
+
+    res = client.post(f"/api/sermons/{sermon.id}/regenerate-summary")
+
+    assert res.status_code == 202
+    assert res.json["id"] == sermon.id
+    assert res.json["summary"] == "A summary about grace."
+    assert NEW_TAG in [t.name for t in reload(sermon.id).tags]
+
+
+@pytest.mark.parametrize(("roles", "status_code"), [("none", 401), ("Internal User", 403)])
+def test_regenerate_summary_auth(app, client, monkeypatch, roles, status_code):
+    """Regenerating is Admin only, and a rejected request leaves the summary alone."""
+    patch_llm(monkeypatch, fake_llm())
+    sermon = published_sermon()
+
+    res = client.post(
+        f"/api/sermons/{sermon.id}/regenerate-summary", headers={"X-Test-Roles": roles}
+    )
+
+    assert res.status_code == status_code
+    assert reload(sermon.id).summary == "Old summary."
+
+
+def test_regenerate_summary_missing_sermon(app, client):
+    res = client.post("/api/sermons/999999/regenerate-summary")
+    assert res.status_code == 404
+
+
+@pytest.mark.parametrize("error", [RedisConnectionError, RedisTimeoutError])
+def test_regenerate_summary_redis_down(app, client, monkeypatch, error):
+    """When Redis cannot be reached the endpoint sends 503 and the summary is unchanged."""
+
+    def broken_enqueue(*args):
+        raise error("Timeout connecting to server")
+
+    monkeypatch.setattr(views, "enqueue", broken_enqueue)
+    sermon = published_sermon()
+
+    res = client.post(f"/api/sermons/{sermon.id}/regenerate-summary")
+
+    assert res.status_code == 503
+    assert res.json["error"] == "The job queue is unavailable. Please try again later."
+    assert reload(sermon.id).summary == "Old summary."
+
+
+def test_regenerate_summary_skips_unpublished_sermon(app, client, monkeypatch):
+    """A draft may have no transcript yet, so the job leaves it alone even though the request is accepted."""
+    patch_llm(monkeypatch, fake_llm())
+    sermon = published_sermon()
+    sermon.status = UploadStatus.DRAFT
+    db.session.commit()
+
+    res = client.post(f"/api/sermons/{sermon.id}/regenerate-summary")
+
+    assert res.status_code == 202
+    assert reload(sermon.id).summary == "Old summary."
