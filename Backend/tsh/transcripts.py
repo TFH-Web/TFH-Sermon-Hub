@@ -95,7 +95,7 @@ def parse_vtt(document: str, *, rolling: bool = False) -> list[TranscriptSegment
 
 def transcript_text(segments: list[TranscriptSegment]) -> str:
     """Join clean segment text in caption order for Sermon.transcript."""
-    return " ".join(segment.text for segment in segments)
+    return " ".join(segment["text"] for segment in segments)
 
 
 def _seconds(stamp: str) -> float:
