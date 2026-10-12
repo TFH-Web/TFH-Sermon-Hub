@@ -106,3 +106,61 @@ def test_embed_chunks_keeps_identical_text_for_each_sermon(app: Flask):
             )
         ).all()
         assert embedding_ids == [chunk.id]
+
+
+def embedding_ids() -> list[int]:
+    """Return every sermon_chunk_id that has an embedding row."""
+    return db.session.scalars(db.select(SermonChunkEmbedding.sermon_chunk_id)).all()
+
+
+def set_segments(sermon: Sermon, text: str) -> None:
+    """Give the sermon a single caption segment with the given text."""
+    sermon.transcript_segments = [{"start": 0.0, "end": 5.0, "text": text}]
+    db.session.commit()
+
+
+def test_embed_chunks_rerun_reuses_unchanged_chunks(app: Flask):
+    """Running twice with the same captions keeps the same chunk rows and embeddings."""
+    sermon = first_sermon()
+    set_segments(sermon, "Grace and peace to you.")
+    pipeline.embed_chunks(sermon)
+    before_chunks = [chunk.id for chunk in chunks_for(sermon)]
+    before_embeddings = embedding_ids()
+
+    set_segments(sermon, "Grace and peace to you.")
+    pipeline.embed_chunks(sermon)
+
+    assert [chunk.id for chunk in chunks_for(sermon)] == before_chunks
+    assert embedding_ids() == before_embeddings
+
+
+def test_embed_chunks_replaces_changed_chunks(app: Flask):
+    """Changed captions delete the old chunk and its embedding, and embed the new chunk once."""
+    sermon = first_sermon()
+    set_segments(sermon, "Grace and peace to you.")
+    pipeline.embed_chunks(sermon)
+
+    set_segments(sermon, "Turn with me to Romans six.")
+    pipeline.embed_chunks(sermon)
+
+    chunks = chunks_for(sermon)
+    assert [chunk.text for chunk in chunks] == ["Turn with me to Romans six."]
+    # SQLite can hand the deleted chunk's id to the new chunk, so compare whole sets:
+    # any embedding left over from the deleted chunk would show up as an extra row.
+    assert embedding_ids() == [chunks[0].id]
+
+
+def test_embed_chunks_leaves_other_sermons_alone(app: Flask):
+    """Changing one sermon's captions does not touch another sermon's chunks."""
+    first, second = db.session.scalars(db.select(Sermon).order_by(Sermon.id)).all()[:2]
+    set_segments(first, "Grace and peace to you.")
+    set_segments(second, "We are not under law but under grace.")
+    pipeline.embed_chunks(first)
+    pipeline.embed_chunks(second)
+    second_ids = [chunk.id for chunk in chunks_for(second)]
+
+    set_segments(first, "Turn with me to Romans six.")
+    pipeline.embed_chunks(first)
+
+    assert [chunk.id for chunk in chunks_for(second)] == second_ids
+    assert set(second_ids) <= set(embedding_ids())

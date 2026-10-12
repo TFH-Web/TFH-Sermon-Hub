@@ -7,12 +7,12 @@ from datetime import UTC, datetime
 import ollama
 from blake3 import blake3
 from flask import current_app
-from sqlalchemy import delete, update
+from sqlalchemy import delete, select
 from sqlalchemy.dialects.sqlite import insert
 
 from tsh import captions, embeddings
 from tsh.database import db
-from tsh.models import Sermon, SermonChunk, UploadStatus
+from tsh.models import Sermon, SermonChunk, SermonChunkEmbedding, UploadStatus
 from tsh.queue import enqueue
 from tsh.transcripts import transcript_text
 from tsh.summarize import summarize_transcript
@@ -48,23 +48,21 @@ def fetch_transcript(sermon: Sermon) -> None:
     db.session.commit()
 
 
-def embed_chunks(sermon: Sermon, reprocess: bool = False) -> None:
-    """Chunk sermon.transcript_segments with source times and store embeddings. Placeholder until S6."""
+def embed_chunks(sermon: Sermon) -> None:
+    """Chunk sermon.transcript_segments with source times and store one embedding per chunk.
+
+    Safe to re-run. Chunks whose text is unchanged keep their rows and embeddings, chunks
+    that no longer appear in the captions are deleted with their embeddings, and only new
+    chunks are sent to ollama. Errors from ollama propagate, and _run_step records them.
+    """
     if not sermon.transcript_segments:
         return
 
-    if reprocess:
-        statement = (
-            update(SermonChunk)
-            .where(SermonChunk.sermon_id == sermon.id)
-            .values(stale=True)
-        )
-        db.session.execute(statement)
-
     chunks = embeddings.chunk(sermon, sermon.transcript_segments)
-    # insert().values() takes plain column values, not model objects. stale is left to its column default.
-    rows = [
-        {
+    # insert().values() takes plain column values, not model objects. Keying by hash drops
+    # repeated text inside one sermon, which would otherwise be the same row twice.
+    rows = {
+        chunk.hash: {
             "sermon_id": chunk.sermon_id,
             "hash": chunk.hash,
             "text": chunk.text,
@@ -72,31 +70,29 @@ def embed_chunks(sermon: Sermon, reprocess: bool = False) -> None:
             "end": chunk.end,
         }
         for chunk in chunks
-    ]
-    statement = insert(SermonChunk).values(rows)
-    if reprocess:
-        statement = statement.on_conflict_do_update(
-            index_elements=["hash"], set_={"stale": False}
-        ).on_conflict_do_update(
-            index_elements=["sermon_id"],
-            set_={
-                "hash": statement.excluded.hash,
-                "text": statement.excluded.text,
-                "start": statement.excluded.start,
-                "end": statement.excluded.end,
-                "stale": False,
-            },
-        )
-    else:
-        statement = statement.on_conflict_do_nothing()
-    db.session.execute(statement)
+    }
 
-    chunk_embeddings = embeddings.embed(sermon)
-    db.session.add_all(chunk_embeddings)
+    stale_ids = select(SermonChunk.id).where(
+        SermonChunk.sermon_id == sermon.id, SermonChunk.hash.not_in(rows.keys())
+    )
+    # sermon_chunk_embedding is a sqlite-vec virtual table, which ignores foreign keys,
+    # so ON DELETE CASCADE never fires. Delete the embeddings first or they are orphaned.
+    # Virtual tables also reject DELETE RETURNING, which the ORM uses to sync the session.
+    db.session.execute(
+        delete(SermonChunkEmbedding)
+        .where(SermonChunkEmbedding.sermon_chunk_id.in_(stale_ids))
+        .execution_options(synchronize_session=False)
+    )
+    db.session.execute(delete(SermonChunk).where(SermonChunk.id.in_(stale_ids)))
+
+    # Relies on unique (sermon_id, hash): chunks this sermon already has are skipped,
+    # so they keep their ids and embeddings.
+    db.session.execute(
+        insert(SermonChunk).values(list(rows.values())).on_conflict_do_nothing()
+    )
+
+    db.session.add_all(embeddings.embed(sermon))
     db.session.commit()
-
-    statement = delete(SermonChunk).where(SermonChunk.stale)
-    db.session.execute(statement)
 
 
 def summarize_sermon(sermon: Sermon) -> None:
