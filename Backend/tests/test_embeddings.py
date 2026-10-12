@@ -77,3 +77,32 @@ def test_embedding_round_trips_through_vec0(app: Flask):
 
     saved = db.session.scalars(db.select(SermonChunkEmbedding)).one()
     assert saved.embedding == vector
+
+
+def test_embed_chunks_keeps_identical_text_for_each_sermon(app: Flask):
+    """Two sermons with the same transcript each get their own chunk rows and embeddings."""
+    first, second = db.session.scalars(
+        db.select(Sermon).order_by(Sermon.id).limit(2)
+    ).all()
+    segments = [
+        {"start": 0.0, "end": 4.0, "text": "Grace and peace to you."},
+        {"start": 4.0, "end": 9.5, "text": "Turn with me to Romans six."},
+    ]
+    first.transcript_segments = [dict(s) for s in segments]
+    second.transcript_segments = [dict(s) for s in segments]
+    db.session.commit()
+
+    pipeline.embed_chunks(first)
+    pipeline.embed_chunks(second)
+
+    first_chunks = chunks_for(first)
+    second_chunks = chunks_for(second)
+    assert first_chunks
+    assert [c.hash for c in first_chunks] == [c.hash for c in second_chunks]
+    for chunk in first_chunks + second_chunks:
+        embedding_ids = db.session.scalars(
+            db.select(SermonChunkEmbedding.sermon_chunk_id).where(
+                SermonChunkEmbedding.sermon_chunk_id == chunk.id
+            )
+        ).all()
+        assert embedding_ids == [chunk.id]

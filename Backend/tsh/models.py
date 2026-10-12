@@ -159,12 +159,17 @@ class Sermon(db.Model):  # ty: ignore[unsupported-base]
 
 
 class SermonChunk(db.Model):  # ty: ignore[unsupported-base]
+    # A hash is unique only within its sermon, so two sermons with identical text each keep their chunk.
+    __table_args__ = (
+        UniqueConstraint("sermon_id", "hash", name="unique_sermon_chunk_hash"),
+    )
+
     id: Mapped[intpk]
     sermon_id: Mapped[int] = mapped_column(
         ForeignKey(Sermon.id, onupdate="CASCADE", ondelete="CASCADE")
     )
     sermon: Mapped[Sermon] = relationship()
-    hash: Mapped[str] = mapped_column(CHAR(32), unique=True)
+    hash: Mapped[str] = mapped_column(CHAR(32))
     text: Mapped[str] = mapped_column(Text())
     start: Mapped[float]
     end: Mapped[float]
