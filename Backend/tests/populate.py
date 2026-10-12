@@ -142,7 +142,9 @@ def populate(app: Flask):
     tag_life = Tag(name="life", source=TagSource.MANUAL, sermons=[])
     db.session.add_all([tag_faith, tag_hope, tag_healing, tag_grace, tag_anxiety, tag_fear, tag_life])
 
-    video_link = "https://youtu.be/asdfasdf"
+    video_link = "https://youtu.be/JQSUGFQO5FU"
+    video_link2 = "https://youtu.be/BROKENLINKTEST"
+    video_link3 = "https://www.youtube.com/watch?v=PxTdE09QjH0"
     sermon_under_grace = Sermon(
         id=None,
         title="Under Grace",
@@ -162,7 +164,7 @@ def populate(app: Flask):
     sermon_walking_in_freedom = Sermon(
         id=None,
         title="Walking in Freedom",
-        video_link=video_link,
+        video_link=video_link2,
         duration=2304,
         speaker_id=None,
         series_id=None,
@@ -178,7 +180,7 @@ def populate(app: Flask):
     sermon_anchored_in_hope = Sermon(
         id=None,
         title="Anchored in Hope",
-        video_link=video_link,
+        video_link=video_link3,
         duration=2650,
         speaker=speaker_jon_laurenzo,
         speaker_id=None,

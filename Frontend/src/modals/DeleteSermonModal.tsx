@@ -1,5 +1,7 @@
 import './DeleteSermonModal.css';
+import { useMsal } from '@azure/msal-react';
 import { Icon } from '@iconify-icon/react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '$/components/Button';
 import Modal from '$/components/Modal';
@@ -19,11 +21,49 @@ export default function DeleteSermonModal({
 }: DeleteSermonModalProps) {
 	const { showToast } = useToast();
 	const navigate = useNavigate();
+	const { instance, accounts } = useMsal();
+	const [isDeleting, setIsDeleting] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
-	const handleDelete = () => {
-		onClose();
-		showToast('Sermon deleted successfully', 'success');
-		navigate('/sermons');
+	const handleDelete = async () => {
+		if (!sermon || isDeleting) return;
+
+		setIsDeleting(true);
+		setError(null);
+
+		// Authentication with Microsoft using MSAL to acquire an access token
+		try {
+			const account = accounts[0];
+			if (!account) {
+				throw new Error('Sign in with Microsoft again');
+			}
+
+			const responseToken = await instance.acquireTokenSilent({
+				account,
+				scopes: ['openid', 'profile'],
+			});
+
+			const response = await fetch(`/api/sermons/${sermon.id}`, {
+				method: 'DELETE',
+				headers: {
+					Authorization: `Bearer ${responseToken.accessToken}`,
+				},
+			});
+
+			if (!response.ok)
+				throw new Error(`Failed to delete sermon (${response.status})`);
+
+			onClose();
+			showToast('Sermon deleted successfully', 'success');
+			navigate('/sermons');
+		} catch (err) {
+			const message =
+				err instanceof Error ? err.message : 'Failed to delete sermon';
+			setError(message);
+			showToast(message, 'error');
+		} finally {
+			setIsDeleting(false);
+		}
 	};
 
 	return (
@@ -37,7 +77,7 @@ export default function DeleteSermonModal({
 						Cancel
 					</Button>
 					<Button variant="danger" onClick={handleDelete}>
-						Delete Sermon
+						{isDeleting ? 'Deleting...' : 'Delete Sermon'}
 					</Button>
 				</>
 			}
@@ -51,6 +91,7 @@ export default function DeleteSermonModal({
 					This will permanently remove the sermon, transcript, tags, and all
 					associated metadata. This action cannot be undone.
 				</p>
+				{error && <p className="DeleteSermonModal-error">{error}</p>}
 			</div>
 		</Modal>
 	);

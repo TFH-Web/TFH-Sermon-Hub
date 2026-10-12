@@ -1,3 +1,10 @@
+/* Read-only after import. The extra .FormField is needed to outrank its own input rule. */
+.UploadModal-details--locked .FormField input:not([type="checkbox"]),
+.UploadModal-details--locked .FormField select,
+.UploadModal-details--locked .FormField textarea {
+	background: var(--cl-surface-dim);
+}
+
 .UploadModal-checkboxes {
 	display: flex;
 	gap: 20px;

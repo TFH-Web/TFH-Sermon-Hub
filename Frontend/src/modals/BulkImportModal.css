@@ -1,0 +1,23 @@
+.BulkImportModal-facts {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 10px 20px;
+	align-items: center;
+	margin: 0;
+	font-size: 13px;
+}
+
+.BulkImportModal-facts dt {
+	color: var(--cl-on-surface-muted);
+}
+
+.BulkImportModal-facts dd {
+	margin: 0;
+}
+
+.BulkImportModal-error {
+	margin: 16px 0 0;
+	font-size: 13px;
+	color: var(--cl-error);
+	overflow-wrap: anywhere;
+}
