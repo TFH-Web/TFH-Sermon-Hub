@@ -1,3 +1,5 @@
+from datetime import date
+
 from flask import Blueprint, current_app, g, jsonify, request
 from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
@@ -521,18 +523,48 @@ def regenerate_sermon_summary(id: int):
     return sermon_schema.dump(sermon), 202
 
 
+def read_date_range(body) -> tuple[date | None, date | None]:
+    """Read the optional "from" and "to" dates of a sync request body, e.g. {"from": "2026-09-01", "to": "2026-09-30"}.
+
+    A missing or empty date is None, so no body at all means no range.
+    Raises ValueError, with the message to send back, if a date cannot be read or "from" is after "to".
+    """
+    dates = []
+    for key in ("from", "to"):
+        value = body.get(key) if isinstance(body, dict) else None
+        if value is None or value == "":
+            dates.append(None)
+            continue
+        try:
+            dates.append(date.fromisoformat(value))
+        except (TypeError, ValueError):
+            raise ValueError(f'"{key}" must be a date like 2026-09-01') from None
+
+    date_from, date_to = dates
+    if date_from and date_to and date_from > date_to:
+        raise ValueError('"from" must be on or before "to"')
+    return date_from, date_to
+
+
 @api.post("/import/youtube")
 @require_role("Admin")
 def import_youtube():
     """Import every playlist and video from the YouTube channel.
 
+    An optional body limits it to videos dated in a range, ends included: {"from": "2026-09-01", "to": "2026-09-30"}.
+    Either date can be left out. See import_channel for which date is compared.
     Returns 202 with {"queued": true, "jobId": ...} when the import was sent to the worker, or
     200 with {"queued": false, "report": {...}} when it already ran inline (no REDIS_URL). See ImportReport for the fields.
-    Sends 401 without a valid token, 403 for non-Admins, 502 if YouTube fails during an inline run,
-    and 503 if Redis cannot be reached.
+    Sends 400 if a date cannot be read or "from" is after "to", 401 without a valid token, 403 for non-Admins,
+    502 if YouTube fails during an inline run, and 503 if Redis cannot be reached.
     """
     try:
-        result = enqueue(import_channel)
+        date_from, date_to = read_date_range(request.get_json(silent=True))
+    except ValueError as e:
+        return jsonify({"error": str(e), "message": str(e)}), 400
+
+    try:
+        result = enqueue(import_channel, date_from, date_to)
     except (RedisConnectionError, RedisTimeoutError):
         current_app.logger.exception("Could not queue the YouTube import")
         message = "The job queue is unavailable. Please try again later."
