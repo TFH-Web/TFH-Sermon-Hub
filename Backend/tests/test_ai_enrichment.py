@@ -640,14 +640,17 @@ def test_regenerate_summary_redis_down(app, client, monkeypatch, error):
     assert reload(sermon.id).summary == "Old summary."
 
 
-def test_regenerate_summary_skips_unpublished_sermon(app, client, monkeypatch):
-    """A draft may have no transcript yet, so the job leaves it alone even though the request is accepted."""
-    patch_llm(monkeypatch, fake_llm())
+def test_regenerate_summary_rejects_unpublished_sermon(app, client, monkeypatch):
+    """A draft may have no transcript yet, so the request is refused with 409 and nothing is queued."""
+    queued = []
+    monkeypatch.setattr(views, "enqueue", lambda *args: queued.append(args))
     sermon = published_sermon()
     sermon.status = UploadStatus.DRAFT
     db.session.commit()
 
     res = client.post(f"/api/sermons/{sermon.id}/regenerate-summary")
 
-    assert res.status_code == 202
+    assert res.status_code == 409
+    assert res.json["error"] == "Only published sermons can regenerate their summary"
+    assert queued == []
     assert reload(sermon.id).summary == "Old summary."

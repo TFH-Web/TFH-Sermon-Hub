@@ -502,11 +502,16 @@ def regenerate_sermon_summary(id: int):
     """Queue a new AI summary and tags for one sermon, for the "Regenerate with AI" button.
 
     Returns 202 with the sermon. Without REDIS_URL the job has already run, so the summary is the new one;
-    with Redis the old summary stays until the worker finishes. The job skips sermons that are not PUBLISHED.
+    with Redis the old summary stays until the worker finishes.
     Sends 401 without a valid token, 403 for non-Admins, 404 if the sermon does not exist,
-    and 503 if Redis cannot be reached.
+    409 if the sermon is not PUBLISHED (nothing is queued), and 503 if Redis cannot be reached.
     """
     sermon = db.get_or_404(Sermon, id, description=f"Sermon with id {id} not found")
+    # regenerate_summary skips unpublished sermons because they may not have a transcript yet.
+    # Refusing here tells the admin why, instead of accepting a job that would do nothing.
+    if sermon.status != UploadStatus.PUBLISHED:
+        message = "Only published sermons can regenerate their summary"
+        return jsonify({"error": message, "message": message}), 409
     try:
         enqueue(regenerate_summary, sermon.id)
     except (RedisConnectionError, RedisTimeoutError):
