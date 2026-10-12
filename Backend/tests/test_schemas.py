@@ -249,6 +249,8 @@ def test_sermon_schema_load():
         "audioKey": "audio/sermon.mp3",
         "processingError": None,
         "processedAt": "2026-10-01T12:30:00",
+        "youtubeVideoId": None,
+        "transcriptSegments": None,
     })
     processed_sermon = sermon_schema.load(data)
     assert processed_sermon.processed_at == datetime(2026, 10, 1, 12, 30)
