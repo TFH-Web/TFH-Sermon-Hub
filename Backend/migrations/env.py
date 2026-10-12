@@ -3,6 +3,7 @@ from logging.config import fileConfig
 
 from alembic import context
 from flask import current_app
+from sqlalchemy.schema import SchemaItem
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -12,6 +13,26 @@ config = context.config
 # This line sets up loggers basically.
 fileConfig(config.config_file_name)
 logger = logging.getLogger("alembic.env")
+
+IGNORE_NAMES = ["env"]
+
+
+def include_object(
+    object: SchemaItem,
+    name: str | None,
+    type_: str,
+    reflected: bool,
+    _compare_to: SchemaItem | None,
+) -> bool:
+    if type_ == "table":
+        return (
+            not reflected
+            and object.info.get("skip_autogenerate", False)
+            or name != None
+            and "_embedding" in name
+        )
+    else:
+        return True
 
 
 def get_engine():
@@ -44,13 +65,6 @@ def get_metadata():
     return target_db.metadata
 
 
-def include_name(target_metadata, name, type_, parent_names):
-    if type_ == "table":
-        return name in target_metadata.tables and name not in ['sermon_chunk_embedding']
-    else:
-        return True
-
-
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
 
@@ -69,9 +83,7 @@ def run_migrations_offline():
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
-        include_name=lambda name, type_, parent_names: include_name(
-            target_metadata, name, type_, parent_names
-        ),
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -117,9 +129,7 @@ def run_migrations_online():
                 context.configure(
                     connection=connection,
                     target_metadata=target_metadata,
-                    include_name=lambda name, type_, parent_names: include_name(
-                        target_metadata, name, type_, parent_names
-                    ),
+                    include_object=include_object,
                     **conf_args,
                 )
                 with context.begin_transaction():
