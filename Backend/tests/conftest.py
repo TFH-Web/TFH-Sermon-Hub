@@ -12,13 +12,6 @@ import pytest
 FAKE_EMBEDDING_DIM = 768
 
 
-def pytest_configure(config):
-    config.addinivalue_line(
-        "markers",
-        "real_embeddings: leave ollama.embed unpatched (for tests that need the real model)",
-    )
-
-
 @pytest.fixture(autouse=True)
 def no_real_embeddings(request, monkeypatch):
     """Replace ollama.embed with a fake that returns one fixed-length vector per input.
@@ -33,6 +26,20 @@ def no_real_embeddings(request, monkeypatch):
         return SimpleNamespace(embeddings=[[0.1] * FAKE_EMBEDDING_DIM for _ in input])
 
     monkeypatch.setattr("ollama.embed", fake_embed)
+
+
+def pytest_configure(config):
+    """Register the markers that let a test opt out of the network fakes in this file.
+
+    Kept as the only pytest_configure here, since a second definition would silently replace this one.
+    """
+    config.addinivalue_line(
+        "markers", "real_llm: leave tsh.llm.generate unpatched (for tests of llm.py itself)"
+    )
+    config.addinivalue_line(
+        "markers",
+        "real_embeddings: leave ollama.embed unpatched (for tests that need the real model)",
+    )
 
 
 @pytest.fixture()
@@ -66,6 +73,21 @@ def app():
 
         # teardown
         db.drop_all()
+
+
+
+@pytest.fixture(autouse=True)
+def no_real_llm(request, monkeypatch):
+    """Keep the suite off the network. TFH-461."""
+    if request.node.get_closest_marker("real_llm"):
+        return
+
+    def fake_generate(prompt: str, system: str = "", **kwargs) -> str:
+        if "Return JSON" in prompt:
+            return '{"tags": []}'
+        return "Test summary."
+
+    monkeypatch.setattr("tsh.llm.generate", fake_generate)
 
 
 @pytest.fixture()

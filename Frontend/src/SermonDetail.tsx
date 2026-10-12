@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query'; // tool to ask the server for data or if its broken or still waiting
 import axios from 'axios'; // Sends the HTTP request to the backend
-import { useState } from 'react'; // Allows the page remember things that changed like if something was enabled or disabled
+import { useRef, useState } from 'react'; // Allows the page remember things that changed like if something was enabled or disabled
 
 import './SermonDetail.css';
 import { useNavigate, useParams } from 'react-router';
+import type { YouTubeProps } from 'react-youtube';
+import YouTube from 'react-youtube';
 import Button from '$/components/Button';
 import { Card } from '$/components/Card.tsx';
 import ErrorBox from '$/components/ErrorBox.tsx';
@@ -40,6 +42,13 @@ export default function SermonDetail() {
 	const [isEditingSummary, setIsEditingSummary] = useState(false); // Remembers if the summary edit box is open
 	const [editSermonOpen, setEditSermonOpen] = useState(false); //	Remembers if the Edit popup is open
 	const [deleteSermonOpen, setDeleteSermonOpen] = useState(false); // Remembers if the Delete popup is open
+	const [isRegenerating, setIsRegenerating] = useState(false); // Stops a second click from queueing the same summary job twice
+
+	const playerRef = useRef<YouTubePlayer | null>(null); //creates reference for youtube player
+	const [playerReady, setPlayerReady] = useState(false); //remembers if the player is ready (video is loaded)
+	const [pendingSeek, setPendingSeek] = useState<number | null>(null); //remembers if the video is seeking a timestamp, setPendingSeek stores (seconds: number) to tell where to seek towards when video is loaded
+	const [videoError, setVideoError] = useState<string | null>(null); //remembers if there is an error with loading the video
+
 	const navigate = useNavigate(); // Lets us send the user to a different page
 
 	// What it does: go ask the server for this one sermon's information
@@ -57,6 +66,29 @@ export default function SermonDetail() {
 		refetchInterval: query =>
 			query.state.data?.status === 'Processing' ? 2000 : false,
 	});
+
+	// Ask the server for a new AI summary, then reload the sermon so the card shows it.
+	// With the job queue on, the new summary only appears once the worker finishes, so the toast says it may take a moment.
+	const regenerateSummary = async () => {
+		if (isRegenerating) return;
+		setIsRegenerating(true);
+		try {
+			await axios.post(`/api/sermons/${id}/regenerate-summary`);
+			showToast(
+				'Regenerating summary with AI. It may take a moment to appear.',
+				'info',
+			);
+			await query.refetch();
+		} catch (error) {
+			// The server sends a readable message for the cases people can act on, like the job queue being down.
+			const message =
+				(axios.isAxiosError(error) && error.response?.data?.error) ||
+				'Could not regenerate the summary';
+			showToast(message, 'error');
+		} finally {
+			setIsRegenerating(false);
+		}
+	};
 
 	//ask server for data of all sermons
 	const sermonsQuery = useQuery({
@@ -151,6 +183,53 @@ export default function SermonDetail() {
 		seriesIndex = filteredSermons.findIndex(item => item.id === sermon.id) + 1; // Add 1 to the index to offset zero-indexing
 	}
 
+	function getYouTubeEmbedUrl(videoLink: string): string | null {
+		try {
+			const url = new URL(videoLink);
+
+			if (url.hostname === 'youtu.be') {
+				return url.pathname.slice(1);
+			} else if (
+				url.hostname === 'www.youtube.com' ||
+				url.hostname === 'youtube.com'
+			) {
+				return url.searchParams.get('v');
+			}
+
+			return null;
+		} catch {
+			return null;
+		}
+	}
+
+	type YouTubePlayer = Parameters<
+		NonNullable<YouTubeProps['onReady']>
+	>[0]['target'];
+
+	const handlePlayerReady: YouTubeProps['onReady'] = event => {
+		//readies the player, also seeks to time if already requested to seek time before video start
+		playerRef.current = event.target;
+		setPlayerReady(true);
+
+		if (pendingSeek !== null) {
+			event.target.seekTo(pendingSeek, true);
+			event.target.playVideo();
+			setPendingSeek(null);
+		}
+	};
+
+	function seekToTranscriptTime(seconds: number) {
+		//skips player to specified time in video (in seconds), to be used with transcript to skip to specified segment
+		if (playerReady && playerRef.current) {
+			playerRef.current.seekTo(seconds, true);
+			playerRef.current.playVideo();
+		} else {
+			setPendingSeek(seconds);
+		}
+	}
+
+	const videoId = getYouTubeEmbedUrl(sermon.videoLink);
+
 	return (
 		<MainLayout title={sermon.title}>
 			<button
@@ -164,7 +243,32 @@ export default function SermonDetail() {
 				<div className="SermonDetail-video-container">
 					<div className="SermonDetail-top">
 						<div className="SermonDetail-videoPlaceholder">
-							<div className="SermonDetail-playButton">▶</div>
+							<div className="SermonDetail-player">
+								{!videoId ? (
+									<p>Invalid YouTube video link</p>
+								) : videoError ? (
+									<p>{videoError}</p>
+								) : (
+									<YouTube
+										videoId={videoId}
+										className="SermonDetail-youtube"
+										iframeClassName="SermonDetail-youtube-frame"
+										title={sermon.title}
+										onReady={handlePlayerReady}
+										onError={() => {
+											setVideoError(
+												'This video could not be loaded. It may be unavailable or embedding may be disabled.',
+											);
+											console.log({ videoError });
+										}}
+										opts={{
+											playerVars: {
+												rel: 0,
+											},
+										}}
+									/>
+								)}
+							</div>
 						</div>
 						<div className="SermonDetail-info">
 							{sermon.series && (
@@ -228,11 +332,10 @@ export default function SermonDetail() {
 							<Button
 								variant="ghost"
 								className="SermonDetail-regenerate-btn"
-								onClick={() =>
-									showToast('Regenerating summary via AI...', 'info')
-								}
+								onClick={regenerateSummary}
+								disabled={isRegenerating}
 							>
-								Regenerate with AI
+								{isRegenerating ? 'Regenerating...' : 'Regenerate with AI'}
 							</Button>
 						</div>
 					</div>
@@ -325,6 +428,15 @@ export default function SermonDetail() {
 								{sermon.videoLink.replace('https://', '')}
 							</a>
 						</span>
+
+						<span>
+							<button type="button" onClick={() => seekToTranscriptTime(15)}>
+								<p>
+									Click to Skip Video to 0:15 (This is to test video seeking)
+								</p>
+							</button>
+						</span>
+						<span></span>
 
 						<span className="SermonDetail-metadata-label">Transcript</span>
 						{/* Only say "Generated" if a transcript really exists.

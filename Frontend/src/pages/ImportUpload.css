@@ -43,6 +43,17 @@
 	text-align: center;
 }
 
+/* Locked while a sync runs. Doubling up on .FormField outranks its own input and select rules. */
+.FormField.ImportUpload-locked input:not([type="checkbox"]),
+.FormField.ImportUpload-locked select {
+	background: var(--cl-surface-dim);
+}
+
+/* Pagination leaves room for a full page; inside a card it needs less. */
+.Pagination.ImportUpload-pagination {
+	margin-block: 1rem 0;
+}
+
 .ImportUpload-checkboxGroup {
 	display: flex;
 	flex-direction: column;
