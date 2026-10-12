@@ -104,7 +104,7 @@ export default function EditSermonModal({
 
 			onClose();
 			showToast('Sermon updated successfully', 'success');
-		} catch (error: any) {
+		} catch (error: unknown) {
 			const message =
 				error instanceof Error ? error.message : 'Failed to update sermon';
 			setSaveError(message);
