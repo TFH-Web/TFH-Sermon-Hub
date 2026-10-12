@@ -208,6 +208,96 @@ poetry run python up.py
 
 Commit the new file in `migrations/versions/` with your model change. New non-nullable columns need a default, or the migration will fail on databases that already have rows.
 
+#### YouTube captions
+
+The transcript step downloads captions using OAuth credentials authorized as the
+TFH channel. Set the three OAuth values listed in
+[Backend/.env.example](Backend/.env.example), then run these commands from Backend:
+
+    poetry install
+    poetry run python up.py
+
+Use Refresh captions in the sermon's Transcript panel for previously imported
+sermons. The panel also displays full text and timestamp links. The step
+saves full text and timed segments together. Missing captions, permission failures,
+expired refresh tokens and quota errors set the sermon to Failed with instructions
+in processingError. After correcting the cause, reprocess it.
+
+See [caption setup and verified access](docs/youtube-captions.md) for the access
+spike, track selection, quota and token renewal details. Chunking and summarization
+remain their separate pipeline steps.
+
+#### Background jobs
+
+Sermon processing runs as a background job. Where it runs depends on `REDIS_URL`:
+
+- **`REDIS_URL` unset (the default):** jobs run inline in the Flask process. No Redis is needed, so this works on plain Windows too. Tests always run this way.
+- **`REDIS_URL` set:** jobs go to the `sermons` queue in Redis and a separate worker runs them.
+
+To use Redis locally (WSL, macOS or Linux):
+
+```sh
+# Install and start Redis (or: docker run -p 6379:6379 redis)
+sudo apt install redis-server
+redis-server
+
+# Then in Backend/.env
+REDIS_URL=redis://localhost:6379/0
+
+# Start the worker in its own terminal, next to ./run.sh
+./worker.sh
+```
+
+The worker runs each job inside the Flask app context, so jobs can use the database. Without `REDIS_URL` it exits with a message, since there is nothing for it to do. With devenv, `devenv up` starts Redis and the worker for you.
+
+To watch a sermon sit in `Processing` before the real steps exist, set `PIPELINE_DUMMY_DELAY` (seconds) in `tsh/testing.cfg`. Without Redis the delay blocks the request, so keep it small or use the worker.
+
+#### Importing from YouTube
+
+Sermons are imported from the TFH YouTube channel: each playlist becomes a series and each video a sermon. The import reads public data only, so it needs an API key, not a Google sign-in.
+
+To get a key:
+
+1. In the [Google Cloud Console](https://console.cloud.google.com/), create a project (or pick an existing one).
+2. Under **APIs & Services → Library**, enable **YouTube Data API v3**.
+3. Under **APIs & Services → Credentials**, create an **API key**. Restrict it to the YouTube Data API v3.
+4. Put it in `Backend/.env` as `YOUTUBE_API_KEY=...`. Never commit it or paste it into an issue or PR.
+
+The other settings default to the TFH channel, so only the key is required. Override any of them in `Backend/.env`:
+
+| Setting | Default | What it does |
+|---|---|---|
+| `YOUTUBE_CHANNEL_ID` | `UCua-IeYiJ1LiNQ6ydGZbIaw` | The channel to import from. |
+| `YOUTUBE_MASTER_PLAYLIST` | `TFH Latest Messages` | Playlist whose videos are imported but that never becomes a series. |
+| `YOUTUBE_IGNORE_PLAYLISTS` | `Worship Focus`, `TFH Worship Moments`, `Worship Resources To Help You Change The Atmosphere - After God's Heart - Pt2`, `Church Online` | Comma-separated playlists that are skipped entirely (worship songs and full services). |
+| `YOUTUBE_SERIES_ALIASES` | `Book of James=The Book of James` | Comma-separated `Playlist name=Series name` pairs, for playlists that should merge into one series but differ by more than case. |
+| `YOUTUBE_SPEAKER_ALIASES` | `Joesph Zwanziger=Joseph Zwanziger`, `Tosha Zwanzinger=Tosha Zwanziger`, `Alex Seely=Alex Seeley`, `Dr. Nina Baratiak=Nina Baratiak`, `Dino RIzzo=Dino Rizzo` | Comma-separated `Name in title=Speaker name` pairs, for misspelled speaker names in video titles. |
+| `YOUTUBE_MAX_MINUTES` | `60` | Videos longer than this are skipped and listed in the import report. Sermons run up to about 45 minutes and full services about 90. |
+| `YOUTUBE_TIMEZONE` | `America/Los_Angeles` | Time zone used to turn YouTube's UTC publish time into the sermon date. |
+
+Playlists can be named by title or by playlist ID. Playlists whose titles differ only by case merge into one series.
+
+The speaker is read from the end of each video title (`Title: Series - Speaker`, or the older `Series PT 2 - "Title" - Speaker - date`). The dash may have no space before it (`Title- Speaker`). A title without one can also end in `: Speaker`, `– Speaker`, `— Speaker`, `| Speaker` or a run of spaces then the speaker (older titles that lost their dashes), but only for a speaker who is already in the database or appears elsewhere in the same import, so a series name after a colon (`The Guide: Holy Spirit`) is never taken as a speaker. Honorifics like "Dr." and "Rabbi" are dropped; "Sr." and "Jr." are kept. When a title names several speakers (`A & B`), A is the speaker and the description starts with `Speakers: A & B`. Titles with no speaker get the "Unknown Speaker" placeholder and are listed in the import report so an admin can fix them.
+To run the import:
+
+```sh
+cd Backend
+
+# One-time backfill, or any time from the command line. Prints the import report.
+poetry run flask --app "tsh:create_app('testing.cfg')" import-youtube
+```
+
+Running it again is safe: videos already imported are matched by their YouTube id, and only their length, date and link are updated. Titles, descriptions, speakers, tags, transcripts and summaries edited by an admin are left alone.
+
+Admins can also run it from the API:
+
+- `POST /api/import/youtube` imports the whole channel. With `REDIS_URL` set it goes to the worker and returns `202 {"queued": true, "jobId": ...}`; without it, it runs in the request (about 40 seconds for the full channel) and returns `200 {"queued": false, "report": {...}}`. An optional body `{"from": "2026-09-01", "to": "2026-09-30"}` imports only the videos dated in that range, ends included; either date can be left out. A date that cannot be read, or a `from` after `to`, returns `400`.
+- `POST /api/import/youtube/video` with `{"url": "https://www.youtube.com/watch?v=..."}` imports one video right away. `youtu.be/` and `/shorts/` links work too. Returns `201` with the new sermon, or `200` if it was already imported.
+
+In production, run with Redis so the sync is queued. Inline mode runs the full import inside the request (about 40 seconds), which can hit server timeouts.
+
+New sermons are queued for processing as they are imported. If Redis is down, they are left `Failed` with the reason and listed in the report; reprocess them once Redis is back.
+
 ---
 
 ### Frontend Setup
@@ -234,6 +324,9 @@ The frontend will be available at `http://localhost:5173`.
 | `GET` | `/health` | Health check |
 | `GET` | `/sermons` | List all sermons |
 | `GET` | `/sermons/<id>` | Get a single sermon |
+| `POST` | `/sermons/<id>/reprocess` | Re-run sermon processing (Admin only, 202; 503 if Redis is down) |
+| `POST` | `/import/youtube` | Import the whole YouTube channel, or only the videos dated in an optional `{"from": ..., "to": ...}` range (Admin only; 202 when queued, 200 when run inline; 400 bad dates, 502 if YouTube fails, 503 if Redis is down) |
+| `POST` | `/import/youtube/video` | Import one video from `{"url": ...}` (Admin only; 201 new, 200 already imported, 400 bad URL, 404 private or missing, 422 too long or still streaming) |
 | `GET` | `/series` | List all series |
 | `GET` | `/series/<id>` | Get a single series |
 | `GET` | `/speakers` | List all speakers |
@@ -302,6 +395,7 @@ Tag
 | Command | Description |
 |---|---|
 | `./run.sh` | Start Flask development server |
+| `./worker.sh` | Start the background job worker (needs `REDIS_URL`) |
 | `poetry run python up.py` | Create or update the database (runs migrations) |
 | `poetry run flask --app "tsh:create_app('testing.cfg')" db migrate -m "..."` | Generate a migration after changing models |
 | `poetry run python populate.py` | Seed with sample data |

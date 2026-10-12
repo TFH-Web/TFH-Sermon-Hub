@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_migrate import Migrate
@@ -23,6 +25,34 @@ def create_app(
     if kwargs:
         app.config.update(kwargs)
 
+    # The one place REDIS_URL is read. Config wins over the environment, so tests can force inline jobs.
+    app.config.setdefault("REDIS_URL", os.environ.get("REDIS_URL", ""))
+
+    # YouTube import settings, read the same way. Defaults match the TFH channel, so only the key has to be set.
+    youtube_defaults = {
+        "YOUTUBE_API_KEY": "",
+        "YOUTUBE_CHANNEL_ID": "UCua-IeYiJ1LiNQ6ydGZbIaw",
+        # The master list of every sermon. Its videos are imported, but it is never a series.
+        "YOUTUBE_MASTER_PLAYLIST": "TFH Latest Messages",
+        # Worship songs and full Sunday services, not messages.
+        "YOUTUBE_IGNORE_PLAYLISTS": "Worship Focus,TFH Worship Moments,"
+        "Worship Resources To Help You Change The Atmosphere - After God's Heart - Pt2,Church Online",
+        "YOUTUBE_SERIES_ALIASES": "Book of James=The Book of James",
+        # Misspellings of a speaker's name in video titles.
+        "YOUTUBE_SPEAKER_ALIASES": "Joesph Zwanziger=Joseph Zwanziger,Tosha Zwanzinger=Tosha Zwanziger,"
+        "Alex Seely=Alex Seeley,Dr. Nina Baratiak=Nina Baratiak,Dino RIzzo=Dino Rizzo",
+        # Sermons run up to about 45 minutes and full services about 90, so 60 catches services without cutting long sermons.
+        "YOUTUBE_MAX_MINUTES": "60",
+        # Sermon dates are taken in the church's time zone, not UTC.
+        "YOUTUBE_TIMEZONE": "America/Los_Angeles",
+        "YOUTUBE_OAUTH_CLIENT_ID": "",
+        "YOUTUBE_OAUTH_CLIENT_SECRET": "",
+        "YOUTUBE_OAUTH_REFRESH_TOKEN": "",
+        "YOUTUBE_CAPTION_LANGUAGE": "en",
+    }
+    for name, default in youtube_defaults.items():
+        app.config.setdefault(name, os.environ.get(name, default))
+
     from tsh.database import db
     db.init_app(app)
 
@@ -47,7 +77,13 @@ def create_app(
         app.logger.exception(e)
         return jsonify({"error": "Internal server error", "message": "Internal server error"}), 500
 
-    app.register_blueprint(api)
+    # Put all API routes under /api to match the frontend.
+    app.register_blueprint(api, url_prefix="/api")
+
+    from tsh.youtube_import import import_youtube_command
+    app.cli.add_command(import_youtube_command)
+    from tsh.caption_backfill import backfill_captions_command
+    app.cli.add_command(backfill_captions_command)
 
     return app
 

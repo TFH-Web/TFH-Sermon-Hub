@@ -1,15 +1,17 @@
 import { useQuery } from '@tanstack/react-query'; // tool to ask the server for data or if its broken or still waiting
 import axios from 'axios'; // Sends the HTTP request to the backend
-import { useState } from 'react'; // Allows the page remember things that changed like if something was enabled or disabled
+import { useRef, useState } from 'react'; // Allows the page remember things that changed like if something was enabled or disabled
 
 import './SermonDetail.css';
 import { useNavigate, useParams } from 'react-router';
+import type { YouTubeProps } from 'react-youtube';
+import YouTube from 'react-youtube';
 import Button from '$/components/Button';
 import { Card } from '$/components/Card.tsx';
 import ErrorBox from '$/components/ErrorBox.tsx';
-import FileUploadButton from '$/components/FileUploadButton.tsx';
 import Loading from '$/components/Loading.tsx';
 import MainLayout from '$/components/MainLayout';
+import SermonTranscript from '$/components/SermonTranscript';
 import Tag from '$/components/Tag.tsx';
 import { useToast } from '$/components/ToastContext.tsx';
 import DeleteSermonModal from '$/modals/DeleteSermonModal.tsx';
@@ -17,36 +19,13 @@ import EditSermonModal from '$/modals/EditSermonModal.tsx';
 import { durationToString, Sermon } from '$/types/sermon';
 import { getFullName } from '$/types/speaker.ts';
 
-// The server sends the transcript and summary as one long piece of text, but the page shows separate paragraphs.
+// The server sends the summary as one long piece of text, but the page shows separate paragraphs.
 // A blank line is the only thing marking where a paragraph ends, so split on those and throw away the empty pieces.
 function toParagraphs(text: string) {
 	return text
 		.split(/\n\s*\n/)
 		.map(paragraph => paragraph.trim())
 		.filter(paragraph => paragraph.length > 0);
-}
-
-function highlightKeywords(text: string, keywords: string[]) {
-	const escaped = keywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-	const pattern = new RegExp(`(${escaped.join('|')})`, 'gi');
-	const parts = text.split(pattern);
-
-	let offset = 0;
-	return parts.map(part => {
-		const key = offset;
-		offset += part.length;
-		const isKeyword = keywords.some(
-			k => k.toLowerCase() === part.toLowerCase(),
-		);
-		if (isKeyword) {
-			return (
-				<span key={key} className="SermonDetail-keyword">
-					{part}
-				</span>
-			);
-		}
-		return part;
-	});
 }
 
 // A 404 from the server means "no sermon has that id". We treat that differently from a real failure.
@@ -56,7 +35,6 @@ function isNotFound(error: unknown): boolean {
 
 export default function SermonDetail() {
 	const { showToast } = useToast(); // let's up pop up a little message at the corner of the screen
-	const [_transcript, setTranscript] = useState(''); // remembers a transcript the user uploads from their computer
 
 	const [_summary, setSummary] = useState<string | null>(null); // Starts as nothing. It only holds text once the user types their own summary.
 
@@ -64,6 +42,13 @@ export default function SermonDetail() {
 	const [isEditingSummary, setIsEditingSummary] = useState(false); // Remembers if the summary edit box is open
 	const [editSermonOpen, setEditSermonOpen] = useState(false); //	Remembers if the Edit popup is open
 	const [deleteSermonOpen, setDeleteSermonOpen] = useState(false); // Remembers if the Delete popup is open
+	const [isRegenerating, setIsRegenerating] = useState(false); // Stops a second click from queueing the same summary job twice
+
+	const playerRef = useRef<YouTubePlayer | null>(null); //creates reference for youtube player
+	const [playerReady, setPlayerReady] = useState(false); //remembers if the player is ready (video is loaded)
+	const [pendingSeek, setPendingSeek] = useState<number | null>(null); //remembers if the video is seeking a timestamp, setPendingSeek stores (seconds: number) to tell where to seek towards when video is loaded
+	const [videoError, setVideoError] = useState<string | null>(null); //remembers if there is an error with loading the video
+
 	const navigate = useNavigate(); // Lets us send the user to a different page
 
 	// What it does: go ask the server for this one sermon's information
@@ -78,7 +63,32 @@ export default function SermonDetail() {
 		},
 		// A sermon that does not exist will still not exist on the third try, so only keep trying for real failures like the server being down.
 		retry: (failureCount, error) => !isNotFound(error) && failureCount < 3,
+		refetchInterval: query =>
+			query.state.data?.status === 'Processing' ? 2000 : false,
 	});
+
+	// Ask the server for a new AI summary, then reload the sermon so the card shows it.
+	// With the job queue on, the new summary only appears once the worker finishes, so the toast says it may take a moment.
+	const regenerateSummary = async () => {
+		if (isRegenerating) return;
+		setIsRegenerating(true);
+		try {
+			await axios.post(`/api/sermons/${id}/regenerate-summary`);
+			showToast(
+				'Regenerating summary with AI. It may take a moment to appear.',
+				'info',
+			);
+			await query.refetch();
+		} catch (error) {
+			// The server sends a readable message for the cases people can act on, like the job queue being down.
+			const message =
+				(axios.isAxiosError(error) && error.response?.data?.error) ||
+				'Could not regenerate the summary';
+			showToast(message, 'error');
+		} finally {
+			setIsRegenerating(false);
+		}
+	};
 
 	//ask server for data of all sermons
 	const sermonsQuery = useQuery({
@@ -136,10 +146,7 @@ export default function SermonDetail() {
 	const sermons = sermonsQuery.data ?? [];
 
 	// The server sends one long block of text. Cut it into separate paragraphs so the page can show them one under the other.
-	// If the sermon has no transcript or summary saved, we end up with nothing to show.
-	const transcriptParagraphs = sermon.transcript
-		? toParagraphs(sermon.transcript)
-		: [];
+	// If the sermon has no summary saved, we end up with nothing to show.
 	const summaryParagraphs = sermon.summary ? toParagraphs(sermon.summary) : [];
 
 	// Filters list of sermons to a new array containing only sermons in the same series
@@ -176,6 +183,53 @@ export default function SermonDetail() {
 		seriesIndex = filteredSermons.findIndex(item => item.id === sermon.id) + 1; // Add 1 to the index to offset zero-indexing
 	}
 
+	function getYouTubeEmbedUrl(videoLink: string): string | null {
+		try {
+			const url = new URL(videoLink);
+
+			if (url.hostname === 'youtu.be') {
+				return url.pathname.slice(1);
+			} else if (
+				url.hostname === 'www.youtube.com' ||
+				url.hostname === 'youtube.com'
+			) {
+				return url.searchParams.get('v');
+			}
+
+			return null;
+		} catch {
+			return null;
+		}
+	}
+
+	type YouTubePlayer = Parameters<
+		NonNullable<YouTubeProps['onReady']>
+	>[0]['target'];
+
+	const handlePlayerReady: YouTubeProps['onReady'] = event => {
+		//readies the player, also seeks to time if already requested to seek time before video start
+		playerRef.current = event.target;
+		setPlayerReady(true);
+
+		if (pendingSeek !== null) {
+			event.target.seekTo(pendingSeek, true);
+			event.target.playVideo();
+			setPendingSeek(null);
+		}
+	};
+
+	function seekToTranscriptTime(seconds: number) {
+		//skips player to specified time in video (in seconds), to be used with transcript to skip to specified segment
+		if (playerReady && playerRef.current) {
+			playerRef.current.seekTo(seconds, true);
+			playerRef.current.playVideo();
+		} else {
+			setPendingSeek(seconds);
+		}
+	}
+
+	const videoId = getYouTubeEmbedUrl(sermon.videoLink);
+
 	return (
 		<MainLayout title={sermon.title}>
 			<button
@@ -189,7 +243,32 @@ export default function SermonDetail() {
 				<div className="SermonDetail-video-container">
 					<div className="SermonDetail-top">
 						<div className="SermonDetail-videoPlaceholder">
-							<div className="SermonDetail-playButton">▶</div>
+							<div className="SermonDetail-player">
+								{!videoId ? (
+									<p>Invalid YouTube video link</p>
+								) : videoError ? (
+									<p>{videoError}</p>
+								) : (
+									<YouTube
+										videoId={videoId}
+										className="SermonDetail-youtube"
+										iframeClassName="SermonDetail-youtube-frame"
+										title={sermon.title}
+										onReady={handlePlayerReady}
+										onError={() => {
+											setVideoError(
+												'This video could not be loaded. It may be unavailable or embedding may be disabled.',
+											);
+											console.log({ videoError });
+										}}
+										opts={{
+											playerVars: {
+												rel: 0,
+											},
+										}}
+									/>
+								)}
+							</div>
 						</div>
 						<div className="SermonDetail-info">
 							{sermon.series && (
@@ -218,7 +297,14 @@ export default function SermonDetail() {
 								))}
 							</div>
 							<div className="SermonDetail-btn-group">
-								<Button variant="primary">Watch</Button>
+								<a
+									className="Button Button--primary"
+									href={sermon.videoLink}
+									target="_blank"
+									rel="noreferrer"
+								>
+									Watch
+								</a>
 								<Button
 									variant="secondary"
 									onClick={() => setEditSermonOpen(true)}
@@ -235,61 +321,7 @@ export default function SermonDetail() {
 						</div>
 					</div>
 				</div>
-				{/* Transcript Section */}
-				<Card className="SermonDetail-transcript">
-					<div className="SermonDetail-card-header">
-						<h2 className="SermonDetail-card-title">Transcript</h2>
-						<div className="SermonDetail-card-actions">
-							<Button variant="ghost" className="SermonDetail-copy-btn">
-								Copy
-							</Button>
-							<FileUploadButton
-								onFileRead={setTranscript}
-								className="SermonDetail-upload-button"
-							>
-								Upload Transcript
-							</FileUploadButton>
-						</div>
-					</div>
-
-					<div className="SermonDetail-transcript-ai">
-						<span>
-							<Tag variant="blue">AI Generated</Tag>
-						</span>
-						<span>
-							<Button
-								variant="ghost"
-								className="SermonDetail-regenerate-btn"
-								onClick={() =>
-									showToast('Regenerating transcript via AI...', 'info')
-								}
-							>
-								Regenerate with AI
-							</Button>
-						</span>
-					</div>
-
-					<div className="SermonDetail-transcript-container">
-						{/* Some Sermons have no transcript saved yet. Show a short message instead of leaving it empty grey box. */}
-						{transcriptParagraphs.length > 0 ? (
-							transcriptParagraphs.map(paragraph => (
-								<p
-									key={paragraph}
-									className="SermonDetail-transcript-paragraph"
-								>
-									{highlightKeywords(
-										paragraph,
-										sermon.tags.map(t => t.name),
-									)}
-								</p>
-							))
-						) : (
-							<p className="SermonDetail-transcript-paragraph">
-								No transcript yet. Upload one or generate it with AI.
-							</p>
-						)}
-					</div>
-				</Card>
+				<SermonTranscript sermon={sermon} />
 
 				{/* Summary Section */}
 				<Card className="SermonDetail-summary">
@@ -300,11 +332,10 @@ export default function SermonDetail() {
 							<Button
 								variant="ghost"
 								className="SermonDetail-regenerate-btn"
-								onClick={() =>
-									showToast('Regenerating summary via AI...', 'info')
-								}
+								onClick={regenerateSummary}
+								disabled={isRegenerating}
 							>
-								Regenerate with AI
+								{isRegenerating ? 'Regenerating...' : 'Regenerate with AI'}
 							</Button>
 						</div>
 					</div>
@@ -397,6 +428,15 @@ export default function SermonDetail() {
 								{sermon.videoLink.replace('https://', '')}
 							</a>
 						</span>
+
+						<span>
+							<button type="button" onClick={() => seekToTranscriptTime(15)}>
+								<p>
+									Click to Skip Video to 0:15 (This is to test video seeking)
+								</p>
+							</button>
+						</span>
+						<span></span>
 
 						<span className="SermonDetail-metadata-label">Transcript</span>
 						{/* Only say "Generated" if a transcript really exists.

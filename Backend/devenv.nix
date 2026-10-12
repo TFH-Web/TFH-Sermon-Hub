@@ -4,6 +4,7 @@
   ...
 }: let
   cwd = "${config.git.root}/Backend";
+  ollama-pkg = pkgs.ollama-rocm;
 in {
   languages.python = {
     enable = true;
@@ -17,11 +18,28 @@ in {
 
   packages = with pkgs; [
     sqlite
+    ollama-pkg
   ];
+
+  services.redis.enable = true;
+
+  # Send jobs to the devenv Redis instead of running them inline. Tests still run inline because conftest overrides it.
+  env.REDIS_URL = "redis://localhost:6379/0";
+
+  processes.ollama = {
+    exec = ''
+      ${ollama-pkg}/bin/ollama serve
+    '';
+  };
 
   processes.backend = {
     inherit cwd;
     exec = "./run.sh";
+  };
+
+  processes.worker = {
+    inherit cwd;
+    exec = "./worker.sh";
   };
 
   tasks = {

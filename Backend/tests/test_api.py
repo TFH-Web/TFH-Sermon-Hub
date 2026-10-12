@@ -98,7 +98,30 @@ def test_sermons(client, snapshot):
     for sermon in sermons:
         res = client.get(f"/api/sermons/{sermon.id}")
         res_sermon: Sermon = sermon_schema.loads(res.data)
-        assert res_sermon == sermon
+        assert sermons_schema.dump(res_sermon, many=False) == sermons_schema.dump(sermon, many=False)
+
+
+@pytest.mark.parametrize("suffix", ["", "?page=1&per_page=100"])
+def test_sermon_lists_omit_caption_text_but_detail_retains_it(client, suffix):
+    """Large saved captions stay out of both list formats and remain available on demand."""
+    from tsh.database import db
+    from tsh.models import Sermon
+
+    sermon = db.session.get(Sermon, 1)
+    transcript = "A long sermon caption. " * 2000
+    sermon.transcript = transcript
+    sermon.transcript_segments = [{"start": 1, "end": 2, "text": transcript}]
+    db.session.commit()
+    db.session.expire_all()
+
+    response = client.get("/api/sermons" + suffix)
+    assert response.status_code == 200
+    items = response.json["items"] if suffix else response.json
+    assert items
+    assert all("transcript" not in item and "transcriptSegments" not in item for item in items)
+    assert transcript not in response.get_data(as_text=True)
+    assert client.get("/api/sermons/1").json["transcript"] == transcript
+    assert client.get("/api/sermons/1/transcript").json["transcript"] == transcript
 
 
 def test_get_id_404(client: FlaskClient):

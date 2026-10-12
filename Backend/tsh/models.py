@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+import struct
 from datetime import date, datetime
 from enum import Enum
 
 from sqlalchemy import (
+    CHAR,
+    JSON,
     Column,
     FetchedValue,
     ForeignKey,
+    LargeBinary,
     String,
-    UniqueConstraint,
     Text,
+    TypeDecorator,
+    UniqueConstraint,
 )
 from sqlalchemy import (
     Enum as SAEnum,
@@ -18,22 +23,49 @@ from sqlalchemy.orm import Mapped, mapped_column, query_expression, relationship
 from sqlalchemy.util.typing import Annotated
 
 from tsh.database import db
+from tsh.transcripts import TranscriptSegment
 
 intpk = Annotated[int, mapped_column(primary_key=True, server_default=FetchedValue())]
 str32 = Annotated[str, mapped_column(String(32))]
 str64 = Annotated[str, mapped_column(String(64))]
 
 
+class Float32Vector(TypeDecorator):
+    """A list of floats stored as packed little-endian float32 bytes.
+
+    The sqlite-vec vec0 table stores vectors in this format and returns them as raw
+    bytes on read, so a JSON column type cannot decode them.
+    """
+
+    impl = LargeBinary
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        return struct.pack(f"<{len(value)}f", *value)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        return list(struct.unpack(f"<{len(value) // 4}f", value))
+
+
 class Series(db.Model):  # ty: ignore[unsupported-base]
     id: Mapped[intpk]
-    title: Mapped[str32] = mapped_column(unique=True)
+    # YouTube playlist names can be up to 150 chars
+    title: Mapped[str] = mapped_column(String(150), unique=True)
+    # The playlist this series was imported from. Playlists merged into one series keep the first one's id
+    youtube_playlist_id: Mapped[str | None] = mapped_column(
+        String(64), unique=True, default=None
+    )
 
 
 class Speaker(db.Model):  # ty: ignore[unsupported-base]
     id: Mapped[intpk]
     first_name: Mapped[str64]
     last_name: Mapped[str64]
-    role: Mapped[str64] = mapped_column(default='Guest Speaker')
+    role: Mapped[str64] = mapped_column(default="Guest Speaker")
     sermon_count: Mapped[int] = query_expression()
     __table_args__ = (UniqueConstraint("first_name", "last_name"),)
 
@@ -83,7 +115,8 @@ class UploadStatus(Enum):
 
 class Sermon(db.Model):  # ty: ignore[unsupported-base]
     id: Mapped[intpk]
-    title: Mapped[str64]
+    # YouTube video titles can be up to 100 chars, with room to spare
+    title: Mapped[str] = mapped_column(String(200))
     # Real video URLs and Spaces links are way longer than 32 chars
     video_link: Mapped[str] = mapped_column(Text)
     duration: Mapped[int]
@@ -115,3 +148,38 @@ class Sermon(db.Model):  # ty: ignore[unsupported-base]
     processing_error: Mapped[str | None] = mapped_column(Text, default=None)
     # When the worker finished processing
     processed_at: Mapped[datetime | None] = mapped_column(default=None)
+    # The YouTube video this sermon was imported from, so a re-run updates it instead of adding a copy
+    youtube_video_id: Mapped[str | None] = mapped_column(
+        String(16), unique=True, default=None
+    )
+    # Persist cue times so chunking can use them again after a worker restart or retry.
+    transcript_segments: Mapped[list[TranscriptSegment] | None] = mapped_column(
+        JSON, default=None, repr=False
+    )
+
+
+class SermonChunk(db.Model):  # ty: ignore[unsupported-base]
+    # A hash is unique only within its sermon, so two sermons with identical text each keep their chunk.
+    __table_args__ = (
+        UniqueConstraint("sermon_id", "hash", name="unique_sermon_chunk_hash"),
+    )
+
+    id: Mapped[intpk]
+    sermon_id: Mapped[int] = mapped_column(
+        ForeignKey(Sermon.id, onupdate="CASCADE", ondelete="CASCADE")
+    )
+    sermon: Mapped[Sermon] = relationship()
+    hash: Mapped[str] = mapped_column(CHAR(32))
+    text: Mapped[str] = mapped_column(Text())
+    start: Mapped[float]
+    end: Mapped[float]
+    stale: Mapped[bool] = mapped_column(default=False)
+
+
+class SermonChunkEmbedding(db.Model):  # ty: ignore[unsupported-base]
+    sermon_chunk_id: Mapped[int] = mapped_column(
+        ForeignKey(SermonChunk.id, onupdate="CASCADE", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    sermon_chunk: Mapped[SermonChunk] = relationship()
+    embedding: Mapped[list[float]] = mapped_column(Float32Vector())

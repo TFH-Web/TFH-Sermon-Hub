@@ -16,6 +16,40 @@ from tsh.models import Sermon
 from tsh.schemas import sermon_schema
 
 
+def test_caption_segments_round_trip_and_downgrade_keeps_text(migration_app):
+    """Caption times survive a new session; removing the column preserves transcript and tags."""
+    up.main()
+    with migration_app.app_context():
+        populate(migration_app)
+        sermon = db.session.get(Sermon, 1)
+        segments = [{"start": 0.24, "end": 3.429, "text": "Welcome to church."}]
+        sermon.transcript = "Welcome to church."
+        sermon.transcript_segments = segments
+        db.session.commit()
+        db.session.remove()
+        assert db.session.get(Sermon, 1).transcript_segments == segments
+        downgrade(directory=str(up.MIGRATIONS), revision="9ec1bf424e99")
+        with db.engine.connect() as connection:
+            assert (
+                connection.execute(
+                    text("SELECT transcript FROM sermon WHERE id=1")
+                ).scalar()
+                == "Welcome to church."
+            )
+            assert (
+                connection.execute(
+                    text("SELECT COUNT(*) FROM Sermon_Tag WHERE sermon_id=1")
+                ).scalar()
+                == 2
+            )
+        upgrade(directory=str(up.MIGRATIONS))
+        db.session.remove()
+        sermon = db.session.get(Sermon, 1)
+        assert sermon.transcript == "Welcome to church."
+        assert sermon.transcript_segments is None
+        assert len(sermon.tags) == 2
+
+
 @pytest.fixture()
 def migration_app(tmp_path, monkeypatch):
     app = create_app(
@@ -38,19 +72,23 @@ def seed_baseline(app, legacy=False):
     with app.app_context():
         upgrade(directory=str(up.MIGRATIONS), revision=up.BASELINE)
         with db.engine.begin() as connection:
-            connection.execute(text(
-                "INSERT INTO speaker (id, first_name, last_name, role) "
-                "VALUES (1, 'Test', 'Speaker', 'Guest Speaker')"
-            ))
+            connection.execute(
+                text(
+                    "INSERT INTO speaker (id, first_name, last_name, role) "
+                    "VALUES (1, 'Test', 'Speaker', 'Guest Speaker')"
+                )
+            )
             connection.execute(text("INSERT INTO series VALUES (1, 'Test series')"))
             connection.execute(text("INSERT INTO tag VALUES ('faith', 'MANUAL')"))
-            connection.execute(text(
-                "INSERT INTO sermon "
-                "(id, title, video_link, duration, date, description, transcript, "
-                "summary, speaker_id, series_id, status) VALUES "
-                "(1, 'Test sermon', 'https://youtu.be/test', 1200, '2026-01-01', "
-                "'Description', 'Transcript', 'Summary', 1, 1, 'PUBLISHED')"
-            ))
+            connection.execute(
+                text(
+                    "INSERT INTO sermon "
+                    "(id, title, video_link, duration, date, description, transcript, "
+                    "summary, speaker_id, series_id, status) VALUES "
+                    "(1, 'Test sermon', 'https://youtu.be/test', 1200, '2026-01-01', "
+                    "'Description', 'Transcript', 'Summary', 1, 1, 'PUBLISHED')"
+                )
+            )
             connection.execute(text("INSERT INTO Sermon_Tag VALUES (1, 'faith')"))
             if legacy:
                 connection.execute(text("DROP TABLE alembic_version"))
@@ -74,11 +112,31 @@ def assert_preserved(app):
             assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
 
 
+VEC_TABLE = "sermon_chunk_embedding"
+
+
+def _include_name(name, type_, parent_names):
+    if type_ == "table":
+        return name in db.metadata.tables and name != VEC_TABLE
+    return True
+
+
+def _include_object(obj, name, type_, reflected, compare_to):
+    return not (type_ == "table" and name == VEC_TABLE)
+
+
 def test_fresh_migrations_match_models_and_serve_seeded_data(migration_app):
     up.main()
     with migration_app.app_context():
         with db.engine.connect() as connection:
-            context = MigrationContext.configure(connection, opts={"compare_type": True})
+            context = MigrationContext.configure(
+                connection,
+                opts={
+                    "compare_type": True,
+                    "include_name": _include_name,
+                    "include_object": _include_object,
+                },
+            )
             assert compare_metadata(context, db.metadata) == []
         populate(migration_app)
         sermon = db.session.get(Sermon, 1)
@@ -96,7 +154,9 @@ def test_fresh_migrations_match_models_and_serve_seeded_data(migration_app):
     assert response.json["audioKey"] == "audio/1.mp3"
     assert response.json["processingError"] == "An error\nwith details"
     assert response.json["processedAt"] == "2026-10-01T12:30:00"
-    assert sermon_schema.load(response.json).processed_at == datetime(2026, 10, 1, 12, 30)
+    assert sermon_schema.load(response.json).processed_at == datetime(
+        2026, 10, 1, 12, 30
+    )
 
 
 @pytest.mark.parametrize("legacy", [True, False], ids=["create_all", "versioned"])
@@ -113,15 +173,15 @@ def test_downgrade_and_upgrade_preserve_relationships(migration_app):
     with migration_app.app_context():
         populate(migration_app)
         with db.engine.connect() as connection:
-            before = connection.execute(text(
-                "SELECT * FROM Sermon_Tag ORDER BY sermon_id, tag_name"
-            )).all()
+            before = connection.execute(
+                text("SELECT * FROM Sermon_Tag ORDER BY sermon_id, tag_name")
+            ).all()
         downgrade(directory=str(up.MIGRATIONS), revision=up.BASELINE)
         upgrade(directory=str(up.MIGRATIONS))
         with db.engine.connect() as connection:
-            after = connection.execute(text(
-                "SELECT * FROM Sermon_Tag ORDER BY sermon_id, tag_name"
-            )).all()
+            after = connection.execute(
+                text("SELECT * FROM Sermon_Tag ORDER BY sermon_id, tag_name")
+            ).all()
         assert after == before
 
 
@@ -149,12 +209,19 @@ def test_failed_upgrade_rolls_back_schema_data_and_version(migration_app, monkey
             upgrade(directory=str(up.MIGRATIONS))
 
     with migration_app.app_context(), db.engine.connect() as connection:
-        assert MigrationContext.configure(connection).get_current_revision() == up.BASELINE
-        columns = {column["name"]: column for column in inspect(connection).get_columns("sermon")}
+        assert (
+            MigrationContext.configure(connection).get_current_revision() == up.BASELINE
+        )
+        columns = {
+            column["name"]: column
+            for column in inspect(connection).get_columns("sermon")
+        }
         assert str(columns["video_link"]["type"]) == "VARCHAR(32)"
         assert "storage_key" not in columns
         assert "_alembic_tmp_sermon" not in inspect(connection).get_table_names()
-        assert connection.execute(text("SELECT * FROM Sermon_Tag")).all() == [(1, "faith")]
+        assert connection.execute(text("SELECT * FROM Sermon_Tag")).all() == [
+            (1, "faith")
+        ]
         assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar() == 1
 
     up.main()
