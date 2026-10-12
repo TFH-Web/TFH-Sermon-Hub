@@ -15,10 +15,6 @@ CHUNK_OVERLAP_PERCENT_MIN = int(os.environ.get("CHUNK_OVERLAP_PERCENT_MIN", "30"
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "nomic-embed-text")
 
 
-class NotTranscribedError(RuntimeError):
-    pass
-
-
 def chunk(sermon: Sermon, segments: list[TranscriptSegment]) -> list[SermonChunk]:
     return [
         SermonChunk(

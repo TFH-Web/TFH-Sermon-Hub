@@ -49,7 +49,7 @@ def fetch_transcript(sermon: Sermon) -> None:
 def embed_chunks(sermon: Sermon, reprocess: bool = False) -> None:
     """Chunk sermon.transcript_segments with source times and store embeddings. Placeholder until S6."""
     if not sermon.transcript_segments:
-        raise embeddings.NotTranscribedError
+        return
 
     if reprocess:
         statement = (
