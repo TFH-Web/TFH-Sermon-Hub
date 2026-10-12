@@ -84,7 +84,7 @@ def parse_vtt(document: str, *, rolling: bool = False) -> list[TranscriptSegment
                         break
         text = " ".join(clean_lines[repeated:])
         if text:
-            segments.append(TranscriptSegment(start, end, text))
+            segments.append({"start": start, "end": end, "text": text})
         previous_lines = clean_lines
         previous_end = end
 
