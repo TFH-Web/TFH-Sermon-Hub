@@ -154,7 +154,9 @@ class SermonSchema(CamelCaseSchema):
     processed_at = fields.DateTime(allow_none=True)
     youtube_video_id = fields.String(allow_none=True)
 
-    transcript_segment = fields.Nested(TranscriptSegmentSchema, many=True)
+    transcript_segments = fields.Nested(
+        TranscriptSegmentSchema, many=True, allow_none=True
+    )
 
     @post_load
     def make_sermon(self, data, **kwargs) -> Sermon:
@@ -167,7 +169,9 @@ class SermonSchema(CamelCaseSchema):
 
 
 sermon_schema = SermonSchema()
-sermons_schema = SermonSchema(many=True, exclude=("transcript",))
+sermons_schema = SermonSchema(
+    many=True, exclude=("transcript", "transcript_segments")
+)
 
 
 class SermonChunkSchema(CamelCaseSchema):

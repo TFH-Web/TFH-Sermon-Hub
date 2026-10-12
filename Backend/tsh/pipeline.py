@@ -1,11 +1,8 @@
 # Processing pipeline for a sermon: transcript, then embeddings, then summary.
-from tsh.schemas import transcript_segments_schema
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 
-import ollama
-from blake3 import blake3
 from flask import current_app
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.sqlite import insert

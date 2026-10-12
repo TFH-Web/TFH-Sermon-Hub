@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import struct
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime
 from enum import Enum
 
 from sqlalchemy import (

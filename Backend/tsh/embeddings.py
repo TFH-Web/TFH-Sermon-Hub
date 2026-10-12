@@ -51,7 +51,7 @@ def embed(sermon: Sermon) -> list[SermonChunkEmbedding]:
 
 
 def _chunk(segments: list[TranscriptSegment]) -> list[TranscriptSegment]:
-    segments.sort(key=lambda s: s["start"])
+    segments = sorted(segments, key=lambda s: s["start"])
 
     window = []
     window_len = 0
@@ -70,7 +70,8 @@ def _chunk(segments: list[TranscriptSegment]) -> list[TranscriptSegment]:
 
 
 def _shift_window(window: list[TranscriptSegment], window_len: int) -> int:
-    new_window_len = ceil(len(window) * CHUNK_OVERLAP_PERCENT_MIN / 100)
+    # Keep at least this share of the previous chunk's words as overlap.
+    new_window_len = ceil(window_len * CHUNK_OVERLAP_PERCENT_MIN / 100)
     while window_len - segment_length(window[0]) > new_window_len:
         chunk = window.pop(0)
         window_len -= segment_length(chunk)
