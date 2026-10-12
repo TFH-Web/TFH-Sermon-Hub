@@ -1,6 +1,9 @@
 import { Fragment, type MouseEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { AISearchVisibleResult } from '$/hooks/useAISearch';
+
+// Use the shared result type for cards displaying API search results.
+import type { AISearchVisibleResult } from '$/lib/aiSearch';
+
 import type { AISearchResultPreview } from '$/types/aiSearch';
 import './AISearchPreviewCard.css';
 
