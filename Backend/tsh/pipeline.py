@@ -10,6 +10,8 @@ from tsh.database import db
 from tsh.models import Sermon, UploadStatus
 from tsh.queue import enqueue
 from tsh.transcripts import transcript_text
+from tsh.summarize import summarize_transcript
+from tsh.tagging import save_ai_tags, suggest_tags
 
 
 def dummy_delay(sermon: Sermon) -> None:
@@ -43,7 +45,18 @@ def embed_chunks(sermon: Sermon) -> None:
 
 
 def summarize_sermon(sermon: Sermon) -> None:
-    """Write the AI summary for the sermon. Placeholder until S7."""
+    """Write the AI summary for the sermon. TFH-461
+    Neither commits: _run_step commits on success and rolls back on failure, so a 
+    sermon never keeps a summary whose tagging failed halfway through.
+
+    Does nothing without a transcript. fetch_transcript owns that failure and reports
+    it; raising here too would put a second error on every sermon it could not fetch.
+    """
+    if not sermon.transcript:
+        return
+    sermon.summary = summarize_transcript(sermon.transcript)
+    save_ai_tags(sermon, suggest_tags(sermon.summary))
+
 
 
 def start_processing(sermon: Sermon) -> None:
