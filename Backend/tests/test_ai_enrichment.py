@@ -67,8 +67,10 @@ def stub_transcript(monkeypatch):
 @pytest.mark.real_llm
 def test_unknown_provider_raises(monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "nonsense")
-    with pytest.raises(llm.LLMError):
+    with pytest.raises(llm.LLMError) as exc_info:
         llm.generate("hi")
+    # The message is the only hint an admin gets, so it must name every supported provider.
+    assert "ollama" in str(exc_info.value) and "anthropic" in str(exc_info.value)
 
 
 @pytest.mark.real_llm
@@ -133,6 +135,19 @@ def test_anthropic_empty_content_raises(monkeypatch):
         llm.generate("hi")
 
 
+@pytest.mark.real_llm
+def test_anthropic_non_text_first_block_raises(monkeypatch):
+    fake_anthropic(monkeypatch, content=[types.SimpleNamespace(type="tool_use", id="t1")])
+    with pytest.raises(llm.LLMError, match="tool_use block"):
+        llm.generate("hi")
+
+
+@pytest.mark.real_llm
+def test_anthropic_returns_stripped_text(monkeypatch):
+    fake_anthropic(monkeypatch, content=[types.SimpleNamespace(type="text", text="  A summary.\n")])
+    assert llm.generate("hi") == "A summary."
+
+
 class FakeResponse:
     def __init__(self, text="ok"):
         self._text = text
@@ -175,6 +190,30 @@ def test_json_mode_only_set_when_asked(monkeypatch):
     assert "format" not in sent["json"]
     llm.generate("hi", json_mode=True)
     assert sent["json"]["format"] == "json"
+
+
+class MalformedResponse:
+    """An Ollama reply that parses as JSON but is missing message.content."""
+
+    def __init__(self, body):
+        self._body = body
+
+    def raise_for_status(self):
+        pass
+
+    def json(self):
+        return self._body
+
+
+@pytest.mark.real_llm
+@pytest.mark.parametrize(
+    "body", [{}, {"message": {}}, {"message": None}, {"message": {"content": None}}, []]
+)
+def test_ollama_malformed_reply_raises_llm_error(monkeypatch, body):
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setattr(llm.requests, "post", lambda url, **kw: MalformedResponse(body))
+    with pytest.raises(llm.LLMError, match="unexpected reply"):
+        llm.generate("hi")
 
 
 def test_tag_suggestion_requests_json_mode(monkeypatch):

@@ -22,7 +22,7 @@ def generate (prompt: str, system: str = "", max_tokens: int = 1024, json_mode: 
         return _ollama(prompt, system, json_mode)
     if provider == "anthropic":
         return _anthropic(prompt, system, max_tokens)
-    raise LLMError(f"Unsupported LLM provider: {provider!r} (use 'ollama')")
+    raise LLMError(f"Unsupported LLM provider: {provider!r} (use 'ollama' or 'anthropic')")
 
 
 def _ollama(prompt: str, system: str = "", json_mode: bool = False) -> str:
@@ -44,9 +44,16 @@ def _ollama(prompt: str, system: str = "", json_mode: bool = False) -> str:
     try:
         r = requests.post(f"{url}/api/chat", json=payload, timeout=300)
         r.raise_for_status()
-        return r.json()["message"]["content"].strip()
+        content = r.json()["message"]["content"]
     except requests.RequestException as e:
         raise LLMError(f"Ollama request failed ({url}, model {model}): {e}") from e
+    except (KeyError, TypeError) as e:
+        # A proxy error page or an API change can return JSON without message.content.
+        # Callers only handle LLMError, so a bare KeyError would read as a code bug.
+        raise LLMError(f"Ollama returned an unexpected reply (model {model})") from e
+    if not isinstance(content, str):
+        raise LLMError(f"Ollama returned an unexpected reply (model {model})")
+    return content.strip()
 
 
 def _anthropic(prompt: str, system: str, max_tokens: int) -> str:
@@ -72,4 +79,8 @@ def _anthropic(prompt: str, system: str, max_tokens: int) -> str:
 
     if not msg.content:
         raise LLMError("Anthropic returned an empty response")
-    return msg.content[0].text.strip()
+    # The first block can be something other than text, such as a tool_use block, which has no .text.
+    block = msg.content[0]
+    if getattr(block, "type", None) != "text":
+        raise LLMError(f"Anthropic returned a {getattr(block, 'type', 'non-text')} block instead of text")
+    return block.text.strip()
