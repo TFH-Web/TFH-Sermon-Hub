@@ -17,6 +17,11 @@ logger = logging.getLogger("alembic.env")
 IGNORE_NAMES = ["env"]
 
 
+# sqlite-vec owns the vec0 virtual table and creates its shadow tables itself,
+# so autogenerate must not try to create, alter, or drop any of them.
+VEC_TABLE = "sermon_chunk_embedding"
+
+
 def include_object(
     object: SchemaItem,
     name: str | None,
@@ -24,15 +29,10 @@ def include_object(
     reflected: bool,
     _compare_to: SchemaItem | None,
 ) -> bool:
-    if type_ == "table":
-        return (
-            not reflected
-            and object.info.get("skip_autogenerate", False)
-            or name != None
-            and "_embedding" in name
-        )
-    else:
+    """Return False for the sqlite-vec table and its shadow tables, True otherwise."""
+    if type_ != "table" or name is None:
         return True
+    return name != VEC_TABLE and not name.startswith(VEC_TABLE + "_")
 
 
 def get_engine():
@@ -147,9 +147,7 @@ def run_migrations_online():
             context.configure(
                 connection=connection,
                 target_metadata=target_metadata,
-                include_name=lambda name, type_, parent_names: include_name(
-                    target_metadata, name, type_, parent_names
-                ),
+                include_object=include_object,
                 **conf_args,
             )
 
