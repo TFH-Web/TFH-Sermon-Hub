@@ -14,7 +14,7 @@ import pytest
 
 from tsh import llm, pipeline, summarize, tagging
 from tsh.database import db
-from tsh.models import Sermon, Speaker, Tag, TagSource, UploadStatus
+from tsh.models import Sermon, Speaker, Tag, TagSource, UploadStatus, sermon_tag_m2m
 
 # Names populate() does not seed, so these tests never collide with it.
 NEW_TAG = "covenant"
@@ -249,6 +249,26 @@ def test_suggest_dedupes_case_variants(monkeypatch):
 def test_suggest_survives_unusable_model_output(monkeypatch):
     monkeypatch.setattr(llm, "generate", lambda p, system="", **kw: "I'm sorry, I can't do that.")
     assert tagging.suggest_tags("summary", existing=["faith"]) == []
+
+
+def test_suggest_on_fresh_database_allows_more_than_two_new_tags(app, monkeypatch):
+    """With no tags in the database yet, the two new tag cap does not apply, so the first sermons get a full set."""
+    seen = {}
+
+    def fake(prompt, system="", **kw):
+        seen["prompt"] = prompt
+        return '{"tags": ["covenant", "sabbath", "mercy", "worship"]}'
+
+    monkeypatch.setattr(llm, "generate", fake)
+    with app.app_context():
+        db.session.execute(sermon_tag_m2m.delete())
+        db.session.execute(db.delete(Tag))
+        db.session.commit()
+
+        result = tagging.suggest_tags("summary")
+
+    assert result == ["covenant", "sabbath", "mercy", "worship"]
+    assert "Allowed tags" not in seen["prompt"]
 
 
 def test_get_existing_tag_names_reads_the_db(app):
