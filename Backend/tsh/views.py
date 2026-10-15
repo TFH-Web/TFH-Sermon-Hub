@@ -239,7 +239,7 @@ def get_sermons():
 
                                                                                 # Post Sermon
 @api.post("/sermons")
-@require_role("Internal User", "Admin")
+@require_role("Admin")
 def create_sermon():
     """Create a new sermon from validated data and existing related records."""
     payload = request.get_json(silent=True)
@@ -641,7 +641,7 @@ def health():
 
 
 @api.get("/whoami")
-@require_role("Internal User")
+@require_role("Internal User", "Admin")
 def whoami():
     return jsonify({"roles": g.current_user_role})
 

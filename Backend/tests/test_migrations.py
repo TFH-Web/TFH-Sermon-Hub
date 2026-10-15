@@ -56,6 +56,7 @@ def migration_app(tmp_path, monkeypatch):
         config_path="",
         settings={
             "TESTING": True,
+            "AUTH_TEST_BYPASS": True,
             "SQLALCHEMY_DATABASE_URI": f"sqlite:///{(tmp_path / 'migration.db').as_posix()}",
         },
     )
