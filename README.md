@@ -16,6 +16,9 @@
 
 ## Overview
 
+Staff sign-in, API scope/role configuration and security verification are documented
+in [docs/authentication.md](docs/authentication.md).
+
 TFH Sermon Hub is an internal web application built for The Father's House church staff to organize, manage, and explore their sermon library. The platform provides a rich dashboard for tracking sermon content, a speaker and series management system, and AI-powered tools that allow staff to search across transcripts using natural language and have contextual conversations about specific sermons.
 
 ---
