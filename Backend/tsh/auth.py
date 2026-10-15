@@ -78,7 +78,10 @@ def parse_role_from_token():
         g.current_user_role = (
             [canonical_role(role) for role in roles] if scope in scopes.split() else []
         )
-    except (jwt.PyJWTError, ValueError, TypeError):
+    # PyJWT only wraps some network errors from the JWKS fetch. A connection reset or a TLS
+    # error while reading the key set arrives as a plain OSError, so it is caught here too.
+    # An identity provider outage then looks like any other failed sign-in, not a server crash.
+    except (jwt.PyJWTError, ValueError, TypeError, OSError):
         # Never return/log bearer tokens or identity-provider exception details.
         g.current_user_role = None
 

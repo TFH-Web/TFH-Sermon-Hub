@@ -1,6 +1,9 @@
 """Real JWT validation with a local JWKS, not a token-decoder bypass."""
 
+import ssl
 import time
+import urllib.error
+import urllib.request
 from types import SimpleNamespace
 
 import jwt
@@ -121,6 +124,29 @@ def test_wrong_signature(signed_client):
         "/api/whoami", headers={"Authorization": f"Bearer {token(other_key)}"}
     )
     assert response.status_code == 401
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        ConnectionResetError("jwks-outage-detail"),
+        ssl.SSLError("jwks-outage-detail"),
+        urllib.error.URLError("jwks-outage-detail"),
+    ],
+)
+def test_jwks_outage_is_unauthorized(signed_client, private_key, monkeypatch, error):
+    # Use the real PyJWT key fetch again, but make the network call itself fail.
+    monkeypatch.delattr(signed_client.application.extensions["entra_jwks"], "fetch_data")
+
+    def fail(*args, **kwargs):
+        raise error
+
+    monkeypatch.setattr(urllib.request.OpenerDirector, "open", fail)
+    response = signed_client.get(
+        "/api/whoami", headers={"Authorization": f"Bearer {token(private_key)}"}
+    )
+    assert response.status_code == 401
+    assert "jwks-outage-detail" not in response.get_data(as_text=True)
 
 
 def test_test_headers_ignored_outside_testing(signed_client):
