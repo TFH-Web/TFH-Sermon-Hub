@@ -1,23 +1,21 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useState } from 'react';
-import Button from '$/components/Button';
 import ErrorBox from '$/components/ErrorBox';
 import { InfoBanner } from '$/components/InfoBanner';
 import Loading from '$/components/Loading';
 import MainLayout from '$/components/MainLayout';
-import Modal from '$/components/Modal';
 import Pagination from '$/components/Pagination';
 import Tag from '$/components/Tag';
-import { useToast } from '$/components/ToastContext';
 import AddTagModal from '$/modals/AddTagModal';
+import DeleteTagModal from '$/modals/DeleteTagModal';
+import EditTagModal from '$/modals/EditTagModal';
 import './TagsAndMetadata.css';
 import { type CountedTag, PaginatedTags } from '$/types/tag';
 
 const PAGE_SIZE = 5;
 
 export default function TagsAndMetadata() {
-	const { showToast } = useToast();
 	const [page, setPage] = useState<number>(1);
 
 	const tagsQuery = useQuery({
@@ -50,14 +48,6 @@ export default function TagsAndMetadata() {
 	const closeModal = () => {
 		setActiveModal(null);
 		setSelectedTag(null);
-	};
-
-	const handleDelete = () => {
-		if (!selectedTag) return;
-
-		// TODO: call DELETE /api/tags/:name and invalidate ['tags'] and ['paginated-tags']
-		showToast('Tag deleted', 'success');
-		closeModal();
 	};
 
 	if (tagsQuery.isError) {
@@ -156,22 +146,18 @@ export default function TagsAndMetadata() {
 				/>
 
 				{/* Delete Modal */}
-				{activeModal === 'delete' && selectedTag && (
-					<Modal isOpen onClose={closeModal} title="Delete Tag">
-						<p>Are you sure you want to delete "{selectedTag.name}"?</p>
+				<DeleteTagModal
+					isOpen={activeModal === 'delete'}
+					onClose={closeModal}
+					tag={selectedTag}
+				/>
 
-						<div
-							style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}
-						>
-							<Button variant="secondary" onClick={closeModal}>
-								Cancel
-							</Button>
-							<Button variant="primary" onClick={handleDelete}>
-								Delete
-							</Button>
-						</div>
-					</Modal>
-				)}
+				{/* Edit Modal */}
+				<EditTagModal
+					isOpen={activeModal === 'edit'}
+					onClose={closeModal}
+					tag={selectedTag}
+				/>
 			</div>
 
 			<AddTagModal isOpen={addTagOpen} onClose={() => setAddTagOpen(false)} />
