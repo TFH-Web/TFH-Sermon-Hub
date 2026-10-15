@@ -40,3 +40,39 @@ def test_public_routes_stay_public(client: FlaskClient):
     for route in ["/api/", "/api/health"]:
         response = client.get(route, headers={"X-Test-Roles": "none"})
         assert response.status_code == 200, f"Public route {route} did not stay public"
+
+
+# Tag mutations are Admin-only, unlike the reads in PROTECTED_ROUTES, so Internal User
+# must get 403 here even though it gets 200 on GET /api/tags.
+MUTATING_TAG_ROUTES = [
+    ("POST", "/api/tags", {"name": "a-test-tag"}, 201),
+    ("PATCH", "/api/tags/grace", {"newName": "a-renamed-tag"}, 200),
+    ("DELETE", "/api/tags/life", None, 204),
+]
+
+
+def _open(client: FlaskClient, method: str, route: str, body, **kwargs):
+    extra = {"json": body} if body is not None else {}
+    return client.open(route, method=method, headers=kwargs.get("headers"), **extra)
+
+
+def test_tag_mutations_require_token(client: FlaskClient):
+    for method, route, body, _ in MUTATING_TAG_ROUTES:
+        response = _open(client, method, route, body, headers={"X-Test-Roles": "none"})
+        assert response.status_code == 401, f"{method} {route} did not return 401 for missing token"
+        assert response.is_json
+        assert "error" in response.json
+
+
+def test_tag_mutations_reject_non_admin(client: FlaskClient):
+    for method, route, body, _ in MUTATING_TAG_ROUTES:
+        response = _open(client, method, route, body, headers={"X-Test-Roles": "Internal User"})
+        assert response.status_code == 403, f"{method} {route} did not return 403 for Internal User"
+        assert response.is_json
+        assert "error" in response.json
+
+
+def test_tag_mutations_allow_admin(client: FlaskClient):
+    for method, route, body, expected_status in MUTATING_TAG_ROUTES:
+        response = _open(client, method, route, body, headers={"X-Test-Roles": "Admin"})
+        assert response.status_code == expected_status, f"{method} {route} did not allow Admin"
