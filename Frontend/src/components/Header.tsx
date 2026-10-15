@@ -4,6 +4,7 @@ import { Icon } from '@iconify-icon/react';
 import clsx from 'clsx';
 import { type FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useIsAdmin } from '$/lib/auth';
 import { useSidebar } from '$/lib/sidebar';
 import UploadSermonModal from '$/modals/UploadSermonModal';
 
@@ -19,6 +20,7 @@ export default function Header({
 	const navigate = useNavigate();
 	const [query, setQuery] = useState('');
 	const [uploadOpen, setUploadOpen] = useState(false);
+	const isAdmin = useIsAdmin();
 
 	function handleSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
@@ -68,14 +70,16 @@ export default function Header({
 					</button>
 				</form>
 
-				<button
-					type="button"
-					className="Header-upload u-button"
-					onClick={() => setUploadOpen(true)}
-				>
-					<Icon icon="lucide:plus" />
-					<p className="Header-uploadText">Upload</p>
-				</button>
+				{isAdmin && (
+					<button
+						type="button"
+						className="Header-upload u-button"
+						onClick={() => setUploadOpen(true)}
+					>
+						<Icon icon="lucide:plus" />
+						<p className="Header-uploadText">Upload</p>
+					</button>
+				)}
 			</div>
 
 			<UploadSermonModal

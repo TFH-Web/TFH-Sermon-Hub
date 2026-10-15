@@ -1,7 +1,6 @@
 import type { AccountInfo } from '@azure/msal-browser';
-import { useMsal } from '@azure/msal-react';
 import MurmurHash3 from 'imurmurhash';
-import { testUsers } from '$/data/users';
+import { isAuthTestMode, useAuth } from '$/lib/auth';
 
 export type Role = 'Admin' | 'User';
 
@@ -14,10 +13,7 @@ export interface User {
 	lastActive: Date;
 }
 
-const isE2ETestMode = import.meta.env.VITE_E2E_TEST === 'true';
-
-function userFromAccount(account: AccountInfo): User {
-	const claims = account.idTokenClaims as { roles?: string[] } | undefined;
+export function userFromAccount(account: AccountInfo, roles: string[]): User {
 	const fullName = account.name?.trim() || account.username;
 	const [firstName, ...rest] = fullName.split(' ');
 
@@ -26,23 +22,25 @@ function userFromAccount(account: AccountInfo): User {
 		firstName: firstName || fullName,
 		lastName: rest.join(' '),
 		email: account.username,
-		role: claims?.roles?.includes('Admin') ? 'Admin' : 'User',
+		role: roles.includes('Admin') ? 'Admin' : 'User',
 		lastActive: new Date(),
 	};
 }
 
 export function useUser(): User {
-	const { accounts } = useMsal();
-	const account = accounts[0];
-
-	if (!account) {
-		if (!isE2ETestMode) {
-			console.warn('useUser(): no signed in MSAL account, using demo user');
-		}
-		return testUsers[0];
-	}
-
-	return userFromAccount(account);
+	const { account, roles, status } = useAuth();
+	if (isAuthTestMode)
+		return {
+			id: 'e2e',
+			firstName: 'Test',
+			lastName: 'Admin',
+			email: 'test@example.invalid',
+			role: 'Admin',
+			lastActive: new Date(),
+		};
+	if (!account || status !== 'ready')
+		throw new Error('A verified staff session is required');
+	return userFromAccount(account, roles);
 }
 
 export function getFullName(user: User): string {
@@ -50,8 +48,8 @@ export function getFullName(user: User): string {
 }
 
 export function getInitials(user: User): string {
-	const firstInitial = user.firstName[0];
-	const lastInitial = user.lastName[0];
+	const firstInitial = user.firstName[0] ?? '';
+	const lastInitial = user.lastName[0] ?? '';
 	const initials = `${firstInitial.toUpperCase()}${lastInitial.toUpperCase()}`;
 	return initials;
 }
