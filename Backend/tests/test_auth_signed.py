@@ -118,6 +118,49 @@ def test_missing_or_malformed_token(signed_client, authorization):
     assert response.json["error"] == response.json["message"]
 
 
+def test_lowercase_bearer_scheme_is_accepted(signed_client, private_key):
+    # The auth scheme is case-insensitive (RFC 9110), so a valid token still works.
+    response = signed_client.get(
+        "/api/whoami", headers={"Authorization": f"bearer {token(private_key)}"}
+    )
+    assert response.status_code == 200
+
+
+def test_unsigned_alg_none_token_is_rejected(signed_client):
+    now = int(time.time())
+    unsigned = jwt.encode(
+        {
+            "iss": "https://login.microsoftonline.com/test-tenant/v2.0",
+            "aud": "test-api",
+            "tid": "test-tenant",
+            "ver": "2.0",
+            "iat": now,
+            "nbf": now,
+            "exp": now + 300,
+            "scp": "access_as_user",
+            "roles": ["Admin"],
+        },
+        None,
+        algorithm="none",
+        headers={"kid": "test-key"},
+    )
+    response = signed_client.get(
+        "/api/whoami", headers={"Authorization": f"Bearer {unsigned}"}
+    )
+    assert response.status_code == 401
+
+
+def test_required_scope_among_several_is_accepted(signed_client, private_key):
+    # Entra lists every granted delegated scope in one space-separated scp claim.
+    response = signed_client.get(
+        "/api/whoami",
+        headers={
+            "Authorization": f"Bearer {token(private_key, scp='openid profile access_as_user')}"
+        },
+    )
+    assert response.status_code == 200
+
+
 def test_wrong_signature(signed_client):
     other_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     response = signed_client.get(
@@ -136,7 +179,9 @@ def test_wrong_signature(signed_client):
 )
 def test_jwks_outage_is_unauthorized(signed_client, private_key, monkeypatch, error):
     # Use the real PyJWT key fetch again, but make the network call itself fail.
-    monkeypatch.delattr(signed_client.application.extensions["entra_jwks"], "fetch_data")
+    monkeypatch.delattr(
+        signed_client.application.extensions["entra_jwks"], "fetch_data"
+    )
 
     def fail(*args, **kwargs):
         raise error
