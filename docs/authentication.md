@@ -6,28 +6,65 @@ after Flask verifies the token, not from a demo user or an unverified role claim
 
 ## Entra configuration required before staging verification
 
-1. On the API app registration, expose a delegated scope named `access_as_user`
-   under its Application ID URI (normally `api://<API_CLIENT_ID>`). Set the API
-   manifest's `api.requestedAccessTokenVersion` to `2`.
-2. On the SPA registration, add that delegated API permission and grant the
-   required consent. Register the exact local/staging/production SPA redirect
-   URIs. A shared SPA/API registration is supported, but separate registrations
-   must use the API client ID for the backend audience, not the SPA ID.
-3. Define/assign the API app roles `Admin` and `InternalUser` (the existing
-   `Internal User` spelling is also accepted). Ensure those assignments appear
-   on **API access tokens**. Do not authorize by email domain alone.
-4. Configure matching non-secret values:
+Sermon Hub uses one app registration for both the SPA and the API:
+
+- Tenant ID: `bbd486c4-7835-4ba2-9df4-907a25b4b46c`
+- Application (client) ID: `f8108595-ffa8-4c94-957f-b92b006da038`
+
+Do these steps in the Entra admin center (Identity > Applications > App
+registrations > Sermon Hub) with an account that can grant admin consent. Until
+they are done, every API call returns 401 or 403, so finish them before this
+change reaches `dev`.
+
+1. **Expose an API.** Set the Application ID URI to
+   `api://f8108595-ffa8-4c94-957f-b92b006da038`. Add a scope named
+   `access_as_user`, with "Who can consent" set to "Admins and users" and the
+   state set to Enabled.
+2. **Manifest.** Set `api.requestedAccessTokenVersion` to `2` and save. Without
+   this, Entra issues v1 access tokens and the backend rejects every one of them
+   with 401.
+3. **API permissions.** Add a permission > My APIs > Sermon Hub > Delegated >
+   `access_as_user`. Then select "Grant admin consent" for the tenant, and check
+   that the status column shows it as granted.
+4. **App roles.** Make sure two roles exist, both allowed for "Users/Groups":
+   `Admin` (can read, edit, delete, import and reprocess) and `InternalUser`
+   (read only). The older `Internal User` value is also accepted.
+5. **Assign roles.** In Enterprise applications > Sermon Hub > Users and groups,
+   assign `Admin` to the staff who manage sermons and a role to every teammate
+   who tests the app. An account with no role signs in but only sees the "no
+   staff role" message. Do not authorize by email domain alone.
+6. **Redirect URIs.** Under Authentication > Single-page application, register
+   each site's root URL exactly, with the trailing slash:
+   - `http://localhost:5173/` for local development
+   - the staging site's root URL, once staging has a domain
+   - `https://sermonhub.tfh.org/` for production
+
+   Each deployment sets `VITE_REDIRECT_URI` to its own entry from this list.
+
+Each teammate then adds the scope to their local env files. A fresh copy of the
+`.env.example` files already has these lines:
+
+- `Frontend/.env`: `VITE_API_SCOPE=api://f8108595-ffa8-4c94-957f-b92b006da038/access_as_user`
+- `Backend/.env`: `ENTRA_API_AUDIENCE=f8108595-ffa8-4c94-957f-b92b006da038` and
+  `ENTRA_API_SCOPE=access_as_user`. Both are optional, because the defaults
+  (`CLIENT_ID` and `access_as_user`) already match.
+
+All settings involved:
 
 | Setting | Meaning |
 | --- | --- |
 | Backend `TENANT_ID` | The single authorized Entra tenant |
 | Backend `ENTRA_API_AUDIENCE` | API client ID, the v2 token's `aud`; falls back to existing `CLIENT_ID` |
 | Backend `ENTRA_API_SCOPE` | Required `scp` entry, default `access_as_user` |
-| Frontend `VITE_CLIENT_ID` | SPA client ID |
+| Frontend `VITE_CLIENT_ID` | SPA client ID (the same registration) |
 | Frontend `VITE_TENANT_ID` | Same tenant as the backend |
-| Frontend `VITE_API_SCOPE` | Full exposed scope, e.g. `api://<API_CLIENT_ID>/access_as_user` |
-| Frontend `VITE_REDIRECT_URI` | Exact registered SPA redirect URI |
+| Frontend `VITE_API_SCOPE` | `api://f8108595-ffa8-4c94-957f-b92b006da038/access_as_user` |
+| Frontend `VITE_REDIRECT_URI` | This site's registered redirect URI from step 6 |
 | Frontend `VITE_API_BASE_URL` | API origin, or `/` / unset behind same-origin NGINX |
+
+If the API is ever split into its own app registration, expose the scope there,
+add the permission on the SPA registration, and set `ENTRA_API_AUDIENCE` to the
+API's client ID, not the SPA's.
 
 Never put a client secret, refresh token, or other credential in `VITE_*` values:
 Vite embeds them in public JavaScript. The SPA is a public client and needs no
