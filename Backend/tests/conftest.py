@@ -45,9 +45,10 @@ def pytest_configure(config):
 @pytest.fixture()
 def app():
     app = create_app(
-        "testing.cfg",
+        None,
         settings={
             "TESTING": True,
+            "AUTH_TEST_BYPASS": True,
             "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
             # Always run jobs inline, even when .env or devenv sets REDIS_URL for the whole shell.
             "REDIS_URL": "",

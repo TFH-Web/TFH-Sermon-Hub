@@ -14,6 +14,7 @@ import MainLayout from '$/components/MainLayout';
 import SermonTranscript from '$/components/SermonTranscript';
 import Tag from '$/components/Tag.tsx';
 import { useToast } from '$/components/ToastContext.tsx';
+import { useIsAdmin } from '$/lib/auth';
 import DeleteSermonModal from '$/modals/DeleteSermonModal.tsx';
 import EditSermonModal from '$/modals/EditSermonModal.tsx';
 import { durationToString, Sermon } from '$/types/sermon';
@@ -34,6 +35,7 @@ function isNotFound(error: unknown): boolean {
 }
 
 export default function SermonDetail() {
+	const isAdmin = useIsAdmin();
 	const { showToast } = useToast(); // let's up pop up a little message at the corner of the screen
 
 	const [_summary, setSummary] = useState<string | null>(null); // Starts as nothing. It only holds text once the user types their own summary.
@@ -307,12 +309,14 @@ export default function SermonDetail() {
 								</a>
 								<Button
 									variant="secondary"
+									disabled={!isAdmin}
 									onClick={() => setEditSermonOpen(true)}
 								>
 									Edit
 								</Button>
 								<Button
 									variant="danger"
+									disabled={!isAdmin}
 									onClick={() => setDeleteSermonOpen(true)}
 								>
 									Delete
@@ -333,7 +337,7 @@ export default function SermonDetail() {
 								variant="ghost"
 								className="SermonDetail-regenerate-btn"
 								onClick={regenerateSummary}
-								disabled={isRegenerating}
+								disabled={!isAdmin || isRegenerating}
 							>
 								{isRegenerating ? 'Regenerating...' : 'Regenerate with AI'}
 							</Button>
@@ -359,6 +363,7 @@ export default function SermonDetail() {
 								<Button
 									variant="secondary"
 									className="SermonDetail-summary-btn"
+									disabled={!isAdmin}
 									onClick={() => setIsEditingSummary(false)}
 								>
 									Edit Summary Manually
@@ -373,6 +378,7 @@ export default function SermonDetail() {
 							<Button
 								variant="secondary"
 								className="SermonDetail-summary-btn"
+								disabled={!isAdmin}
 								onClick={() => setIsEditingSummary(true)}
 							>
 								Edit Summary Manually
