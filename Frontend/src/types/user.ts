@@ -27,7 +27,10 @@ export function userFromAccount(account: AccountInfo, roles: string[]): User {
 	};
 }
 
-export function useUser(): User {
+// Returns null instead of throwing when there is no verified session. Some components
+// (such as the route error fallback's sidebar) stay mounted for a moment after a token
+// expires or the user signs out, and a throw there has no error boundary above it.
+export function useUser(): User | null {
 	const { account, roles, status } = useAuth();
 	if (isAuthTestMode)
 		return {
@@ -38,8 +41,7 @@ export function useUser(): User {
 			role: 'Admin',
 			lastActive: new Date(),
 		};
-	if (!account || status !== 'ready')
-		throw new Error('A verified staff session is required');
+	if (!account || status !== 'ready') return null;
 	return userFromAccount(account, roles);
 }
 

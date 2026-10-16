@@ -6,21 +6,18 @@ import {
 	QueryCache,
 	QueryClient,
 	QueryClientProvider,
-	QueryErrorResetBoundary,
 } from '@tanstack/react-query';
 import axios from 'axios';
 import { type PropsWithChildren, StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ErrorBoundary } from 'react-error-boundary';
-import { BrowserRouter, Route, Routes, useLocation } from 'react-router';
+import { BrowserRouter, Route, Routes } from 'react-router';
 import AIChat from './AIChat.tsx';
 import AISearch from './AISearch.tsx';
 import AISearchResults from './AISearchResults.tsx';
 import { apiScopes, msalInstance } from './authConfig';
 import AuthSession from './components/AuthSession';
-import ErrorBox from './components/ErrorBox.tsx';
-import MainLayout from './components/MainLayout.tsx';
 import ProtectedRoute from './components/ProtectedRoute';
+import RouteErrorBoundary from './components/RouteErrorBoundary';
 import { ToastProvider, useToast } from './components/ToastContext';
 import Dashboard from './Dashboard.tsx';
 import LoginPage from './LoginPage.tsx';
@@ -49,34 +46,6 @@ function AppQueryProvider({ children }: PropsWithChildren) {
 	);
 	return (
 		<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-	);
-}
-
-// Catches anything a page throws so the whole app doesn't go blank.
-// The old one never reset, so once one page broke, every page showed "Error!" until you refreshed.
-// resetKeys clears it every time the route changes, so leaving a broken page fixes it.
-// QueryErrorResetBoundary makes Retry actually refetch, not just re-render the same error.
-function RouteErrorBoundary({ children }: PropsWithChildren) {
-	const location = useLocation();
-	return (
-		<QueryErrorResetBoundary>
-			{({ reset }) => (
-				<ErrorBoundary
-					resetKeys={[location.pathname]}
-					onReset={reset}
-					fallbackRender={({ resetErrorBoundary }) => (
-						<MainLayout title="Error">
-							<ErrorBox
-								message="Something broke on this page."
-								onRetry={resetErrorBoundary}
-							/>
-						</MainLayout>
-					)}
-				>
-					{children}
-				</ErrorBoundary>
-			)}
-		</QueryErrorResetBoundary>
 	);
 }
 
