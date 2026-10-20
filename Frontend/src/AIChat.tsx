@@ -36,8 +36,9 @@ const prompts = [
 const MAX_HISTORY_TURNS = 6;
 
 function formatDuration(seconds: number) {
-	const m = Math.floor(seconds / 60);
-	const s = seconds % 60;
+	const whole = Math.floor(seconds);
+	const m = Math.floor(whole / 60);
+	const s = whole % 60;
 	return `${m}:${String(s).padStart(2, '0')}`;
 }
 
