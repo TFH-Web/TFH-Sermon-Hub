@@ -195,9 +195,21 @@ test('queued completion refreshes the transcript after the sermon status changes
 	).toBeEnabled();
 });
 
-// Replace YouTube with a controlled player for these tests.
-async function mockVideoPlayer(page: Page) {
-	await page.addInitScript(() => {
+// Use a controlled player without making real YouTube requests.
+async function mockVideoPlayer(page: Page, autoReady = true) {
+	await page.addInitScript(autoReady => {
+		let canStart = autoReady;
+		const waiting: Array<() => void> = [];
+
+		// Let a test decide when the player finishes loading.
+		window.addEventListener('test-player-ready', () => {
+			canStart = true;
+
+			for (const ready of waiting.splice(0)) {
+				ready();
+			}
+		});
+
 		Object.assign(window, {
 			YT: {
 				Player: class {
@@ -211,22 +223,33 @@ async function mockVideoPlayer(page: Page) {
 							};
 							events: {
 								onReady: (event: { target: unknown }) => void;
+								onError?: (event: { target: unknown; data: number }) => void;
 							};
 						},
 					) {
 						this.iframe = document.createElement('iframe');
-						// Keep a stable identifier even when the component changes the title.
 						this.iframe.dataset.testid = 'test-video-player';
-						// Record the starting position supplied when creating the player.
+
+						// Record the initial position supplied by the page.
 						this.iframe.dataset.startTime = String(
 							options.playerVars?.start ?? 0,
 						);
 						container.replaceChildren(this.iframe);
+						// Let tests simulate an unavailable video.
+						this.iframe.addEventListener('test-player-error', () => {
+							options.events.onError?.({ target: this, data: 100 });
+						});
 
-						// Let the page finish registering its player callbacks.
-						setTimeout(() => {
+						const ready = () => {
 							options.events.onReady({ target: this });
-						}, 0);
+						};
+
+						// Automatically load, or wait for the test's signal.
+						if (canStart) {
+							setTimeout(ready, 0);
+						} else {
+							waiting.push(ready);
+						}
 					}
 
 					getIframe() {
@@ -234,12 +257,11 @@ async function mockVideoPlayer(page: Page) {
 					}
 
 					seekTo(seconds: number) {
-						// Record the exact timestamp requested by the page.
+						// Record the exact requested timestamp.
 						this.iframe.dataset.seekTime = String(seconds);
 					}
 
 					playVideo() {
-						// Record that playback was requested.
 						this.iframe.dataset.playing = 'true';
 					}
 
@@ -249,7 +271,7 @@ async function mockVideoPlayer(page: Page) {
 				},
 			},
 		});
-	});
+	}, autoReady);
 }
 
 // Check mouse and keyboard activation using the same caption data.
@@ -374,6 +396,150 @@ test('switching sermons clears the previous source timestamp', async ({
 	await expect(player).toHaveAttribute('title', secondSermon.title);
 
 	// The old sermon's requested timestamp must not carry over.
+	await expect(player).toHaveAttribute('data-start-time', '0');
+	await expect(player).not.toHaveAttribute('data-seek-time');
+});
+
+test('the latest timestamp click waits until the player is ready', async ({
+	page,
+}) => {
+	// Keep the player loading while the user selects timestamps.
+	await mockVideoPlayer(page, false);
+	await captionRoutes(page);
+	await page.goto('/sermons/1');
+
+	const player = page.getByTestId('test-video-player');
+	await expect(player).toBeVisible();
+
+	await page.getByRole('button', { name: 'Timestamps', exact: true }).click();
+
+	// A later click should replace the earlier waiting timestamp.
+	await page.getByRole('link', { name: 'Watch from 0:01' }).click();
+	await page.getByRole('link', { name: 'Watch from 0:03' }).click();
+
+	await expect(player).not.toHaveAttribute('data-seek-time');
+	expect(page.context().pages()).toHaveLength(1);
+
+	// Finish loading and check that the latest exact timestamp is used.
+	await page.evaluate(() => {
+		window.dispatchEvent(new Event('test-player-ready'));
+	});
+
+	await expect(player).toHaveAttribute('data-seek-time', '3.5');
+	await expect(player).toHaveAttribute('data-playing', 'true');
+});
+
+// Provide another sermon for player-reset tests.
+async function captionRoutesWithSecondSermon(page: Page) {
+	const state = await captionRoutes(page);
+	const secondSermon = {
+		...state.sermon,
+		id: 2,
+		title: 'Second timestamp test sermon',
+	};
+
+	await page.route('**/api/sermons/2', route =>
+		route.fulfill({ json: secondSermon }),
+	);
+
+	await page.route('**/api/sermons/2/transcript', route =>
+		route.fulfill({
+			json: {
+				transcript: secondSermon.transcript,
+				segments: state.segments,
+			},
+		}),
+	);
+
+	return secondSermon;
+}
+
+test('unavailable videos retain the external fallback and errors reset on navigation', async ({
+	page,
+	context,
+}) => {
+	await mockVideoPlayer(page);
+	const secondSermon = await captionRoutesWithSecondSermon(page);
+
+	// Keep the external-link check independent of YouTube availability.
+	await context.route('https://www.youtube.com/watch?**', route =>
+		route.fulfill({
+			contentType: 'text/html',
+			body: '<html><title>Source video fallback</title></html>',
+		}),
+	);
+
+	await page.goto('/sermons/1');
+	const player = page.getByTestId('test-video-player');
+
+	// Wait for the current player before simulating its failure.
+	await expect(player).toHaveAttribute('title', 'Caption test sermon');
+	await player.dispatchEvent('test-player-error');
+
+	const errorMessage =
+		'This video could not be loaded. It may be unavailable or embedding may be disabled.';
+
+	await expect(page.getByText(errorMessage, { exact: true })).toBeVisible();
+
+	await page.getByRole('button', { name: 'Timestamps', exact: true }).click();
+
+	// A failed embedded player should allow the source link to open.
+	const popupPromise = page.waitForEvent('popup');
+	await page.getByRole('link', { name: 'Watch from 0:01' }).click();
+	const popup = await popupPromise;
+
+	await expect(popup).toHaveURL(
+		'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y&t=1',
+	);
+	await popup.close();
+
+	// Switching sermons must clear the previous video's error.
+	await page.evaluate(() => {
+		window.history.pushState({}, '', '/sermons/2');
+		window.dispatchEvent(new PopStateEvent('popstate'));
+	});
+
+	await expect(player).toHaveAttribute('title', secondSermon.title);
+	await expect(page.getByText(errorMessage, { exact: true })).toHaveCount(0);
+
+	// The replacement player should still respond to transcript clicks.
+	await page.getByRole('button', { name: 'Timestamps', exact: true }).click();
+	await page.getByRole('link', { name: 'Watch from 0:03' }).click();
+
+	await expect(player).toHaveAttribute('data-seek-time', '3.5');
+});
+
+test('switching sermons discards a timestamp waiting for player readiness', async ({
+	page,
+}) => {
+	await mockVideoPlayer(page, false);
+	const secondSermon = await captionRoutesWithSecondSermon(page);
+
+	await page.goto('/sermons/1?t=30.5');
+	const player = page.getByTestId('test-video-player');
+
+	await expect(player).toBeVisible();
+
+	// Leave the first sermon before its player finishes loading.
+	await page.evaluate(() => {
+		window.history.pushState({}, '', '/sermons/2');
+		window.dispatchEvent(new PopStateEvent('popstate'));
+	});
+
+	await expect(
+		page.getByRole('heading', {
+			name: secondSermon.title,
+			level: 1,
+			exact: true,
+		}),
+	).toBeVisible();
+
+	// Release any waiting players, including the replacement player.
+	await page.evaluate(() => {
+		window.dispatchEvent(new Event('test-player-ready'));
+	});
+
+	await expect(player).toHaveAttribute('title', secondSermon.title);
 	await expect(player).toHaveAttribute('data-start-time', '0');
 	await expect(player).not.toHaveAttribute('data-seek-time');
 });
