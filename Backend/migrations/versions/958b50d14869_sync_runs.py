@@ -1,7 +1,7 @@
 """sync runs
 
 Revision ID: 958b50d14869
-Revises: 6e74e4e52cc6
+Revises: 5616dbd32dfd
 Create Date: 2026-10-19 23:43:19.250109
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '958b50d14869'
-down_revision = '6e74e4e52cc6'
+down_revision = '5616dbd32dfd'
 branch_labels = None
 depends_on = None
 

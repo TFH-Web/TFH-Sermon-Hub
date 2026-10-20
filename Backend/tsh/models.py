@@ -174,6 +174,9 @@ class SermonChunk(db.Model):  # ty: ignore[unsupported-base]
     start: Mapped[float]
     end: Mapped[float]
     stale: Mapped[bool] = mapped_column(default=False)
+    # The model that made this chunk's vector, so vectors from two models are never mixed.
+    # None means no vector yet, or one saved before models were recorded.
+    embedding_model: Mapped[str | None] = mapped_column(String(100), default=None)
 
 
 class SermonChunkEmbedding(db.Model):  # ty: ignore[unsupported-base]

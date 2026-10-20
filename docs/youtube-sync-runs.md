@@ -1,5 +1,10 @@
 # YouTube sync runs
 
+The sync-run migration `958b50d14869` follows the embedding-model migration
+`5616dbd32dfd` from TFH-536 / PR #115. Apply them in that order with the normal
+database upgrade command; there is one migration head. This branch includes that
+foundation so fresh databases and databases already on TFH-536 can both upgrade.
+
 Every channel sync is saved as a sync run, so its state and report can be read
 after the request that started it has ended, including when the sync ran on the
 Redis worker. Earlier runs are kept: each submission adds a new run with its own
