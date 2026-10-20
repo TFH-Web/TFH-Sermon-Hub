@@ -105,7 +105,13 @@ The site uses these endpoints, all Admin only:
 - `POST /api/import/youtube/video` with `{"url": "..."}` imports one video.
 - `POST /api/import/youtube` syncs the channel. An optional body,
   `{"from": "2026-09-01", "to": "2026-09-30"}`, limits it to a date range.
+- `GET /api/import/youtube/runs` lists recent syncs, and
+  `GET /api/import/youtube/runs/<id>` returns one with its report.
 - `POST /api/sermons/<id>/reprocess` runs processing on a sermon again.
+
+Each sync is saved as a run with its state and report. See
+[YouTube sync runs](youtube-sync-runs.md) for the responses, the run states and
+how the frontend should follow a queued sync.
 
 The whole channel can also be imported from `Backend`. This has no date range:
 
@@ -120,7 +126,9 @@ with `backfill-captions`, described in the captions guide.
 
 ## Limits
 
-The backend does not record sync runs, which leaves these gaps:
+The backend now records every sync as a run (see
+[YouTube sync runs](youtube-sync-runs.md)), but the Import / Upload page does not
+read runs yet, which leaves these gaps:
 
 - A sync shows no progress. The result arrives once, when it ends.
 - Reloading the page during a sync loses it on screen. The sync still finishes on

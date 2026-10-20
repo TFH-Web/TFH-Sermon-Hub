@@ -107,6 +107,21 @@ def test_missing_run_is_ignored(app: Flask, fake_import: list[tuple]):
     assert fake_import == []
 
 
+@pytest.fixture()
+def fake_redis(app: Flask, monkeypatch) -> fakeredis.FakeStrictRedis:
+    """Turn on queued mode with a fake Redis of this test's own, so no queued job carries over to another test."""
+    fake = fakeredis.FakeStrictRedis(server=fakeredis.FakeServer())
+    # enqueue imports Redis inside the function, so patch the class, not tsh.queue.
+    monkeypatch.setattr(Redis, "from_url", lambda *args, **kwargs: fake)
+    app.config["REDIS_URL"] = "redis://fake:6379/0"
+    return fake
+
+
+def run_worker(fake: fakeredis.FakeStrictRedis) -> None:
+    """Run every queued job with a SimpleWorker, which works in this process so jobs see the test's database."""
+    SimpleWorker([Queue(QUEUE_NAME, connection=fake)], connection=fake).work(burst=True)
+
+
 def long_ago() -> datetime:
     """Return a time just past STALE_SYNC_AFTER, so a run started then counts as lost."""
     return utcnow() - STALE_SYNC_AFTER - timedelta(minutes=1)
@@ -226,12 +241,9 @@ def test_queued_run_waiting_behind_sermon_jobs_still_blocks(client: FlaskClient,
     assert reload(waiting_id).state == SyncRunState.QUEUED
 
 
-def test_submit_queued_then_worker_completes(app: Flask, client: FlaskClient, fake_import: list[tuple], monkeypatch):
+def test_submit_queued_then_worker_completes(client: FlaskClient, fake_import: list[tuple], fake_redis):
     """With Redis: 202 with the job and run ids, the run waits QUEUED, and the worker running the job completes it."""
-    fake = fakeredis.FakeStrictRedis()
-    monkeypatch.setattr(Redis, "from_url", lambda *args, **kwargs: fake)
-    app.config["REDIS_URL"] = "redis://fake:6379/0"
-
+    fake = fake_redis
     res = client.post("/api/import/youtube")
 
     assert res.status_code == 202
@@ -243,8 +255,7 @@ def test_submit_queued_then_worker_completes(app: Flask, client: FlaskClient, fa
     assert reload(run_id).state == SyncRunState.QUEUED
     assert fake_import == []
 
-    # SimpleWorker runs the job in this process, so it sees the test's app context and database.
-    SimpleWorker([queue], connection=fake).work(burst=True)
+    run_worker(fake)
 
     run = reload(run_id)
     assert run.state == SyncRunState.SUCCEEDED
@@ -310,3 +321,75 @@ def test_sync_run_endpoints_admin_only(client: FlaskClient, fake_import: list[tu
 
     assert res.status_code == status_code
     assert db.session.scalar(db.select(db.func.count()).select_from(SyncRun)) == 1
+
+
+def test_submit_queued_then_worker_fails(client: FlaskClient, fake_redis, broken_import):
+    """With Redis, an import that raises in the worker leaves the run FAILED with the error, shown by the detail endpoint."""
+    res = client.post("/api/import/youtube")
+    assert res.status_code == 202
+    run_id = res.json["runId"]
+
+    run_worker(fake_redis)
+
+    detail = client.get(f"/api/import/youtube/runs/{run_id}")
+    assert detail.status_code == 200
+    assert detail.json["state"] == "failed"
+    assert detail.json["error"] == "videos: HTTP 500: backendError"
+    assert detail.json["report"] is None
+    assert detail.json["startedAt"] is not None and detail.json["finishedAt"] is not None
+    # The job swallows the failure on purpose, so RQ itself records no failed job.
+    assert Queue(QUEUE_NAME, connection=fake_redis).failed_job_registry.count == 0
+
+
+def test_submit_queued_with_redis_down(app: Flask, client: FlaskClient, fake_import: list[tuple], monkeypatch):
+    """With REDIS_URL set but Redis unreachable, the real enqueue fails: 503, and the run is FAILED with "queue:"."""
+    server = fakeredis.FakeServer()
+    server.connected = False
+    monkeypatch.setattr(Redis, "from_url", lambda *args, **kwargs: fakeredis.FakeStrictRedis(server=server))
+    app.config["REDIS_URL"] = "redis://fake:6379/0"
+
+    res = client.post("/api/import/youtube")
+
+    assert res.status_code == 503
+    assert res.json["state"] == "failed"
+    run = reload(res.json["runId"])
+    assert run.state == SyncRunState.FAILED
+    assert run.error.startswith("queue: ")
+    assert run.finished_at is not None
+    assert fake_import == []
+
+
+def test_bad_dates_create_no_run(client: FlaskClient, fake_import: list[tuple]):
+    """A 400 for an unreadable date is sent before any run is saved."""
+    res = client.post("/api/import/youtube", json={"from": "next week"})
+
+    assert res.status_code == 400
+    assert db.session.scalar(db.select(db.func.count()).select_from(SyncRun)) == 0
+
+
+@pytest.mark.parametrize("failure", ["worker", "queue", "lost"])
+def test_next_sync_after_a_failure_succeeds_and_keeps_both(client: FlaskClient, fake_import: list[tuple],
+                                                           monkeypatch, failure: str):
+    """After a failed run, whether the import raised, the job could not be queued or the worker was lost,
+    the next submission succeeds and the list keeps both runs, newest first."""
+    def fail(*args):
+        if failure == "worker":
+            raise ValueError("import broke")
+        raise RedisConnectionError("Connection refused")
+
+    if failure == "lost":
+        failed_id = new_run(state=SyncRunState.RUNNING, created_at=long_ago(), started_at=long_ago())
+    else:
+        with monkeypatch.context() as patch:
+            patch.setattr(youtube_import, "import_channel" if failure == "worker" else "enqueue", fail)
+            first = client.post("/api/import/youtube")
+        assert first.status_code == (502 if failure == "worker" else 503)
+        failed_id = first.json["runId"]
+
+    res = client.post("/api/import/youtube")
+
+    assert res.status_code == 200
+    assert res.json["state"] == "succeeded"
+    runs = client.get("/api/import/youtube/runs").json
+    assert [(r["id"], r["state"]) for r in runs] == [(res.json["runId"], "succeeded"), (failed_id, "failed")]
+    assert runs[1]["error"].startswith({"worker": "import broke", "queue": "queue: ", "lost": "worker: "}[failure])
