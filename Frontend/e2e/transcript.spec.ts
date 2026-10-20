@@ -543,3 +543,40 @@ test('switching sermons discards a timestamp waiting for player readiness', asyn
 	await expect(player).toHaveAttribute('data-start-time', '0');
 	await expect(player).not.toHaveAttribute('data-seek-time');
 });
+
+test('editing shows saved tag origins without labeling unsaved changes', async ({
+	page,
+}) => {
+	const state = await captionRoutes(page);
+	state.sermon.tags = [
+		{ name: 'grace', source: 'ai', count: 1 },
+		{ name: 'faith', source: 'manual', count: 1 },
+	];
+
+	await page.goto('/sermons/1');
+	await page.getByRole('button', { name: 'Edit', exact: true }).click();
+
+	const dialog = page.getByRole('dialog');
+	const savedTags = dialog.getByRole('region', {
+		name: 'Saved tag origins',
+	});
+
+	// Only the saved AI tag receives an AI label.
+	await expect(savedTags).toContainText('grace · AI Generated');
+	await expect(savedTags).toContainText('faith');
+	await expect(savedTags).not.toContainText('faith · AI Generated');
+
+	// Editing the input must not invent a saved origin for new text.
+	await dialog.getByPlaceholder('grace, faith, hope').fill('new-unsaved-tag');
+
+	await expect(savedTags).not.toContainText('new-unsaved-tag');
+
+	// Cancelling leaves the displayed saved tags unchanged.
+	await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+	await expect(dialog).toHaveCount(0);
+
+	const detailTags = page.locator('.SermonDetail-tags');
+	await expect(detailTags).toContainText('grace · AI Generated');
+	await expect(detailTags).toContainText('faith');
+	await expect(detailTags).not.toContainText('new-unsaved-tag');
+});
