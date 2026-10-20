@@ -1,4 +1,5 @@
 import os
+from collections import Counter
 from collections.abc import Sequence
 from functools import reduce
 from math import ceil, isfinite
@@ -21,18 +22,36 @@ def chunk(sermon: Sermon, segments: list[TranscriptSegment]) -> list[SermonChunk
     Returns [] when there is no caption text. Raises ValueError for invalid chunk
     settings or segment times; see _chunk.
     """
-    return [
-        SermonChunk(
-            id=None,
-            sermon_id=sermon.id,
-            sermon=sermon,
-            hash=blake3(chunk["text"].encode()).digest(),
-            text=chunk["text"],
-            start=chunk["start"],
-            end=chunk["end"],
+    seen: Counter[str] = Counter()
+    chunks = []
+    for piece in _chunk(segments):
+        chunks.append(
+            SermonChunk(
+                id=None,
+                sermon_id=sermon.id,
+                sermon=sermon,
+                hash=chunk_hash(piece["text"], seen[piece["text"]]),
+                text=piece["text"],
+                start=piece["start"],
+                end=piece["end"],
+            )
         )
-        for chunk in _chunk(segments)
-    ]
+        seen[piece["text"]] += 1
+    return chunks
+
+
+def chunk_hash(text: str, occurrence: int) -> bytes:
+    """Return the identity of the occurrence-th chunk (from 0) with this text in a sermon.
+
+    Times are left out on purpose, so a caption timing change keeps the chunk and its
+    embedding and only moves its start and end. The occurrence index keeps repeated text
+    at different times as separate chunks, each with its own source time, instead of
+    collapsing them into one. The first occurrence hashes the text alone, so chunks
+    saved before this rule keep their identity and are not embedded again.
+    """
+    if occurrence == 0:
+        return blake3(text.encode()).digest()
+    return blake3(f"{text}\0{occurrence}".encode()).digest()
 
 
 def embed(sermon: Sermon) -> list[SermonChunkEmbedding]:
@@ -43,6 +62,9 @@ def embed(sermon: Sermon) -> list[SermonChunkEmbedding]:
         .where(SermonChunkEmbedding.sermon_chunk_id.is_(None))
     ).all()
 
+    # A rerun with unchanged text has nothing new, so skip the call to ollama entirely.
+    if not chunks:
+        return []
     input = [chunk.text for chunk in chunks]
     batch = ollama.embed(model=EMBEDDING_MODEL, input=input)
     return [

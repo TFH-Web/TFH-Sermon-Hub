@@ -48,8 +48,10 @@ def fetch_transcript(sermon: Sermon) -> None:
 def embed_chunks(sermon: Sermon) -> None:
     """Chunk sermon.transcript_segments with source times and store one embedding per chunk.
 
-    Safe to re-run. Chunks whose text is unchanged keep their rows and embeddings, chunks
-    that no longer appear in the captions are deleted with their embeddings, and only new
+    Safe to re-run. A chunk is identified by its text and which repeat of that text it
+    is (see embeddings.chunk_hash), not by its times. Chunks whose identity is unchanged
+    keep their rows and embeddings and only get their start and end updated, chunks that
+    no longer appear in the captions are deleted with their embeddings, and only new
     chunks are sent to ollama. Errors from ollama propagate, and _run_step records them.
     """
     if not sermon.transcript_segments:
@@ -60,10 +62,9 @@ def embed_chunks(sermon: Sermon) -> None:
     # instead of deleting it, the same as having no segments at all.
     if not chunks:
         return
-    # insert().values() takes plain column values, not model objects. Keying by hash drops
-    # repeated text inside one sermon, which would otherwise be the same row twice.
-    rows = {
-        chunk.hash: {
+    # insert().values() takes plain column values, not model objects.
+    rows = [
+        {
             "sermon_id": chunk.sermon_id,
             "hash": chunk.hash,
             "text": chunk.text,
@@ -71,10 +72,11 @@ def embed_chunks(sermon: Sermon) -> None:
             "end": chunk.end,
         }
         for chunk in chunks
-    }
+    ]
 
     stale_ids = select(SermonChunk.id).where(
-        SermonChunk.sermon_id == sermon.id, SermonChunk.hash.not_in(rows.keys())
+        SermonChunk.sermon_id == sermon.id,
+        SermonChunk.hash.not_in([row["hash"] for row in rows]),
     )
     # sermon_chunk_embedding is a sqlite-vec virtual table, which ignores foreign keys,
     # so ON DELETE CASCADE never fires. Delete the embeddings first or they are orphaned.
@@ -86,10 +88,14 @@ def embed_chunks(sermon: Sermon) -> None:
     )
     db.session.execute(delete(SermonChunk).where(SermonChunk.id.in_(stale_ids)))
 
-    # Relies on unique (sermon_id, hash): chunks this sermon already has are skipped,
-    # so they keep their ids and embeddings.
+    # Relies on unique (sermon_id, hash). A chunk this sermon already has keeps its id and
+    # embedding, and only its times are refreshed, since the text did not change.
+    statement = insert(SermonChunk).values(rows)
     db.session.execute(
-        insert(SermonChunk).values(list(rows.values())).on_conflict_do_nothing()
+        statement.on_conflict_do_update(
+            index_elements=[SermonChunk.sermon_id, SermonChunk.hash],
+            set_={"start": statement.excluded.start, "end": statement.excluded.end},
+        )
     )
 
     db.session.add_all(embeddings.embed(sermon))

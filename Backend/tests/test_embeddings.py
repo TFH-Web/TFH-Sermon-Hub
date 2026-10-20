@@ -164,3 +164,95 @@ def test_embed_chunks_leaves_other_sermons_alone(app: Flask):
 
     assert [chunk.id for chunk in chunks_for(second)] == second_ids
     assert set(second_ids) <= set(embedding_ids())
+
+
+def count_embed_calls(monkeypatch) -> list[list[str]]:
+    """Wrap the fake ollama.embed so a test can see which texts were sent to it."""
+    import ollama
+
+    calls: list[list[str]] = []
+    fake = ollama.embed
+
+    def recording_embed(model: str, input: list[str], **kwargs):
+        calls.append(list(input))
+        return fake(model=model, input=input, **kwargs)
+
+    monkeypatch.setattr("ollama.embed", recording_embed)
+    return calls
+
+
+def test_shifted_times_update_in_place_without_re_embedding(app: Flask, monkeypatch):
+    """Captions with the same text but new times keep chunk ids and embeddings, with new times."""
+    sermon = first_sermon()
+    sermon.transcript_segments = [
+        {"start": 0.0, "end": 4.0, "text": "Grace and peace to you."},
+        {"start": 4.0, "end": 9.0, "text": "Turn with me to Romans six."},
+    ]
+    db.session.commit()
+    pipeline.embed_chunks(sermon)
+    before = {c.id: c.text for c in chunks_for(sermon)}
+    before_embeddings = embedding_ids()
+    calls = count_embed_calls(monkeypatch)
+
+    sermon.transcript_segments = [
+        {"start": 12.5, "end": 16.5, "text": "Grace and peace to you."},
+        {"start": 16.5, "end": 21.5, "text": "Turn with me to Romans six."},
+    ]
+    db.session.commit()
+    pipeline.embed_chunks(sermon)
+    db.session.expire_all()
+
+    chunks = chunks_for(sermon)
+    assert {c.id: c.text for c in chunks} == before
+    assert embedding_ids() == before_embeddings
+    assert (chunks[0].start, chunks[-1].end) == (12.5, 21.5)
+    assert calls == []
+
+
+def test_repeated_text_keeps_each_source_time(app: Flask, monkeypatch):
+    """The same words said twice become two chunks, each linking to its own time."""
+    monkeypatch.setattr("tsh.embeddings.CHUNK_SIZE_MAX", 3)
+    monkeypatch.setattr("tsh.embeddings.CHUNK_OVERLAP_PERCENT_MIN", 0)
+    sermon = first_sermon()
+    sermon.transcript_segments = [
+        {"start": 0.0, "end": 3.0, "text": "God is good"},
+        {"start": 3.0, "end": 6.0, "text": "all the time"},
+        {"start": 60.0, "end": 63.0, "text": "God is good"},
+    ]
+    db.session.commit()
+
+    pipeline.embed_chunks(sermon)
+
+    repeated = sorted(
+        (c for c in chunks_for(sermon) if c.text == "God is good"), key=lambda c: c.start
+    )
+    assert [(c.start, c.end) for c in repeated] == [(0.0, 3.0), (60.0, 63.0)]
+    assert repeated[0].hash != repeated[1].hash
+    assert set(c.id for c in chunks_for(sermon)) == set(embedding_ids())
+
+
+def test_repeated_text_rerun_moves_only_the_changed_occurrence(app: Flask, monkeypatch):
+    """Retiming the second repeat updates that chunk only, and nothing is re-embedded."""
+    monkeypatch.setattr("tsh.embeddings.CHUNK_SIZE_MAX", 3)
+    monkeypatch.setattr("tsh.embeddings.CHUNK_OVERLAP_PERCENT_MIN", 0)
+    sermon = first_sermon()
+    segments = [
+        {"start": 0.0, "end": 3.0, "text": "God is good"},
+        {"start": 60.0, "end": 63.0, "text": "God is good"},
+    ]
+    sermon.transcript_segments = [dict(s) for s in segments]
+    db.session.commit()
+    pipeline.embed_chunks(sermon)
+    ids = sorted(c.id for c in chunks_for(sermon))
+    calls = count_embed_calls(monkeypatch)
+
+    segments[1] = {"start": 70.0, "end": 73.0, "text": "God is good"}
+    sermon.transcript_segments = segments
+    db.session.commit()
+    pipeline.embed_chunks(sermon)
+    db.session.expire_all()
+
+    chunks = sorted(chunks_for(sermon), key=lambda c: c.start)
+    assert sorted(c.id for c in chunks) == ids
+    assert [(c.start, c.end) for c in chunks] == [(0.0, 3.0), (70.0, 73.0)]
+    assert calls == []
