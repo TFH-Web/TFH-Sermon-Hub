@@ -1,14 +1,12 @@
 import os
 from collections import Counter
-from collections.abc import Sequence
 from functools import reduce
 from math import ceil, isfinite
 
 import ollama
 from blake3 import blake3
 
-from tsh.database import db
-from tsh.models import Sermon, SermonChunk, SermonChunkEmbedding
+from tsh.models import Sermon, SermonChunk
 from tsh.transcripts import TranscriptSegment, concatenate, segment_length
 
 CHUNK_SIZE_MAX = int(os.environ.get("CHUNK_SIZE_MAX", "500"))
@@ -54,27 +52,22 @@ def chunk_hash(text: str, occurrence: int) -> bytes:
     return blake3(f"{text}\0{occurrence}".encode()).digest()
 
 
-def embed(sermon: Sermon) -> list[SermonChunkEmbedding]:
-    chunks: Sequence[SermonChunk] = db.session.scalars(
-        db.select(SermonChunk)
-        .join(SermonChunkEmbedding, isouter=True)
-        .where(SermonChunk.sermon_id == sermon.id)
-        .where(SermonChunkEmbedding.sermon_chunk_id.is_(None))
-    ).all()
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    """Return one embedding per text, in order, from EMBEDDING_MODEL on ollama.
 
-    # A rerun with unchanged text has nothing new, so skip the call to ollama entirely.
-    if not chunks:
+    Returns [] without calling ollama when texts is empty. Raises whatever ollama raises
+    if the server or model is unavailable, and ValueError if it returns the wrong number
+    of vectors.
+    """
+    if not texts:
         return []
-    input = [chunk.text for chunk in chunks]
-    batch = ollama.embed(model=EMBEDDING_MODEL, input=input)
-    return [
-        SermonChunkEmbedding(
-            sermon_chunk_id=chunk.id,
-            sermon_chunk=chunk,
-            embedding=embedding,
+    batch = ollama.embed(model=EMBEDDING_MODEL, input=texts)
+    vectors = list(batch.embeddings)
+    if len(vectors) != len(texts):
+        raise ValueError(
+            f"{EMBEDDING_MODEL} returned {len(vectors)} embeddings for {len(texts)} chunks"
         )
-        for (chunk, embedding) in zip(chunks, batch.embeddings, strict=True)
-    ]
+    return vectors
 
 
 def _chunk(

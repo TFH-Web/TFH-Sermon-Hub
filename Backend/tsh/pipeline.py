@@ -52,7 +52,9 @@ def embed_chunks(sermon: Sermon) -> None:
     is (see embeddings.chunk_hash), not by its times. Chunks whose identity is unchanged
     keep their rows and embeddings and only get their start and end updated, chunks that
     no longer appear in the captions are deleted with their embeddings, and only new
-    chunks are sent to ollama. Errors from ollama propagate, and _run_step records them.
+    chunks are sent to ollama. Errors from ollama (or ValueError for a bad embedding batch)
+    propagate before anything is written, and _run_step records them. A database error
+    while replacing rolls back this sermon's whole replace and is raised again.
     """
     if not sermon.transcript_segments:
         return
@@ -74,32 +76,66 @@ def embed_chunks(sermon: Sermon) -> None:
         for chunk in chunks
     ]
 
-    stale_ids = select(SermonChunk.id).where(
-        SermonChunk.sermon_id == sermon.id,
-        SermonChunk.hash.not_in([row["hash"] for row in rows]),
-    )
-    # sermon_chunk_embedding is a sqlite-vec virtual table, which ignores foreign keys,
-    # so ON DELETE CASCADE never fires. Delete the embeddings first or they are orphaned.
-    # Virtual tables also reject DELETE RETURNING, which the ORM uses to sync the session.
-    db.session.execute(
-        delete(SermonChunkEmbedding)
-        .where(SermonChunkEmbedding.sermon_chunk_id.in_(stale_ids))
-        .execution_options(synchronize_session=False)
-    )
-    db.session.execute(delete(SermonChunk).where(SermonChunk.id.in_(stale_ids)))
-
-    # Relies on unique (sermon_id, hash). A chunk this sermon already has keeps its id and
-    # embedding, and only its times are refreshed, since the text did not change.
-    statement = insert(SermonChunk).values(rows)
-    db.session.execute(
-        statement.on_conflict_do_update(
-            index_elements=[SermonChunk.sermon_id, SermonChunk.hash],
-            set_={"start": statement.excluded.start, "end": statement.excluded.end},
+    # Embed before writing anything. A slow or failing ollama call then never holds the
+    # database write lock, and a failure leaves the old chunks and vectors untouched.
+    embedded = set(
+        db.session.scalars(
+            select(SermonChunk.hash)
+            .join(SermonChunkEmbedding)
+            .where(SermonChunk.sermon_id == sermon.id)
         )
     )
+    missing = [row for row in rows if row["hash"] not in embedded]
+    vectors = embeddings.embed_texts([row["text"] for row in missing])
 
-    db.session.add_all(embeddings.embed(sermon))
-    db.session.commit()
+    # One transaction per sermon: either every stale row is gone and every new chunk has
+    # its vector, or nothing changed. Only this sermon's rows are touched.
+    try:
+        stale_ids = select(SermonChunk.id).where(
+            SermonChunk.sermon_id == sermon.id,
+            SermonChunk.hash.not_in([row["hash"] for row in rows]),
+        )
+        # sermon_chunk_embedding is a sqlite-vec virtual table, which ignores foreign keys,
+        # so ON DELETE CASCADE never fires. Delete the embeddings first or they are orphaned.
+        # Virtual tables also reject DELETE RETURNING, which the ORM uses to sync the session.
+        db.session.execute(
+            delete(SermonChunkEmbedding)
+            .where(SermonChunkEmbedding.sermon_chunk_id.in_(stale_ids))
+            .execution_options(synchronize_session=False)
+        )
+        db.session.execute(delete(SermonChunk).where(SermonChunk.id.in_(stale_ids)))
+
+        # Relies on unique (sermon_id, hash). A chunk this sermon already has keeps its id
+        # and embedding, and only its times are refreshed, since the text did not change.
+        statement = insert(SermonChunk).values(rows)
+        db.session.execute(
+            statement.on_conflict_do_update(
+                index_elements=[SermonChunk.sermon_id, SermonChunk.hash],
+                set_={"start": statement.excluded.start, "end": statement.excluded.end},
+            )
+        )
+
+        by_hash = {
+            chunk.hash: chunk
+            for chunk in db.session.scalars(
+                select(SermonChunk).where(
+                    SermonChunk.sermon_id == sermon.id,
+                    SermonChunk.hash.in_([row["hash"] for row in missing]),
+                )
+            )
+        }
+        db.session.add_all(
+            SermonChunkEmbedding(
+                sermon_chunk_id=by_hash[row["hash"]].id,
+                sermon_chunk=by_hash[row["hash"]],
+                embedding=vector,
+            )
+            for row, vector in zip(missing, vectors, strict=True)
+        )
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
 
 
 def summarize_sermon(sermon: Sermon) -> None:
