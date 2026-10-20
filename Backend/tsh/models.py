@@ -183,3 +183,9 @@ class SermonChunkEmbedding(db.Model):  # ty: ignore[unsupported-base]
     )
     sermon_chunk: Mapped[SermonChunk] = relationship()
     embedding: Mapped[list[float]] = mapped_column(Float32Vector())
+
+
+class CaptionQuota(db.Model): # ty: ignore[unsupported-base]
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+    blocked_until: Mapped[datetime | None] = mapped_column(default=None)
+    opened_at: Mapped[datetime | None] = mapped_column(default=None)

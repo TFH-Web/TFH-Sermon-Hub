@@ -8,6 +8,7 @@ from google.auth.exceptions import RefreshError, TransportError
 from google.auth.transport.requests import AuthorizedSession
 from google.oauth2.credentials import Credentials
 
+from tsh import caption_quota
 from tsh.transcripts import TranscriptSegment, parse_vtt
 
 API = "https://www.googleapis.com/youtube/v3/captions"
@@ -21,8 +22,23 @@ OAUTH_SETTINGS = (
 )
 
 
+
+# The reasons YouTube gives when the project's daily quota is used up. rateLimitExceeded is a short-term
+# limit that clears in seconds, so it does not open the breaker.
+DAILY_QUOTA_REASONS = {"quotaExceeded", "dailyLimitExceeded", "dailyLimitExceededUnreg"}
+
+
 class CaptionError(RuntimeError):
     """An actionable caption failure that is safe to save in processing_error."""
+
+class CaptionQuotaError(CaptionError):
+    """YouTube's daily quota is used up, so no caption request is made until it resets."""
+
+def quota_message(resume) -> str:
+    """Say when captions resume. Starts with "Youtube quota exceeded" so it is easy to identify."""
+    when = resume.astimezone(caption_quota.RESET_TIMEZONE).strftime("%Y-%m-%d %H:%M %Z")
+    return f"YouTube quota exceeded; no caption requests are sent until {when}, then reprocess."
+
 
 
 def select_track(tracks: list[dict], language: str = "en") -> dict:
@@ -62,6 +78,9 @@ def get_transcript(video_id: str) -> list[TranscriptSegment]:
     """
     if not re.fullmatch(r"[A-Za-z0-9_-]{11}", video_id):
         raise CaptionError("invalid YouTube video id; correct the sermon video link, then reprocess")
+    resume = caption_quota.blocked_until()
+    if resume is not None:
+        raise CaptionQuotaError(quota_message(resume))
     values = {name: current_app.config.get(name, "") for name in OAUTH_SETTINGS}
     missing = [name for name, value in values.items() if not value]
     if missing:
@@ -112,8 +131,8 @@ def _raise_api_error(response: requests.Response) -> None:
         reasons = {error.get("reason") for error in response.json().get("error", {}).get("errors", [])}
     except (ValueError, AttributeError, TypeError):
         reasons = set()
-    if reasons & {"quotaExceeded", "dailyLimitExceeded", "dailyLimitExceededUnreg"}:
-        message = "YouTube quota exceeded; wait for the daily quota reset or request a quota increase, then reprocess"
+    if reasons & DAILY_QUOTA_REASONS:
+        raise CaptionQuotaError(quota_message(caption_quota.open_breaker()))
     elif response.status_code == 429 or reasons & {"rateLimitExceeded", "userRateLimitExceeded"}:
         message = "YouTube rate limit reached; reprocess later"
     elif response.status_code in (401, 403):

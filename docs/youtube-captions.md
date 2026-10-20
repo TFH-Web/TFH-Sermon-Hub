@@ -53,6 +53,29 @@ are skipped. To retry other failed sermons, add `--failed-only`.
 The command runs synchronously even when Redis is configured so it can inspect
 each result before starting another. It does not schedule future batches.
 
+## Daily quota breaker
+
+YouTube resets the project's daily quota at midnight Pacific time. When YouTube
+refuses a caption request because that quota is used up (`quotaExceeded`,
+`dailyLimitExceeded`), the app saves a block in the `caption_quota` table until the
+next midnight in `America/Los_Angeles`, daylight saving included.
+
+While the block lasts, every caption download fails immediately without calling
+YouTube. This covers API imports, reprocessing, `backfill-captions` and RQ workers,
+and it survives restarts because it is stored in the database. The sermon is saved
+as Failed with a message such as `YouTube quota exceeded; no caption requests are
+sent until 2026-10-20 00:00 PDT, then reprocess`. Nothing saved is lost. Reprocess
+the sermon after that time; `backfill-captions` picks quota failures up again on its
+own.
+
+Short rate limits (HTTP 429, `rateLimitExceeded`), permission errors and missing
+captions do not open the breaker. To clear a block early, for example after Google
+approves a quota increase, set `blocked_until` to `NULL` in the configured database:
+
+```sh
+sqlite3 instance/testing.db "UPDATE caption_quota SET blocked_until = NULL"
+```
+
 ## Review
 
 Run `poetry run pytest` from `Backend`. Caption and backfill tests use fake
