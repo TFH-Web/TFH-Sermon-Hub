@@ -53,6 +53,11 @@ jobs:
           CLIENT_ID: "ci-only-dummy-client-id"
         run: poetry run pytest
 
+      - name: Test deployment utilities
+        # Deployment utilities deliberately live outside application test collection.
+        if: ${{ !cancelled() }}
+        run: poetry run pytest -q ../deploy/test_backup.py ../deploy/tests/test_provision_staging.py
+
       - name: Audit locked backend dependencies
         if: ${{ !cancelled() }}
         run: poetry run pip-audit --format=json --output=pip-audit.json
