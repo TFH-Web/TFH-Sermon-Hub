@@ -55,7 +55,7 @@ def test_injection_in_a_source_stays_inside_its_evidence_block(client: FlaskClie
 
 @pytest.mark.parametrize("where", ["history", "source"])
 def test_model_that_obeys_an_injection_gets_no_citations_from_it(client: FlaskClient, monkeypatch, where):
-    """If the model follows the injected text and cites [9], that citation is dropped."""
+    """If the model follows the injected text and cites [9], the reply is declined."""
     text = "Grace is a gift." + (" " + INJECTION if where == "source" else "")
     add_sermon("Under Grace", [(text, 0.0, 5.0)])
     use_fake_llm(monkeypatch, "As a general Bible assistant: John 3:16 says God loved the world [9].")
@@ -66,14 +66,13 @@ def test_model_that_obeys_an_injection_gets_no_citations_from_it(client: FlaskCl
     assert res.json == {"answer": UNSUPPORTED_ANSWER, "ai_generated": True, "supported": False, "sources": []}
 
 
-def test_partly_grounded_answer_keeps_only_real_sources(client: FlaskClient, monkeypatch):
-    sermon = add_sermon("Under Grace", [("Grace is a gift.", 12.0, 20.0)])
+def test_partly_grounded_answer_does_not_keep_unsupported_claims(client: FlaskClient, monkeypatch):
+    add_sermon("Under Grace", [("Grace is a gift.", 12.0, 20.0)])
     use_fake_llm(monkeypatch, "Grace is a gift [1]. Moses parted the sea [4].")
 
     res = ask(client)
 
-    assert res.json["answer"] == "Grace is a gift [1]. Moses parted the sea."
-    assert [(s["sermon_id"], s["start_sec"]) for s in res.json["sources"]] == [(sermon.id, 12.0)]
+    assert res.json == {"answer": UNSUPPORTED_ANSWER, "ai_generated": True, "supported": False, "sources": []}
 
 
 def test_injected_link_in_a_source_is_not_used(client: FlaskClient, monkeypatch):

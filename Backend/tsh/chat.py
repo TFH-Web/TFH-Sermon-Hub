@@ -154,8 +154,8 @@ def answer_question(message: str, sermon_id: int | None, history: list[dict]) ->
     searched. With no evidence the model is not called and the unsupported response is
     returned. A reply of UNSUPPORTED_MARKER also gives the unsupported response. Raises
     SearchUnavailable when retrieval or embedding fails, and AnswerUnavailable when the
-    model cannot answer. Model citations are checked by verify_citations; an answer left
-    with no valid citation is declined.
+    model cannot answer. Model citations are checked by verify_citations; an answer with
+    any invalid reference or no citations is declined.
     """
     try:
         evidence = retrieval.retrieve_chunks(message, sermon_id=sermon_id)
@@ -179,7 +179,7 @@ def answer_question(message: str, sermon_id: int | None, history: list[dict]) ->
         return unsupported_response()
 
     answer, cited = verify_citations(reply, len(evidence))
-    # An answer with no valid citation is not grounded in the evidence, so it is declined.
+    # Invalid references invalidate the whole reply, including any unsupported claims.
     if not cited:
         return unsupported_response()
     return {
@@ -210,25 +210,33 @@ def fit_context_budget(evidence: list[RetrievedChunk]) -> list[RetrievedChunk]:
 
 
 def verify_citations(reply: str, evidence_count: int) -> tuple[str, list[int]]:
-    """Return the reply with only valid [n] citations kept, and the cited numbers in order.
+    """Normalize valid citations, returning the reply and cited numbers in order.
 
-    A valid number is 1 to evidence_count. Invalid ones, such as [0], [7] when there are
-    three blocks, or [1a], are removed from the text, so the answer never points at a
-    source that was not retrieved. Groups like [1, 2] are split into [1][2].
+    A valid number is 1 to evidence_count. Any invented or malformed reference rejects
+    the whole reply as ("", []), so its associated claim cannot survive as an uncited
+    statement. Valid groups like [1, 2] are split into [1][2].
     """
+    # Leftover brackets indicate malformed references, including unclosed or nested ones.
+    without_citations = CITATION.sub("", reply)
+    if "[" in without_citations or "]" in without_citations:
+        return "", []
+
     cited: list[int] = []
 
     def keep_valid(match: re.Match) -> str:
         numbers = [int(n) for n in re.findall(r"\d+", match[1])]
-        valid = [n for n in numbers if 1 <= n <= evidence_count]
-        for n in valid:
+        if any(not 1 <= n <= evidence_count for n in numbers):
+            raise ValueError("Citation does not refer to retrieved evidence")
+        for n in numbers:
             if n not in cited:
                 cited.append(n)
-        return "".join(f"[{n}]" for n in valid)
+        return "".join(f"[{n}]" for n in numbers)
 
-    answer = CITATION.sub(keep_valid, reply)
-    # Drop any other bracketed reference the model made up, like [source 2] or [12a].
-    answer = re.sub(r"\[[^\]]*\d[^\]]*\]", lambda m: m[0] if CITATION.fullmatch(m[0]) else "", answer)
+    try:
+        answer = CITATION.sub(keep_valid, reply)
+    except ValueError:
+        # Also covers numbers too long for Python's integer conversion limit.
+        return "", []
     answer = re.sub(r"[ \t]+([.,;:!?])", r"\1", re.sub(r"[ \t]{2,}", " ", answer)).strip()
     return answer, cited
 

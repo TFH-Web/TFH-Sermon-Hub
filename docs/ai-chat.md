@@ -88,7 +88,8 @@ searched for `message` alone. Send the earlier answers as plain text; their
 
 Sent when no published sermon chunk is relevant, when the selected sermon is
 missing or not published, when the model says the evidence does not answer,
-or when its answer cites no retrieved evidence. The answer text is fixed, so it
+or when its answer has no citations or contains any invented or malformed source
+reference, even alongside a valid citation. The answer text is fixed, so it
 never contains model claims. When nothing relevant is found, the model is not
 called.
 
@@ -134,7 +135,9 @@ sent to both providers: `max_tokens` for Anthropic and `num_predict` for Ollama.
   no outside Bible or general knowledge.
 - History and evidence are passed as quoted material that cannot change the
   rules, with angle brackets escaped so they cannot open or close a section.
-- Citation numbers that were not retrieved are removed from the answer.
+- Any invented or malformed citation declines the entire answer, so an unsupported
+  claim cannot remain after its citation is removed. Valid citation groups such as
+  `[1, 2]` are normalized to `[1][2]`.
 
 ## Code
 

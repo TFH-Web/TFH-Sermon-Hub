@@ -59,13 +59,22 @@ def test_only_cited_evidence_becomes_a_source(client: FlaskClient, monkeypatch, 
     assert [s["source_id"] for s in res.json["sources"]] == [2]
 
 
-def test_invented_citation_numbers_are_dropped(client: FlaskClient, monkeypatch, two_grace_chunks):
+def test_mixed_valid_and_invented_citations_decline_the_whole_answer(client: FlaskClient, monkeypatch, two_grace_chunks):
     use_fake_llm(monkeypatch, "Grace is a gift [1][7]. Also [0] and [source 3].")
 
     res = ask(client)
 
-    assert res.json["answer"] == "Grace is a gift [1]. Also and."
-    assert [s["source_id"] for s in res.json["sources"]] == [1]
+    assert res.json == {"answer": UNSUPPORTED_ANSWER, "ai_generated": True, "supported": False, "sources": []}
+
+
+@pytest.mark.parametrize("reference", ["[3]", "[0]", "[1,3]", "[1a]", "[source 2]", "[1,]", "[[1]]", "[1"])
+def test_invalid_reference_cannot_leave_an_unsupported_claim(client: FlaskClient, monkeypatch, two_grace_chunks, reference):
+    use_fake_llm(monkeypatch, f"Grace is a gift [1]. An unsupported claim {reference}.")
+
+    res = ask(client)
+
+    assert res.status_code == 200
+    assert res.json == {"answer": UNSUPPORTED_ANSWER, "ai_generated": True, "supported": False, "sources": []}
 
 
 def test_answer_with_only_invented_citations_is_declined(client: FlaskClient, monkeypatch, two_grace_chunks):
@@ -144,11 +153,15 @@ def test_embedding_dimension_mismatch_is_503_json(client: FlaskClient, monkeypat
         ("A [1].", 1, "A [1].", [1]),
         ("A [1, 2]. B [2].", 2, "A [1][2]. B [2].", [1, 2]),
         ("A [2][1].", 2, "A [2][1].", [2, 1]),
-        ("A [3].", 2, "A.", []),
-        ("A [1,3].", 2, "A [1].", [1]),
+        ("A [3].", 2, "", []),
+        ("A [1,3].", 2, "", []),
         ("A [01].", 2, "A [1].", [1]),
         ("No citations.", 2, "No citations.", []),
     ],
 )
 def test_verify_citations(reply, count, answer, cited):
     assert verify_citations(reply, count) == (answer, cited)
+
+
+def test_oversized_citation_number_is_declined():
+    assert verify_citations("A [1]. B [" + "9" * 5000 + "].", 2) == ("", [])
