@@ -13,7 +13,7 @@ from sqlalchemy import func
 
 from tsh import youtube
 from tsh.database import db
-from tsh.models import Series, Sermon, Speaker, UploadStatus
+from tsh.models import Series, Sermon, Speaker, SyncRun, SyncRunState, UploadStatus, utcnow
 from tsh.pipeline import start_processing
 from tsh.youtube_titles import ParsedTitle, parse_title, series_named_in
 
@@ -155,6 +155,46 @@ def import_channel(date_from: date | None = None, date_to: date | None = None, *
     if process:
         _queue_new_sermons(new_sermons, report)
     return report
+
+
+def run_sync(run_id: int) -> None:
+    """Run import_channel for one SyncRun and save how it went on that run.
+
+    Sets the run RUNNING with started_at, then SUCCEEDED with the report, its counts and finished_at.
+    If the import raises, the run is set FAILED with the error and finished_at instead, and nothing
+    is raised, so the job itself never fails. Takes the run id rather than the run, so it can be queued.
+    Does nothing if the run no longer exists.
+    """
+    run = db.session.get(SyncRun, run_id)
+    if run is None:
+        current_app.logger.warning("Sync run %s was deleted before it could run", run_id)
+        return
+
+    run.state = SyncRunState.RUNNING
+    run.started_at = utcnow()
+    # Commit before importing, so the run shows as running while the import is still fetching.
+    db.session.commit()
+
+    try:
+        report = import_channel(run.date_from, run.date_to)
+    except Exception as e:
+        # Roll back so a half-finished import is not saved along with the failure.
+        db.session.rollback()
+        current_app.logger.exception("Sync run %s failed", run_id)
+        run.state = SyncRunState.FAILED
+        run.error = str(e) or type(e).__name__
+        run.finished_at = utcnow()
+        db.session.commit()
+        return
+
+    run.state = SyncRunState.SUCCEEDED
+    run.report = report.as_dict()
+    run.series_created = report.series_created
+    run.sermons_created = report.sermons_created
+    run.sermons_updated = report.sermons_updated
+    run.sermons_unchanged = report.sermons_unchanged
+    run.finished_at = utcnow()
+    db.session.commit()
 
 
 def parse_video_id(url: str) -> str | None:

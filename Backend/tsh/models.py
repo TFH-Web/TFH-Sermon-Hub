@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import struct
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from enum import Enum
 
 from sqlalchemy import (
@@ -183,3 +183,43 @@ class SermonChunkEmbedding(db.Model):  # ty: ignore[unsupported-base]
     )
     sermon_chunk: Mapped[SermonChunk] = relationship()
     embedding: Mapped[list[float]] = mapped_column(Float32Vector())
+
+
+class SyncRunState(Enum):
+    """Where a SyncRun is in its life: QUEUED, then RUNNING, then SUCCEEDED or FAILED."""
+
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+
+
+def utcnow() -> datetime:
+    """Return the current UTC time without tzinfo, since the timestamp columns have no time zone."""
+    return datetime.now(UTC).replace(tzinfo=None)
+
+
+class SyncRun(db.Model):  # ty: ignore[unsupported-base]
+    """One YouTube channel sync. Each submission gets its own row, so earlier runs and their reports are kept."""
+
+    id: Mapped[intpk]
+    # The date range the admin asked for. None means that end is open.
+    date_from: Mapped[date | None] = mapped_column(default=None)
+    date_to: Mapped[date | None] = mapped_column(default=None)
+    state: Mapped[SyncRunState] = mapped_column(
+        SAEnum(SyncRunState, create_constraint=True, validate_strings=True),
+        default=SyncRunState.QUEUED,
+    )
+    created_at: Mapped[datetime] = mapped_column(default_factory=utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(default=None)
+    finished_at: Mapped[datetime | None] = mapped_column(default=None)
+    # The ImportReport counts, copied out of the report so a list of runs can show them
+    # without loading every report's skipped lists. None until the run succeeds.
+    series_created: Mapped[int | None] = mapped_column(default=None)
+    sermons_created: Mapped[int | None] = mapped_column(default=None)
+    sermons_updated: Mapped[int | None] = mapped_column(default=None)
+    sermons_unchanged: Mapped[int | None] = mapped_column(default=None)
+    # The full ImportReport as a dict, for admins fixing problems by hand.
+    report: Mapped[dict | None] = mapped_column(JSON, default=None, repr=False)
+    # Why the run failed, if it did: "queue: <error>" when it could not be queued, else the import's error.
+    error: Mapped[str | None] = mapped_column(Text, default=None)
