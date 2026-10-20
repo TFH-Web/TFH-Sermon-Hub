@@ -4,7 +4,7 @@ import type {
 	IPublicClientApplication,
 } from '@azure/msal-browser';
 import axios, { AxiosError } from 'axios';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	hasStaffRole,
 	installApiAuth,
@@ -20,7 +20,10 @@ const account = {
 	name: 'Staff Member',
 } as AccountInfo;
 
-function fixture(baseURL: string | undefined = 'https://api.example.invalid') {
+function fixture(
+	baseURL: string | undefined = 'https://api.example.invalid',
+	scopes = ['api://test/access_as_user'],
+) {
 	const msal = {
 		getAllAccounts: vi.fn(() => [account]),
 		getActiveAccount: vi.fn((): AccountInfo | null => account),
@@ -40,9 +43,7 @@ function fixture(baseURL: string | undefined = 'https://api.example.invalid') {
 		config,
 	}));
 	client.defaults.adapter = adapter;
-	installApiAuth(client, msal as unknown as IPublicClientApplication, [
-		'api://test/access_as_user',
-	]);
+	installApiAuth(client, msal as unknown as IPublicClientApplication, scopes);
 	return { msal, client, adapter };
 }
 
@@ -98,6 +99,29 @@ describe('API authentication', () => {
 		);
 		await expect(client.get('/api/sermons')).rejects.toThrow(
 			'Token renewal failed',
+		);
+		expect(adapter).not.toHaveBeenCalled();
+		expect(useAuth.getState().status).toBe('reauthenticate');
+		expect(useAuth.getState().roles).toEqual([]);
+	});
+	it('fails closed before requesting a token when the API scope is missing', async () => {
+		const { client, msal, adapter } = fixture(undefined, []);
+		await expect(client.get('/api/sermons')).rejects.toThrow(
+			'Missing VITE_API_SCOPE',
+		);
+		expect(msal.acquireTokenSilent).not.toHaveBeenCalled();
+		expect(adapter).not.toHaveBeenCalled();
+		expect(useAuth.getState().status).toBe('error');
+		expect(useAuth.getState().roles).toEqual([]);
+	});
+	it('never substitutes an ID token when Microsoft returns no API access token', async () => {
+		const { client, msal, adapter } = fixture();
+		msal.acquireTokenSilent.mockResolvedValue({
+			accessToken: '',
+			idToken: 'id-token-is-not-an-api-token',
+		});
+		await expect(client.get('/api/sermons')).rejects.toThrow(
+			'no API access token',
 		);
 		expect(adapter).not.toHaveBeenCalled();
 		expect(useAuth.getState().status).toBe('reauthenticate');
@@ -185,4 +209,29 @@ it('keeps a local deep link and exact staff roles', () => {
 	for (const role of ['Admin', 'Internal User', 'InternalUser'])
 		expect(hasStaffRole([role])).toBe(true);
 	expect(hasStaffRole(['NotAdmin', 'admin', 'User'])).toBe(false);
+});
+
+describe('fixture authentication isolation', () => {
+	afterEach(() => {
+		vi.unstubAllEnvs();
+		vi.resetModules();
+	});
+
+	it('never enables the fixture identity in production, even when the E2E flag is set', async () => {
+		vi.stubEnv('DEV', false);
+		vi.stubEnv('PROD', true);
+		vi.stubEnv('VITE_E2E_TEST', 'true');
+		vi.resetModules();
+		const { isAuthTestMode } = await import('./auth');
+		expect(isAuthTestMode).toBe(false);
+	});
+
+	it('requires the explicit E2E flag even on the development server', async () => {
+		vi.stubEnv('DEV', true);
+		vi.stubEnv('PROD', false);
+		vi.stubEnv('VITE_E2E_TEST', 'false');
+		vi.resetModules();
+		const { isAuthTestMode } = await import('./auth');
+		expect(isAuthTestMode).toBe(false);
+	});
 });

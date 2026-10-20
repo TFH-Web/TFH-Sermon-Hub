@@ -139,6 +139,41 @@ role spelling and an unassigned account. Check refresh, sign-out, account switch
 expired-session recovery, deep-link return, denied mutation and API audience/scope
 alignment. Record results without copying raw tokens or secrets into Jira.
 
+### Verification record — 2026-10-20
+
+The implementation in PR #114 was rechecked at `a3eecc8`. Additional local
+regressions explicitly cover missing API scopes, empty access tokens without an
+ID-token fallback, and production/development handling of the E2E flag.
+
+- Backend: 395 tests and 3 snapshots passed, including 58 focused auth and
+  controlled signing-key tests. `poetry check --lock` passed.
+- Frontend: 148 tests across 15 files passed after the additional regressions;
+  TypeScript, production build and the changed test file's lint passed.
+- Dependency audits: Python 77 dependencies and npm 224 dependencies, no known
+  vulnerabilities; no Python packages were skipped and installed versions match
+  the lockfile. Both audit commands exited successfully. PR #114's five CI checks
+  were also green on the implementation commit.
+
+Live checks used the branch's actual Entra authentication on loopback, with
+`TESTING=False`, `AUTH_TEST_BYPASS=False` and an isolated in-memory fixture
+database. Existing databases and the droplet were not modified.
+
+| Live check | Observed result |
+| --- | --- |
+| Anonymous identity request | JSON 401 with `error` and `message` |
+| Real Admin sign-in | `/api/whoami` returned 200 with the Admin role |
+| Admin library access | Sermons, series, speakers and used tags returned 200 |
+| Staff-only sign-in | Jack reports that Samip confirmed a real staff-only account works; this is teammate-reported evidence, not a second account observed in this session |
+| Staff-only denied mutations | Controlled signed-token tests pass for all existing mutation routes; no live staff-only mutation result was observed in this session |
+| Unassigned account, role aliases, account switching and session recovery | Automated coverage passes; complete and record the real-account checks separately |
+| Private staging configuration and sign-in | Pending TFH-540's staging verification before handoff |
+
+Implementation/automated-test completion is not final story acceptance. The
+implementation subtasks can be closed with the evidence above while the parent
+story awaits PR review/merge and the remaining pre-handoff checks. Record the
+deployment-environment checks during TFH-540 before the private staging handoff;
+do not turn pending rows into passes based on test identities or bypasses.
+
 References: [Microsoft token acquisition](https://learn.microsoft.com/en-us/entra/identity-platform/scenario-spa-acquire-token),
 [access-token validation](https://learn.microsoft.com/en-us/entra/identity-platform/access-tokens),
 [pip-audit](https://github.com/pypa/pip-audit),
