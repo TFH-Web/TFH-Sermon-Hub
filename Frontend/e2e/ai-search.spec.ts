@@ -313,3 +313,100 @@ test('filter changes reset pages and Back/Forward restore search state', async (
 	expect(new URL(page.url()).searchParams.get('q')).toBe('hope');
 	expect(new URL(page.url()).searchParams.get('page')).toBe('1');
 });
+
+// Both search URLs should show the same results and preserve filters.
+for (const path of ['/ai-search', '/ai-search/results']) {
+	test(`${path} preserves the search when opening a direct link`, async ({
+		page,
+	}) => {
+		await mockPagedSearch(page);
+
+		const search = new URLSearchParams({
+			q: 'hope',
+			type: 'sermon',
+			speaker: 'Dave Patterson',
+			date: '7d',
+			page: '2',
+		});
+
+		await page.goto(`${path}?${search}`);
+
+		// The older route redirects to the shared search page.
+		await expect(page).toHaveURL(/\/ai-search\?/);
+		await expect(
+			page.getByRole('heading', { name: 'hope page 2' }),
+		).toBeVisible();
+
+		// The query, filters, and page survive navigation.
+		const url = new URL(page.url());
+		for (const [key, value] of search) {
+			expect(url.searchParams.get(key)).toBe(value);
+		}
+	});
+}
+
+test('a delayed old search cannot replace newer results', async ({ page }) => {
+	await mockPagedSearch(page);
+
+	let releaseOld!: () => void;
+	const oldResponseGate = new Promise<void>(resolve => {
+		releaseOld = resolve;
+	});
+
+	let finishOld!: () => void;
+	const oldResponseFinished = new Promise<void>(resolve => {
+		finishOld = resolve;
+	});
+
+	// Hold the first search while allowing newer searches to finish.
+	await page.route(isSearch, async route => {
+		const url = new URL(route.request().url());
+
+		if (url.searchParams.get('q') !== 'slow') {
+			await route.fallback();
+			return;
+		}
+
+		await oldResponseGate;
+
+		try {
+			await route.fulfill({
+				json: [{ ...result, title: 'Outdated search result' }],
+			});
+		} catch {
+			// A newer search may have already cancelled this request.
+		} finally {
+			finishOld();
+		}
+	});
+
+	const oldRequest = page.waitForRequest(request => {
+		const url = new URL(request.url());
+		return isSearch(url) && url.searchParams.get('q') === 'slow';
+	});
+
+	await page.goto('/ai-search?q=slow');
+	await oldRequest;
+
+	try {
+		// Submit a new search before the old response arrives.
+		await page.getByPlaceholder(inputPlaceholder).fill('hope');
+		await page.getByRole('button', { name: 'Search', exact: true }).click();
+
+		await expect(
+			page.getByRole('heading', { name: 'hope page 1' }),
+		).toBeVisible();
+	} finally {
+		releaseOld();
+	}
+
+	await oldResponseFinished;
+
+	// The newer results remain after the older request finishes.
+	await expect(
+		page.getByRole('heading', { name: 'hope page 1' }),
+	).toBeVisible();
+	await expect(
+		page.getByRole('heading', { name: 'Outdated search result' }),
+	).toHaveCount(0);
+});
