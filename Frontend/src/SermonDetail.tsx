@@ -218,13 +218,26 @@ export default function SermonDetail() {
 		}
 	};
 
-	function seekToTranscriptTime(seconds: number) {
-		//skips player to specified time in video (in seconds), to be used with transcript to skip to specified segment
-		if (playerReady && playerRef.current) {
+	function seekToTranscriptTime(seconds: number): boolean {
+		// Use the external link if the embedded video cannot handle the request.
+		if (!Number.isFinite(seconds) || seconds < 0 || !videoId || videoError) {
+			return false;
+		}
+
+		// Remember the timestamp if the player is still loading.
+		if (!playerReady || !playerRef.current) {
+			setPendingSeek(seconds);
+			return true;
+		}
+
+		try {
+			// Move the video to the selected cue and start playback.
 			playerRef.current.seekTo(seconds, true);
 			playerRef.current.playVideo();
-		} else {
-			setPendingSeek(seconds);
+			return true;
+		} catch {
+			// Allow the timestamp's external link if the player fails.
+			return false;
 		}
 	}
 
@@ -321,7 +334,8 @@ export default function SermonDetail() {
 						</div>
 					</div>
 				</div>
-				<SermonTranscript sermon={sermon} />
+				{/* Let transcript timestamps control this sermon's video. */}
+				<SermonTranscript sermon={sermon} onSeek={seekToTranscriptTime} />
 
 				{/* Summary Section */}
 				<Card className="SermonDetail-summary">
@@ -428,15 +442,6 @@ export default function SermonDetail() {
 								{sermon.videoLink.replace('https://', '')}
 							</a>
 						</span>
-
-						<span>
-							<button type="button" onClick={() => seekToTranscriptTime(15)}>
-								<p>
-									Click to Skip Video to 0:15 (This is to test video seeking)
-								</p>
-							</button>
-						</span>
-						<span></span>
 
 						<span className="SermonDetail-metadata-label">Transcript</span>
 						{/* Only say "Generated" if a transcript really exists.

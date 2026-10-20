@@ -194,3 +194,87 @@ test('queued completion refreshes the transcript after the sermon status changes
 		page.getByRole('button', { name: 'Refresh captions', exact: true }),
 	).toBeEnabled();
 });
+
+// Replace YouTube with a controlled player for these tests.
+async function mockVideoPlayer(page: Page) {
+	await page.addInitScript(() => {
+		Object.assign(window, {
+			YT: {
+				Player: class {
+					private iframe: HTMLIFrameElement;
+
+					constructor(
+						container: HTMLElement,
+						options: {
+							events: {
+								onReady: (event: { target: unknown }) => void;
+							};
+						},
+					) {
+						this.iframe = document.createElement('iframe');
+						// Keep a stable identifier even when the component changes the title.
+						this.iframe.dataset.testid = 'test-video-player';
+						container.replaceChildren(this.iframe);
+
+						// Let the page finish registering its player callbacks.
+						setTimeout(() => {
+							options.events.onReady({ target: this });
+						}, 0);
+					}
+
+					getIframe() {
+						return this.iframe;
+					}
+
+					seekTo(seconds: number) {
+						// Record the exact timestamp requested by the page.
+						this.iframe.dataset.seekTime = String(seconds);
+					}
+
+					playVideo() {
+						// Record that playback was requested.
+						this.iframe.dataset.playing = 'true';
+					}
+
+					destroy() {
+						this.iframe.remove();
+					}
+				},
+			},
+		});
+	});
+}
+
+// Check mouse and keyboard activation using the same caption data.
+for (const activation of ['click', 'Enter'] as const) {
+	test(`timestamp seeks the embedded video using ${activation}`, async ({
+		page,
+	}) => {
+		await mockVideoPlayer(page);
+		await captionRoutes(page);
+		await page.goto('/sermons/1');
+
+		await page.getByRole('button', { name: 'Timestamps', exact: true }).click();
+
+		const cue = page.getByRole('link', { name: 'Watch from 0:01' });
+		const player = page.getByTestId('test-video-player');
+
+		if (activation === 'click') {
+			await cue.click();
+		} else {
+			await cue.focus();
+			await cue.press('Enter');
+		}
+
+		// Seek to the actual cue start, including fractional seconds.
+		await expect(player).toHaveAttribute('data-seek-time', '1.25');
+		await expect(player).toHaveAttribute('data-playing', 'true');
+
+		// The source link remains available for external navigation.
+		await expect(cue).toHaveAttribute(
+			'href',
+			'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y&t=1',
+		);
+		expect(page.context().pages()).toHaveLength(1);
+	});
+}
