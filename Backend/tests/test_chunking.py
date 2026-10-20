@@ -87,6 +87,46 @@ def test_chunk_end_is_latest_end_for_overlapping_cues():
     assert (chunk["start"], chunk["end"]) == (0.0, 9.0)
 
 
+@pytest.mark.parametrize("cue_words", [6, 8, 13])
+def test_oversized_overlapping_cues_preserve_source_order_and_ranges(cue_words):
+    segments = [
+        {"start": 0.0, "end": float(cue_words), "text": words(cue_words)},
+        {"start": 1.0, "end": 2.0, "text": "overlapping"},
+    ]
+
+    chunks = _chunk(segments, size_max=4, overlap_percent=0)
+
+    starts = [c["start"] for c in chunks]
+    assert starts == sorted(starts)
+    assert all(word_count(c) <= 4 for c in chunks)
+    [overlapping] = [c for c in chunks if "overlapping" in c["text"]]
+    assert overlapping["start"] == 1.0
+    assert overlapping["end"] >= 2.0
+    assert overlapping["text"].startswith("overlapping")
+
+
+def test_embedded_overlapping_cue_keeps_its_source_time(app: Flask, monkeypatch):
+    monkeypatch.setattr("tsh.embeddings.CHUNK_SIZE_MAX", 4)
+    monkeypatch.setattr("tsh.embeddings.CHUNK_OVERLAP_PERCENT_MIN", 0)
+    sermon = db.session.scalars(db.select(Sermon).order_by(Sermon.id)).first()
+    sermon.transcript_segments = [
+        {"start": 0.0, "end": 6.0, "text": words(6)},
+        {"start": 1.0, "end": 2.0, "text": "overlapping"},
+    ]
+    db.session.commit()
+
+    pipeline.embed_chunks(sermon)
+    db.session.expire_all()
+
+    [overlapping] = db.session.scalars(
+        db.select(SermonChunk).where(
+            SermonChunk.sermon_id == sermon.id,
+            SermonChunk.text.contains("overlapping"),
+        )
+    ).all()
+    assert (overlapping.start, overlapping.end) == (1.0, 6.0)
+
+
 def test_input_segments_are_not_modified():
     segments = [
         {"start": 1.0, "end": 2.0, "text": "b"},

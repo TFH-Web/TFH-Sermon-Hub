@@ -151,11 +151,12 @@ def _chunk(
     )
     validate_chunk_settings(size_max, overlap_percent)
 
-    pieces = [
-        piece
-        for segment in sorted(segments, key=lambda s: s["start"])
-        for piece in _split_segment(segment, size_max)
-    ]
+    # Splitting a long cue can put its later pieces after the start of another cue.
+    # Sort the pieces themselves so overlapping captions keep their source order.
+    pieces = sorted(
+        (piece for segment in segments for piece in _split_segment(segment, size_max)),
+        key=lambda piece: piece["start"],
+    )
 
     window: list[TranscriptSegment] = []
     window_len = 0
@@ -245,4 +246,8 @@ def _join(window: list[TranscriptSegment]) -> TranscriptSegment:
 
     Overlapping cues can end out of order, so the last cue's end is not always the latest.
     """
-    return {**reduce(concatenate, window), "end": max(s["end"] for s in window)}
+    return {
+        **reduce(concatenate, window),
+        "start": min(s["start"] for s in window),
+        "end": max(s["end"] for s in window),
+    }
