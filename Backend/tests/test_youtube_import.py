@@ -9,9 +9,9 @@ from redis import Redis
 from redis.exceptions import ConnectionError as RedisConnectionError
 from rq import Queue
 
-from tsh import pipeline, views, youtube
+from tsh import pipeline, youtube, youtube_import
 from tsh.database import db
-from tsh.models import Series, Sermon, Speaker, UploadStatus
+from tsh.models import Series, Sermon, Speaker, SyncRun, UploadStatus
 from tsh.queue import QUEUE_NAME
 from tsh.youtube_import import import_channel, parse_video_id
 
@@ -485,7 +485,7 @@ def test_sync_redis_down(client: FlaskClient, channel: FakeChannel, monkeypatch)
     def redis_down(*args):
         raise RedisConnectionError("Connection refused")
 
-    monkeypatch.setattr(views, "enqueue", redis_down)
+    monkeypatch.setattr(youtube_import, "enqueue", redis_down)
 
     res = client.post("/api/import/youtube")
 
@@ -512,7 +512,7 @@ def test_sync_date_range(client: FlaskClient, channel: FakeChannel):
 
 
 def test_sync_date_range_queued(app: Flask, client: FlaskClient, channel: FakeChannel, monkeypatch):
-    """A queued sync carries its date range to the worker as the job's arguments."""
+    """A queued sync saves its date range on the run, and the job carries only the run id for the worker to load."""
     fake = fakeredis.FakeStrictRedis()
     monkeypatch.setattr(Redis, "from_url", lambda *args, **kwargs: fake)
     app.config["REDIS_URL"] = "redis://fake:6379/0"
@@ -521,7 +521,9 @@ def test_sync_date_range_queued(app: Flask, client: FlaskClient, channel: FakeCh
 
     assert res.status_code == 202
     job = Queue(QUEUE_NAME, connection=fake).fetch_job(res.json["jobId"])
-    assert tuple(job.args) == (date(2026, 9, 1), date(2026, 9, 30))
+    assert tuple(job.args) == (res.json["runId"],)
+    run = db.session.get(SyncRun, res.json["runId"])
+    assert (run.date_from, run.date_to) == (date(2026, 9, 1), date(2026, 9, 30))
     assert channel.items_read == []
 
 
