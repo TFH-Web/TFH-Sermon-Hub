@@ -92,6 +92,54 @@ def test_sermon_without_a_valid_video_id_is_skipped(app: Flask):
     assert retrieve_chunks("grace") == []
 
 
+@pytest.mark.parametrize("video_id", [None, "BROKENLINKTEST"])
+def test_invalid_video_chunks_do_not_use_the_candidate_limit(app: Flask, video_id):
+    add_sermon(
+        "Unlinkable",
+        [(f"Grace point {i}.", float(i), float(i + 1)) for i in range(8)],
+        video_id=video_id,
+    )
+    eligible = add_sermon(
+        "Linkable", [("Grace is a gift.", 90.0, 100.0)], video_id="valid123456"
+    )
+
+    hits = retrieve_chunks("grace")
+
+    assert [hit.sermon_id for hit in hits] == [eligible.id]
+
+
+def test_limit_counts_only_eligible_chunks_across_streamed_batches(app: Flask):
+    first = add_sermon(
+        "First", [("Grace comes first.", 0.0, 5.0)], video_id="first123456"
+    )
+    add_sermon(
+        "Unlinkable",
+        [(f"Grace point {i}.", float(i), float(i + 1)) for i in range(40)],
+        video_id=None,
+    )
+    second = add_sermon(
+        "Second",
+        [("Grace comes second.", 60.0, 65.0), ("More grace.", 70.0, 75.0)],
+        video_id="second12345",
+    )
+
+    hits = retrieve_chunks("grace", limit=2)
+
+    assert [(hit.sermon_id, hit.start_sec) for hit in hits] == [
+        (first.id, 0.0), (second.id, 60.0)
+    ]
+
+
+@pytest.mark.parametrize("limit", [0, -1])
+def test_nonpositive_limit_returns_no_evidence_without_embedding(app: Flask, monkeypatch, limit):
+    def unexpected_embedding(*args, **kwargs):
+        raise AssertionError("An empty retrieval must not call the embedding provider")
+
+    monkeypatch.setattr("ollama.embed", unexpected_embedding)
+
+    assert retrieve_chunks("grace", limit=limit) == []
+
+
 def test_video_id_falls_back_to_the_link(app: Flask):
     sermon = add_sermon("Linked", [("Grace is a gift.", 0.0, 5.0)])
     sermon.youtube_video_id = None
@@ -100,6 +148,25 @@ def test_video_id_falls_back_to_the_link(app: Flask):
     [hit] = retrieve_chunks("grace")
 
     assert hit.youtube_video_id == "PxTdE09QjH0"
+
+
+def test_selected_sermon_link_fallback_keeps_its_limit(app: Flask):
+    add_sermon(
+        "Other",
+        [(f"Grace elsewhere {i}.", float(i), float(i + 1)) for i in range(8)],
+    )
+    selected = add_sermon(
+        "Selected",
+        [(f"Grace here {i}.", float(i), float(i + 1)) for i in range(3)],
+        video_id=None,
+    )
+    selected.video_link = "https://www.youtube.com/watch?v=PxTdE09QjH0"
+
+    hits = retrieve_chunks("grace", sermon_id=selected.id, limit=2)
+
+    assert len(hits) == 2
+    assert {hit.sermon_id for hit in hits} == {selected.id}
+    assert {hit.youtube_video_id for hit in hits} == {"PxTdE09QjH0"}
 
 
 def test_query_embedding_failure_propagates(app: Flask, monkeypatch):
