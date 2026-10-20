@@ -317,7 +317,9 @@ A bad `page` or `pageSize` gets the pagination contract's JSON 400, for example
 
 A worker can die, or RQ can kill a job that passes its 15 minute timeout, and
 then nothing comes back to finish the run. Without a rule, that run would block
-every later sync with 409. So each submission first checks the active run:
+every later sync with 409 or leave the progress screen polling forever. Each
+submission and each authorized run-detail or recent-runs request checks active
+runs and persists lost-worker failures before returning:
 
 - A run `running` for more than 20 minutes since `startedAt` (the job timeout
   plus a 5 minute margin) is set `failed` with
@@ -327,7 +329,9 @@ every later sync with 409. So each submission first checks the active run:
   a sync shares the queue with sermon caption jobs and can wait behind many of
   them after a big import.
 
-After that the new sync is accepted as usual. If the old job does turn up
+Status polling therefore reaches `failed` without submitting another sync, and
+repeated reads preserve the original failure and `finishedAt`. A later submission
+can start a new sync as usual. If the old job does turn up
 later, it sees its run is no longer `queued` and does nothing, so two imports
 never overlap.
 

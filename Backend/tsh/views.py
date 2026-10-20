@@ -12,6 +12,7 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from tsh.database import db
+from tsh import schemas
 from tsh.models import (
     Series,
     Sermon,
@@ -34,8 +35,6 @@ from tsh.schemas import (
     sermon_schema,
     sermons_schema,
     speaker_schema,
-    sync_run_schema,
-    sync_runs_schema,
 )
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -597,12 +596,14 @@ def get_sync_runs():
 
     With ?page= (and optionally pageSize), returns the paginated envelope from paginate under the "runs" key.
     Without it, returns a plain list of the 20 most recent runs, since runs are never deleted and the list only grows.
+    Reconciles lost workers before returning their persisted status.
     Sends 400 for a bad page or pageSize, 401 without a valid token, and 403 for non-Admins.
     """
+    active_sync_run()
     query = db.select(SyncRun).options(defer(SyncRun.report)).order_by(SyncRun.id.desc())
-    pagination = paginate(query, request, sync_runs_schema, "runs", default_page_size=20)
+    pagination = paginate(query, request, schemas.sync_runs_schema, "runs", default_page_size=20)
     if pagination is None:
-        return sync_runs_schema.dump(db.session.scalars(query.limit(20)))
+        return schemas.sync_runs_schema.dump(db.session.scalars(query.limit(20)))
     return pagination
 
 
@@ -611,10 +612,12 @@ def get_sync_runs():
 def get_sync_run(id: int):
     """Return one YouTube sync run with its full report (null until it succeeds).
 
+    Reconciles lost workers so polling reaches a terminal state even if no new sync is submitted.
     Sends 401 without a valid token, 403 for non-Admins, and 404 with JSON error and message if there is no such run.
     """
+    active_sync_run()
     run = db.get_or_404(SyncRun, id, description=f"Sync run with id {id} not found")
-    return sync_run_schema.dump(run)
+    return schemas.sync_run_schema.dump(run)
 
 
 @api.post("/import/youtube/video")

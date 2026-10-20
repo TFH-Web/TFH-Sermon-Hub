@@ -241,6 +241,61 @@ def test_queued_run_waiting_behind_sermon_jobs_still_blocks(client: FlaskClient,
     assert reload(waiting_id).state == SyncRunState.QUEUED
 
 
+@pytest.mark.parametrize("path", ["/api/import/youtube/runs", "/api/import/youtube/runs?page=1", "/api/import/youtube/runs/{id}"])
+@pytest.mark.parametrize("state, age, minutes", [
+    (SyncRunState.RUNNING, STALE_SYNC_AFTER, 20),
+    (SyncRunState.QUEUED, STALE_QUEUED_SYNC_AFTER, 1440),
+])
+def test_status_poll_records_lost_workers_without_a_new_submission(client: FlaskClient, fake_import, path, state, age, minutes):
+    old = utcnow() - age - timedelta(minutes=1)
+    run_id = new_run(state=state, created_at=old, started_at=old if state == SyncRunState.RUNNING else None)
+    url = path.format(id=run_id)
+
+    res = client.get(url)
+
+    assert res.status_code == 200
+    body = res.json
+    if "?page" in url:
+        body = body["runs"][0]
+    elif isinstance(body, list):
+        body = body[0]
+    assert body["state"] == "failed"
+    assert body["error"] == f"worker: no result within {minutes} minutes"
+    assert body["finishedAt"] is not None
+    persisted = reload(run_id)
+    assert persisted.state == SyncRunState.FAILED
+    finished_at = persisted.finished_at
+    # Repeated polls keep the outcome stable, and a late queued job never imports.
+    assert client.get(url).status_code == 200
+    run_sync(run_id)
+    assert reload(run_id).finished_at == finished_at
+    assert fake_import == []
+    assert db.session.scalar(db.select(db.func.count()).select_from(SyncRun)) == 1
+
+
+@pytest.mark.parametrize("path", ["/api/import/youtube/runs", "/api/import/youtube/runs/{id}"])
+def test_polling_preserves_a_sync_waiting_behind_sermon_jobs(client: FlaskClient, path):
+    run_id = new_run(created_at=utcnow() - timedelta(hours=1))
+
+    res = client.get(path.format(id=run_id))
+
+    assert res.status_code == 200
+    assert reload(run_id).state == SyncRunState.QUEUED
+    assert reload(run_id).finished_at is None
+
+
+@pytest.mark.parametrize("roles, status_code", [("none", 401), ("Internal User", 403)])
+@pytest.mark.parametrize("path", ["/api/import/youtube/runs", "/api/import/youtube/runs/{id}"])
+def test_unauthorized_status_requests_do_not_change_runs(client: FlaskClient, roles, status_code, path):
+    run_id = new_run(state=SyncRunState.RUNNING, created_at=long_ago(), started_at=long_ago())
+
+    res = client.get(path.format(id=run_id), headers={"X-Test-Roles": roles})
+
+    assert res.status_code == status_code
+    assert reload(run_id).state == SyncRunState.RUNNING
+    assert reload(run_id).finished_at is None
+
+
 def test_submit_queued_then_worker_completes(client: FlaskClient, fake_import: list[tuple], fake_redis):
     """With Redis: 202 with the job and run ids, the run waits QUEUED, and the worker running the job completes it."""
     fake = fake_redis
