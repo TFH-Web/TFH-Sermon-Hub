@@ -10,6 +10,7 @@ import {
 } from '$/types/sermon';
 import { getFullName } from '$/types/speaker';
 import Container from './Container';
+import SermonTag from './SermonTag';
 import Tag from './Tag';
 
 export interface SermonCardProps {
@@ -63,13 +64,10 @@ export default function SermonCard({ className, sermon }: SermonCardProps) {
 			</div>
 
 			<div className="SermonCard-tags">
-				{sermon.tags
-					.map(t => t.name)
-					.map(tag => (
-						<Tag key={tag} variant="solid">
-							{tag}
-						</Tag>
-					))}
+				{/* Preserve each tag's saved origin when displaying it. */}
+				{sermon.tags.map(tag => (
+					<SermonTag key={tag.name} tag={tag} />
+				))}
 			</div>
 		</Container>
 	);

@@ -11,6 +11,7 @@ import { Card } from '$/components/Card.tsx';
 import ErrorBox from '$/components/ErrorBox.tsx';
 import Loading from '$/components/Loading.tsx';
 import MainLayout from '$/components/MainLayout';
+import SermonTag from '$/components/SermonTag';
 import SermonTranscript from '$/components/SermonTranscript';
 import Tag from '$/components/Tag.tsx';
 import { useToast } from '$/components/ToastContext.tsx';
@@ -170,6 +171,12 @@ function SermonDetailContent({
 	// If the sermon has no summary saved, we end up with nothing to show.
 	const summaryParagraphs = sermon.summary ? toParagraphs(sermon.summary) : [];
 
+	// Count AI and manual tags separately instead of labeling every tag as AI.
+	const aiTagCount = sermon.tags.filter(tag => tag.source === 'ai').length;
+	const manualTagCount = sermon.tags.filter(
+		tag => tag.source === 'manual',
+	).length;
+
 	// Filters list of sermons to a new array containing only sermons in the same series
 	// const [filteredSermons, setFilteredSermons] = useState<Sermon[]>([]);
 	let filteredSermons: Sermon[] = [];
@@ -327,10 +334,9 @@ function SermonDetailContent({
 									: ''}
 							</p>
 							<div className="SermonDetail-tags">
+								{/* Show AI origin only for tags marked as AI by the API. */}
 								{sermon.tags.map(tag => (
-									<Tag key={tag.name} variant="solid">
-										{tag.name}
-									</Tag>
+									<SermonTag key={tag.name} tag={tag} />
 								))}
 							</div>
 							<div className="SermonDetail-btn-group">
@@ -366,7 +372,6 @@ function SermonDetailContent({
 					<div className="SermonDetail-card-header">
 						<h2 className="SermonDetail-card-title">Summary</h2>
 						<div className="SermonDetail-card-actions">
-							<Tag variant="blue">AI Generated</Tag>
 							<Button
 								variant="ghost"
 								className="SermonDetail-regenerate-btn"
@@ -481,16 +486,23 @@ function SermonDetailContent({
 						<span className="SermonDetail-metadata-label">Summary</span>
 						{/* Same idea for the summary */}
 						<span className="SermonDetail-metadata-value">
+							{/* Summary existence does not tell us who created it. */}
 							{sermon.summary ? (
-								<Tag variant="green">Generated</Tag>
+								<Tag variant="green">Available</Tag>
 							) : (
-								<Tag variant="amber">Not generated</Tag>
+								<Tag variant="amber">Not available</Tag>
 							)}
 						</span>
 
 						<span className="SermonDetail-metadata-label">Tags</span>
 						<span className="SermonDetail-metadata-value">
-							<Tag variant="green">AI Generated ({sermon.tags.length})</Tag>
+							{aiTagCount > 0 && (
+								<Tag variant="green">AI Generated ({aiTagCount})</Tag>
+							)}
+							{manualTagCount > 0 && (
+								<Tag variant="outline">Manual ({manualTagCount})</Tag>
+							)}
+							{sermon.tags.length === 0 && <span>No tags</span>}
 						</span>
 					</div>
 				</Card>
