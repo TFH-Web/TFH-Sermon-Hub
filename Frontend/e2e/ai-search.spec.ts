@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 // Example API result used by the tests.
 const result = {
@@ -208,4 +208,108 @@ test('shows a request error and recovers when Retry is clicked', async ({
 	// Successful retry should replace the error with returned results.
 	await expect(page.getByRole('heading', { name: result.title })).toBeVisible();
 	await expect(page.locator('.ErrorBox')).toHaveCount(0);
+});
+
+// Return predictable pages for URL and browser-history tests.
+async function mockPagedSearch(page: Page) {
+	await page.route(isSearch, route => {
+		const url = new URL(route.request().url());
+		const currentPage = Number(url.searchParams.get('page') ?? 1);
+		const query = url.searchParams.get('q') ?? '';
+
+		return route.fulfill({
+			json: {
+				items: [
+					{
+						...result,
+						title: `${query} page ${currentPage}`,
+					},
+				],
+				page: currentPage,
+				pageSize: 6,
+				total: 7,
+				totalPages: 2,
+			},
+		});
+	});
+}
+
+test('direct search URLs restore filters and page after reload', async ({
+	page,
+}) => {
+	await mockPagedSearch(page);
+
+	const search = new URLSearchParams({
+		q: 'anxiety',
+		type: 'sermon',
+		speaker: 'Dave Patterson',
+		date: '7d',
+		page: '2',
+	});
+
+	await page.goto(`/ai-search?${search}`);
+
+	for (const reload of [false, true]) {
+		if (reload) {
+			await page.reload();
+		}
+
+		await expect(page.getByPlaceholder(inputPlaceholder)).toHaveValue(
+			'anxiety',
+		);
+		await expect(page.locator('.SearchFilters-select')).toHaveValue(
+			'Dave Patterson',
+		);
+		await expect(page.locator('.SearchFilters-pill--active')).toHaveText(
+			'Sermons',
+		);
+		await expect(page.locator('.SearchDateDropdown-trigger')).toContainText(
+			'7 Days',
+		);
+		await expect(page.getByText('Page 2 of 2')).toBeVisible();
+		await expect(
+			page.getByRole('heading', { name: 'anxiety page 2' }),
+		).toBeVisible();
+	}
+});
+
+test('filter changes reset pages and Back/Forward restore search state', async ({
+	page,
+}) => {
+	await mockPagedSearch(page);
+	await page.goto('/ai-search?q=anxiety&page=1');
+
+	await expect(page.getByText('Page 1 of 2')).toBeVisible();
+	await page.getByRole('button', { name: 'Next page' }).click();
+	await expect(page.getByText('Page 2 of 2')).toBeVisible();
+
+	await page
+		.locator('.SearchFilters-pills')
+		.getByRole('button', { name: 'Transcripts', exact: true })
+		.click();
+
+	await expect(page.getByText('Page 1 of 2')).toBeVisible();
+	expect(new URL(page.url()).searchParams.get('type')).toBe('transcript');
+	expect(new URL(page.url()).searchParams.get('page')).toBe('1');
+
+	// Back restores the previous page and filter.
+	await page.goBack();
+	await expect(page.getByText('Page 2 of 2')).toBeVisible();
+	await expect(page.locator('.SearchFilters-pill--active')).toHaveText('All');
+
+	await page.goForward();
+	await expect(page.getByText('Page 1 of 2')).toBeVisible();
+	await expect(page.locator('.SearchFilters-pill--active')).toHaveText(
+		'Transcripts',
+	);
+
+	// A different submitted query also starts at page one.
+	await page.getByPlaceholder(inputPlaceholder).fill('hope');
+	await page.getByRole('button', { name: 'Search', exact: true }).click();
+
+	await expect(
+		page.getByRole('heading', { name: 'hope page 1' }),
+	).toBeVisible();
+	expect(new URL(page.url()).searchParams.get('q')).toBe('hope');
+	expect(new URL(page.url()).searchParams.get('page')).toBe('1');
 });

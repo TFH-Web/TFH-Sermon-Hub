@@ -1,11 +1,12 @@
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import useAISearchRequest, {
 	type ContentType,
 	type SearchParameters,
 } from '$/hooks/useAISearchRequest';
 import { mapSearchResult } from '$/lib/aiSearch';
 
-// These labels appear above the search results.
+// These are the content choices currently supported by the frontend.
 const contentOptions: { label: string; value: ContentType }[] = [
 	{ label: 'All', value: 'all' },
 	{ label: 'Sermons', value: 'sermon' },
@@ -13,29 +14,73 @@ const contentOptions: { label: string; value: ContentType }[] = [
 	{ label: 'Notes', value: 'note' },
 ];
 
-export default function useAISearch() {
-	// Keep the text being typed separate from the submitted query.
-	const [query, setQuery] = useState('');
-	const [hasSearched, setHasSearched] = useState(false);
+// Restore the submitted search from the address bar.
+function readParameters(search: URLSearchParams): SearchParameters {
+	const requestedType = search.get('type') ?? 'all';
+	const type = contentOptions.some(option => option.value === requestedType)
+		? (requestedType as ContentType)
+		: 'all';
 
-	// Keep the submitted query, filters, and page together.
-	const [parameters, setParameters] = useState<SearchParameters>({
-		q: '',
-		type: 'all',
-		speaker: 'any',
-		date: 'any',
-		page: 1,
+	const rawPage = search.get('page') ?? '1';
+	const requestedPage = /^[1-9]\d*$/.test(rawPage) ? Number(rawPage) : 1;
+
+	return {
+		q: (search.get('q') ?? '').trim(),
+		type,
+		speaker: search.get('speaker') || 'any',
+		date: search.get('date') || 'any',
+		page: Number.isSafeInteger(requestedPage) ? requestedPage : 1,
 		pageSize: 6,
-	});
+	};
+}
 
-	// Load results for the current submitted search.
+export default function useAISearch() {
+	const [searchParams, setSearchParams] = useSearchParams();
+	const parameters = readParameters(searchParams);
+	const hasSearched = searchParams.has('q');
+
+	// Typing stays separate from the submitted query in the URL.
+	const [query, setQuery] = useState(parameters.q);
+
+	// Restore the input after reload or Back/Forward navigation.
+	useEffect(() => {
+		setQuery(parameters.q);
+	}, [parameters.q]);
+
 	const searchRequest = useAISearchRequest(parameters, hasSearched);
+
+	function updateParameters(
+		changes: Partial<SearchParameters>,
+		submit = false,
+	) {
+		// Read the latest address bar so quick changes keep earlier filters.
+		const previous = new URLSearchParams(window.location.search);
+		const next = {
+			...readParameters(previous),
+			...changes,
+		};
+
+		// Preserve unrelated URL parameters.
+		const url = new URLSearchParams(previous);
+		url.set('q', next.q);
+		url.set('type', next.type);
+		url.set('speaker', next.speaker);
+		url.set('date', next.date);
+		url.set('page', String(next.page));
+
+		// Choosing filters before submission must not start a search.
+		if (!submit && !previous.has('q')) {
+			url.delete('q');
+		}
+
+		setSearchParams(url);
+	}
 
 	function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		const submittedQuery = query.trim();
 
-		// Searching again with the same values refreshes the results.
+		// Submitting the same first page refreshes its current results.
 		if (
 			hasSearched &&
 			submittedQuery === parameters.q &&
@@ -45,34 +90,30 @@ export default function useAISearch() {
 			return;
 		}
 
-		// Start a submitted query on the first page.
-		setParameters(previous => ({
-			...previous,
-			q: submittedQuery,
-			page: 1,
-		}));
-		setHasSearched(true);
+		updateParameters({ q: submittedQuery, page: 1 }, true);
 	}
 
-	// Changing a filter starts its results on the first page.
+	// A changed filter starts at the first page.
 	function setType(type: ContentType) {
-		setParameters(previous => ({ ...previous, type, page: 1 }));
+		updateParameters({ type, page: 1 });
 	}
 
 	function setSpeaker(speaker: string) {
-		setParameters(previous => ({ ...previous, speaker, page: 1 }));
+		updateParameters({ speaker, page: 1 });
 	}
 
 	function setDate(date: string) {
-		setParameters(previous => ({ ...previous, date, page: 1 }));
+		updateParameters({ date, page: 1 });
 	}
 
-	// Changing pages keeps the submitted query and filters.
 	function setPage(page: number) {
-		setParameters(previous => ({ ...previous, page }));
+		if (!Number.isSafeInteger(page) || page < 1) {
+			return;
+		}
+
+		updateParameters({ page });
 	}
 
-	// Convert each returned result into the values expected by the card.
 	const visibleResults = (searchRequest.data?.items ?? []).map(item =>
 		mapSearchResult(item, parameters.q),
 	);
@@ -96,8 +137,6 @@ export default function useAISearch() {
 		totalPages: searchRequest.data?.totalPages ?? 0,
 		isLoading: searchRequest.isFetching,
 		isError: searchRequest.isError,
-
-		// Run the current request again when the user clicks Retry.
 		retry: () => {
 			void searchRequest.refetch();
 		},
