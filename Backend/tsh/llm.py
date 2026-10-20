@@ -14,18 +14,19 @@ class LLMError(RuntimeError):
 def generate (prompt: str, system: str = "", max_tokens: int = 1024, json_mode: bool = False) -> str:
     """Ask the active provider for a completion. 
     
+    max_tokens caps the length of the reply on every provider.
     json mode will constrain the reply to valid JSON where the provider supports it. Small local models ignore
     "return JSON only" often enough that this will matter."""
 
     provider = os.getenv("LLM_PROVIDER", "ollama").lower()
     if provider == "ollama":
-        return _ollama(prompt, system, json_mode)
+        return _ollama(prompt, system, json_mode, max_tokens)
     if provider == "anthropic":
         return _anthropic(prompt, system, max_tokens)
     raise LLMError(f"Unsupported LLM provider: {provider!r} (use 'ollama' or 'anthropic')")
 
 
-def _ollama(prompt: str, system: str = "", json_mode: bool = False) -> str:
+def _ollama(prompt: str, system: str = "", json_mode: bool = False, max_tokens: int = 1024) -> str:
     url = os.getenv("OLLAMA_URL", "http://localhost:11434")
     model = os.getenv("LLM_MODEL", DEFAULT_OLLAMA_MODEL)
     num_ctx = int(os.getenv("OLLAMA_NUM_CTX", DEFAULT_NUM_CTX))
@@ -37,7 +38,8 @@ def _ollama(prompt: str, system: str = "", json_mode: bool = False) -> str:
         "model": model,
         "stream": False,
         "messages": messages,
-        "options": {"num_ctx": num_ctx},
+        # num_predict is Ollama's output token cap, so max_tokens limits both providers.
+        "options": {"num_ctx": num_ctx, "num_predict": max_tokens},
     }
     if json_mode:
         payload["format"] = "json"

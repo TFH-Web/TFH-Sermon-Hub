@@ -5,11 +5,13 @@ from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy import false, func
 from sqlalchemy.orm import defer, with_expression
+from tsh import chat as chat_service
 from tsh.auth import require_role
 
 # API routes for series, speakers, and sermons
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.exceptions import RequestEntityTooLarge
 
 from tsh.database import db
 from tsh import schemas
@@ -759,3 +761,44 @@ def search():
     return filtered
 
 
+
+
+@api.post("/chat")
+@require_role("Internal User", "InternalUser", "Admin")
+def chat():
+    """Answer a question from published TFH sermons only, with timestamped sources.
+
+    Body: {"message": str, "sermonId": int | null, "history": [{"role": "user" | "assistant", "content": str}]}.
+    See docs/ai-chat.md for the limits and the response. Returns 200 with the answer, or
+    the fixed unsupported answer when published sermons do not support one.
+    Sends 400 with per-field "errors" for an invalid body, 401 without a valid token,
+    403 for other roles, 413 if the body is larger than chat.MAX_REQUEST_BYTES, 502 if
+    the AI model fails, and 503 if the question cannot be embedded or searched.
+    """
+    limit = chat_service.MAX_REQUEST_BYTES
+    # Cap the bytes actually read, not just the header, so a chunked body without
+    # Content-Length is limited too. Werkzeug stops a chunked stream at the cap without an
+    # error, so read one byte past it to tell an oversized body from one that fits.
+    request.max_content_length = limit + 1
+    try:
+        too_large = len(request.get_data(cache=True)) > limit
+    except RequestEntityTooLarge:
+        too_large = True
+    if too_large:
+        message = f"Request body must be at most {limit} bytes."
+        return jsonify({"error": message, "message": message}), 413
+    try:
+        data = chat_service.parse_chat_request(request.get_json(silent=True))
+    except ValidationError as err:
+        message = "Invalid chat request."
+        return jsonify({"error": message, "message": message, "errors": err.messages}), 400
+    try:
+        return jsonify(chat_service.answer_question(data["message"], data["sermon_id"], data["history"]))
+    except chat_service.SearchUnavailable:
+        current_app.logger.exception("Chat could not search sermons")
+        message = "Sermon search is unavailable right now. Please try again later."
+        return jsonify({"error": message, "message": message}), 503
+    except chat_service.AnswerUnavailable:
+        current_app.logger.exception("Chat model failed")
+        message = "The AI model could not answer right now. Please try again later."
+        return jsonify({"error": message, "message": message}), 502
