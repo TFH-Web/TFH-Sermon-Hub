@@ -63,7 +63,7 @@ def add_sermon(
             id=None,
             sermon_id=sermon.id,
             sermon=sermon,
-            hash=f"{sermon.id}-{i}".ljust(32, "0"),
+            hash=f"{sermon.id}-{i}-".ljust(32, "0"),
             text=text,
             start=start,
             end=end,

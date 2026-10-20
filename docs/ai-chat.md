@@ -106,6 +106,25 @@ labeled as AI generated.
 | 502 | The AI model failed. `"The AI model could not answer right now. Please try again later."` |
 | 503 | The question could not be embedded or sermons could not be searched. `"Sermon search is unavailable right now. Please try again later."` |
 
+## Limits
+
+Each limit is a named constant, so it can be tuned in one place.
+
+| Limit | Value | Constant |
+| --- | --- | --- |
+| Request body | 32 KiB | `chat.MAX_REQUEST_BYTES` |
+| Message length | 1000 characters | `chat.MAX_MESSAGE_CHARS` |
+| History turns | 6 | `chat.MAX_HISTORY_TURNS` |
+| Each history turn | 1000 characters | `chat.MAX_HISTORY_CHARS` |
+| Candidate chunks | 8 | `retrieval.CANDIDATE_LIMIT` |
+| Relevance cutoff | cosine distance 0.6 | `retrieval.MAX_DISTANCE` |
+| Evidence text sent to the model | 6000 characters | `chat.CONTEXT_CHAR_BUDGET` |
+| Answer length | 600 tokens | `chat.MAX_OUTPUT_TOKENS` |
+
+Evidence is added nearest first until the next chunk would pass the context
+budget. If the nearest chunk alone is larger, it is cut to fit. The output cap is
+sent to both providers: `max_tokens` for Anthropic and `num_predict` for Ollama.
+
 ## Grounding
 
 - Only chunks of PUBLISHED sermons, embedded with the configured

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 
 from marshmallow import Schema, ValidationError, fields, validate, validates_schema
 
@@ -106,6 +107,9 @@ def unsupported_response() -> dict:
 
 # The longest answer the model may write, passed to the provider as its token limit.
 MAX_OUTPUT_TOKENS = 600
+# Most evidence text, in characters, sent with one question. With the history limits this
+# keeps the whole prompt well inside the model's context window (OLLAMA_NUM_CTX tokens).
+CONTEXT_CHAR_BUDGET = 6000
 # The model replies with exactly this when the evidence does not answer the question.
 UNSUPPORTED_MARKER = "UNSUPPORTED"
 
@@ -159,6 +163,7 @@ def answer_question(message: str, sermon_id: int | None, history: list[dict]) ->
         # Ollama, its HTTP client and the embedding checks raise many unrelated types.
         # To the caller they all mean the same thing: sermons cannot be searched now.
         raise SearchUnavailable(str(e) or type(e).__name__) from e
+    evidence = fit_context_budget(evidence)
     if not evidence:
         return unsupported_response()
 
@@ -183,6 +188,25 @@ def answer_question(message: str, sermon_id: int | None, history: list[dict]) ->
         "supported": True,
         "sources": [source_for(n, evidence[n - 1]) for n in cited],
     }
+
+
+def fit_context_budget(evidence: list[RetrievedChunk]) -> list[RetrievedChunk]:
+    """Return the nearest chunks, in order, whose text fits in CONTEXT_CHAR_BUDGET.
+
+    Stops at the first chunk that does not fit rather than skipping it, so evidence stays
+    the closest matches. A first chunk larger than the whole budget is cut to fit, so a
+    relevant question always has some evidence.
+    """
+    kept: list[RetrievedChunk] = []
+    used = 0
+    for chunk in evidence:
+        if used + len(chunk.text) > CONTEXT_CHAR_BUDGET:
+            if not kept:
+                kept.append(replace(chunk, text=chunk.text[:CONTEXT_CHAR_BUDGET]))
+            break
+        kept.append(chunk)
+        used += len(chunk.text)
+    return kept
 
 
 def verify_citations(reply: str, evidence_count: int) -> tuple[str, list[int]]:
