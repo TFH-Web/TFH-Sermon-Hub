@@ -174,6 +174,29 @@ story awaits PR review/merge and the remaining pre-handoff checks. Record the
 deployment-environment checks during TFH-540 before the private staging handoff;
 do not turn pending rows into passes based on test identities or bypasses.
 
+### Post-merge CI repair — 2026-10-20
+
+After the sync-run implementation merged, the signed mutation test still mocked
+the former queue call site. It now stubs the channel importer used by the sync
+lifecycle. The real signature/claim checks and the existing 401/403 assertions
+remain unchanged; a 502 response is not accepted as a successful permission test.
+
+New audit findings were resolved with compatible lockfile updates:
+
+- Python `certifi`: `2026.7.22` to `2026.10.19`.
+- npm `follow-redirects`: `1.16.0` to `1.16.1`.
+- Vite: `8.3.1` to `8.3.4`, including its compatible build dependencies.
+
+The auth/security repair was checked independently of the separate chat
+retrieval change: 613 backend tests and 3 snapshots passed. The frontend's 148
+tests, TypeScript and production build passed. Both dependency audits now report
+no known vulnerabilities, with no suppressions; Poetry lock validation and
+`pip check` also pass. Earlier audit results are snapshots, not a promise that
+advisory databases cannot report a new finding on a later run.
+
+These repairs do not replace the remaining real-account or staging handoff
+checks above. GitHub's reviewed-PR and required-check rules remain enabled.
+
 References: [Microsoft token acquisition](https://learn.microsoft.com/en-us/entra/identity-platform/scenario-spa-acquire-token),
 [access-token validation](https://learn.microsoft.com/en-us/entra/identity-platform/access-tokens),
 [pip-audit](https://github.com/pypa/pip-audit),
