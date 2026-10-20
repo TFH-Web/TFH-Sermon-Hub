@@ -1,4 +1,6 @@
 # Tests for POST /api/chat request validation, size limits and authorization.
+import io
+
 import pytest
 from flask.testing import FlaskClient
 
@@ -89,6 +91,22 @@ def test_oversized_body_is_rejected(client: FlaskClient):
         "/api/chat",
         data=b'{"message": "' + b"m" * MAX_REQUEST_BYTES + b'"}',
         content_type="application/json",
+    )
+
+    assert res.status_code == 413
+    assert res.json["error"] == res.json["message"]
+
+
+def test_oversized_chunked_body_is_rejected(client: FlaskClient):
+    """A streamed body with no Content-Length is still capped by the bytes read."""
+    body = b'{"message": "' + b"m" * MAX_REQUEST_BYTES + b'"}'
+    res = client.post(
+        "/api/chat",
+        input_stream=io.BytesIO(body),
+        content_type="application/json",
+        headers={"Transfer-Encoding": "chunked"},
+        # Servers that accept chunked bodies set this; without it Werkzeug reads nothing.
+        environ_overrides={"wsgi.input_terminated": True},
     )
 
     assert res.status_code == 413

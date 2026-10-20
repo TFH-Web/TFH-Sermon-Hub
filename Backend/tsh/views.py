@@ -11,6 +11,7 @@ from tsh.auth import require_role
 # API routes for series, speakers, and sermons
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.exceptions import RequestEntityTooLarge
 
 from tsh.database import db
 from tsh.models import (
@@ -729,8 +730,17 @@ def chat():
     Sends 400 with per-field "errors" for an invalid body, 401 without a valid token,
     403 for other roles, and 413 if the body is larger than chat.MAX_REQUEST_BYTES.
     """
-    if (request.content_length or 0) > chat_service.MAX_REQUEST_BYTES:
-        message = f"Request body must be at most {chat_service.MAX_REQUEST_BYTES} bytes."
+    limit = chat_service.MAX_REQUEST_BYTES
+    # Cap the bytes actually read, not just the header, so a chunked body without
+    # Content-Length is limited too. Werkzeug stops a chunked stream at the cap without an
+    # error, so read one byte past it to tell an oversized body from one that fits.
+    request.max_content_length = limit + 1
+    try:
+        too_large = len(request.get_data(cache=True)) > limit
+    except RequestEntityTooLarge:
+        too_large = True
+    if too_large:
+        message = f"Request body must be at most {limit} bytes."
         return jsonify({"error": message, "message": message}), 413
     try:
         data = chat_service.parse_chat_request(request.get_json(silent=True))
