@@ -5,10 +5,10 @@ from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy import false, func
 from sqlalchemy.orm import defer, with_expression
+from tsh import chat as chat_service
 from tsh.auth import require_role
 
 # API routes for series, speakers, and sermons
-from datetime import date
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -34,7 +34,6 @@ from tsh.schemas import (
     sermon_schema,
     sermons_schema,
     speaker_schema,
-    tags_schema,
 )
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -718,3 +717,24 @@ def search():
     return filtered
 
 
+
+
+@api.post("/chat")
+@require_role("Internal User", "InternalUser", "Admin")
+def chat():
+    """Answer a question from published TFH sermons only, with timestamped sources.
+
+    Body: {"message": str, "sermonId": int | null, "history": [{"role": "user" | "assistant", "content": str}]}.
+    See docs/ai-chat.md for the limits and the response. Returns 200 with the answer.
+    Sends 400 with per-field "errors" for an invalid body, 401 without a valid token,
+    403 for other roles, and 413 if the body is larger than chat.MAX_REQUEST_BYTES.
+    """
+    if (request.content_length or 0) > chat_service.MAX_REQUEST_BYTES:
+        message = f"Request body must be at most {chat_service.MAX_REQUEST_BYTES} bytes."
+        return jsonify({"error": message, "message": message}), 413
+    try:
+        data = chat_service.parse_chat_request(request.get_json(silent=True))
+    except ValidationError as err:
+        message = "Invalid chat request."
+        return jsonify({"error": message, "message": message, "errors": err.messages}), 400
+    return jsonify(chat_service.answer_question(data["message"], data["sermon_id"], data["history"]))
