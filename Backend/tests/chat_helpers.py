@@ -78,3 +78,23 @@ def add_sermon(
         )
     db.session.commit()
     return sermon
+
+
+class FakeLLM:
+    """Stands in for llm.generate: records each call and returns a fixed reply."""
+
+    def __init__(self, reply: str = "Grace is a gift [1]."):
+        self.reply = reply
+        self.calls: list[dict] = []
+
+    def __call__(self, prompt: str, system: str = "", **kwargs) -> str:
+        self.calls.append({"prompt": prompt, "system": system, **kwargs})
+        if isinstance(self.reply, BaseException):
+            raise self.reply
+        return self.reply
+
+
+def use_fake_llm(monkeypatch, reply="Grace is a gift [1].") -> FakeLLM:
+    fake = FakeLLM(reply)
+    monkeypatch.setattr("tsh.llm.generate", fake)
+    return fake
