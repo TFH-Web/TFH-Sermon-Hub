@@ -56,7 +56,7 @@ def retrieve_chunks(
     distance = func.vec_distance_cosine(
         SermonChunkEmbedding.embedding, type_coerce(vector, Float32Vector())
     ).label("distance")
-    # ponytail: exact scan over every eligible vector, so filters apply before the limit;
+    # Note: exact scan over every eligible vector, so filters apply before the limit;
     # move to a vec0 KNN with metadata columns if the archive outgrows a full scan.
     statement = (
         db.select(SermonChunk, Sermon, distance)
