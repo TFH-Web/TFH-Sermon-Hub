@@ -1,6 +1,8 @@
 # AI chat over published sermons: request validation, retrieval, grounded answers and citations.
 from __future__ import annotations
 
+import re
+
 from marshmallow import Schema, ValidationError, fields, validate, validates_schema
 
 from tsh import llm, retrieval
@@ -73,6 +75,18 @@ def parse_chat_request(body: object) -> dict:
     return data
 
 
+# A citation the model may write: [1], [1, 2] or [1,2].
+CITATION = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
+
+
+class SearchUnavailable(Exception):
+    """Raised when the question cannot be embedded or the sermons cannot be searched."""
+
+
+class AnswerUnavailable(Exception):
+    """Raised when the LLM provider fails or returns nothing usable."""
+
+
 # Sent when no published sermon evidence supports an answer. Fixed text, never model output,
 # so a declined question can never carry an invented claim or citation.
 UNSUPPORTED_ANSWER = (
@@ -135,21 +149,81 @@ def answer_question(message: str, sermon_id: int | None, history: list[dict]) ->
     Retrieves evidence for the message alone, so history cannot steer which sermons are
     searched. With no evidence the model is not called and the unsupported response is
     returned. A reply of UNSUPPORTED_MARKER also gives the unsupported response. Raises
-    whatever retrieve_chunks raises when embedding fails, and llm.LLMError when the
-    model cannot answer.
+    SearchUnavailable when retrieval or embedding fails, and AnswerUnavailable when the
+    model cannot answer. Model citations are checked by verify_citations; an answer left
+    with no valid citation is declined.
     """
-    evidence = retrieval.retrieve_chunks(message, sermon_id=sermon_id)
+    try:
+        evidence = retrieval.retrieve_chunks(message, sermon_id=sermon_id)
+    except Exception as e:
+        # Ollama, its HTTP client and the embedding checks raise many unrelated types.
+        # To the caller they all mean the same thing: sermons cannot be searched now.
+        raise SearchUnavailable(str(e) or type(e).__name__) from e
     if not evidence:
         return unsupported_response()
 
-    reply = llm.generate(
-        build_prompt(message, history, evidence),
-        system=SYSTEM_PROMPT,
-        max_tokens=MAX_OUTPUT_TOKENS,
-    )
+    try:
+        reply = llm.generate(
+            build_prompt(message, history, evidence),
+            system=SYSTEM_PROMPT,
+            max_tokens=MAX_OUTPUT_TOKENS,
+        )
+    except llm.LLMError as e:
+        raise AnswerUnavailable(str(e)) from e
     if reply.strip().strip(".").upper() == UNSUPPORTED_MARKER:
         return unsupported_response()
-    return {"answer": reply.strip(), "ai_generated": True, "supported": True, "sources": []}
+
+    answer, cited = verify_citations(reply, len(evidence))
+    # An answer with no valid citation is not grounded in the evidence, so it is declined.
+    if not cited:
+        return unsupported_response()
+    return {
+        "answer": answer,
+        "ai_generated": True,
+        "supported": True,
+        "sources": [source_for(n, evidence[n - 1]) for n in cited],
+    }
+
+
+def verify_citations(reply: str, evidence_count: int) -> tuple[str, list[int]]:
+    """Return the reply with only valid [n] citations kept, and the cited numbers in order.
+
+    A valid number is 1 to evidence_count. Invalid ones, such as [0], [7] when there are
+    three blocks, or [1a], are removed from the text, so the answer never points at a
+    source that was not retrieved. Groups like [1, 2] are split into [1][2].
+    """
+    cited: list[int] = []
+
+    def keep_valid(match: re.Match) -> str:
+        numbers = [int(n) for n in re.findall(r"\d+", match[1])]
+        valid = [n for n in numbers if 1 <= n <= evidence_count]
+        for n in valid:
+            if n not in cited:
+                cited.append(n)
+        return "".join(f"[{n}]" for n in valid)
+
+    answer = CITATION.sub(keep_valid, reply)
+    # Drop any other bracketed reference the model made up, like [source 2] or [12a].
+    answer = re.sub(r"\[[^\]]*\d[^\]]*\]", lambda m: m[0] if CITATION.fullmatch(m[0]) else "", answer)
+    answer = re.sub(r"[ \t]+([.,;:!?])", r"\1", re.sub(r"[ \t]{2,}", " ", answer)).strip()
+    return answer, cited
+
+
+def source_for(number: int, chunk: RetrievedChunk) -> dict:
+    """Return the public source for evidence block number, with a link built on the server.
+
+    The link uses only the stored video id and chunk start, never anything from model output.
+    """
+    return {
+        "source_id": number,
+        "chunk_id": chunk.chunk_id,
+        "sermon_id": chunk.sermon_id,
+        "title": chunk.title,
+        "youtube_video_id": chunk.youtube_video_id,
+        "start_sec": chunk.start_sec,
+        "end_sec": chunk.end_sec,
+        "url": f"https://www.youtube.com/watch?v={chunk.youtube_video_id}&t={int(chunk.start_sec)}s",
+    }
 
 
 def escape(text: str) -> str:

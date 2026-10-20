@@ -726,9 +726,11 @@ def chat():
     """Answer a question from published TFH sermons only, with timestamped sources.
 
     Body: {"message": str, "sermonId": int | null, "history": [{"role": "user" | "assistant", "content": str}]}.
-    See docs/ai-chat.md for the limits and the response. Returns 200 with the answer.
+    See docs/ai-chat.md for the limits and the response. Returns 200 with the answer, or
+    the fixed unsupported answer when published sermons do not support one.
     Sends 400 with per-field "errors" for an invalid body, 401 without a valid token,
-    403 for other roles, and 413 if the body is larger than chat.MAX_REQUEST_BYTES.
+    403 for other roles, 413 if the body is larger than chat.MAX_REQUEST_BYTES, 502 if
+    the AI model fails, and 503 if the question cannot be embedded or searched.
     """
     limit = chat_service.MAX_REQUEST_BYTES
     # Cap the bytes actually read, not just the header, so a chunked body without
@@ -747,4 +749,13 @@ def chat():
     except ValidationError as err:
         message = "Invalid chat request."
         return jsonify({"error": message, "message": message, "errors": err.messages}), 400
-    return jsonify(chat_service.answer_question(data["message"], data["sermon_id"], data["history"]))
+    try:
+        return jsonify(chat_service.answer_question(data["message"], data["sermon_id"], data["history"]))
+    except chat_service.SearchUnavailable:
+        current_app.logger.exception("Chat could not search sermons")
+        message = "Sermon search is unavailable right now. Please try again later."
+        return jsonify({"error": message, "message": message}), 503
+    except chat_service.AnswerUnavailable:
+        current_app.logger.exception("Chat model failed")
+        message = "The AI model could not answer right now. Please try again later."
+        return jsonify({"error": message, "message": message}), 502
