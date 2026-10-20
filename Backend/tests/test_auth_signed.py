@@ -14,6 +14,7 @@ from jwt.algorithms import RSAAlgorithm
 
 from tsh import create_app
 from tsh.auth import init_auth
+from tsh.youtube_import import ImportReport
 
 
 @pytest.fixture(scope="module")
@@ -233,6 +234,10 @@ def test_mutation_permission_matrix(
     )
     init_auth(app)
     local_jwks(app, monkeypatch, private_key)
+    # Sync runs call the importer through youtube_import, not views.enqueue.
+    monkeypatch.setattr(
+        "tsh.youtube_import.import_channel", lambda *a, **k: ImportReport()
+    )
     monkeypatch.setattr("tsh.views.start_processing", lambda sermon: None)
     monkeypatch.setattr(
         "tsh.views.enqueue", lambda *a, **k: SimpleNamespace(as_dict=lambda: {})
