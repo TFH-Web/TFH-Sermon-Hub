@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import './EditSermonModal.css';
-import { useMsal } from '@azure/msal-react';
+import axios from 'axios';
 import Button from '$/components/Button';
 import FileUploadButton from '$/components/FileUploadButton';
 import { FormField, FormRow } from '$/components/FormField';
 import Modal from '$/components/Modal';
 import { useToast } from '$/components/ToastContext';
+import { apiErrorMessage } from '$/lib/api';
 import type { Sermon } from '$/types/sermon';
 import { getFullName } from '$/types/speaker';
 
@@ -21,7 +22,6 @@ export default function EditSermonModal({
 	sermon,
 }: EditSermonModalProps) {
 	const { showToast } = useToast();
-	const { instance, accounts } = useMsal();
 	const [title, setTitle] = useState('');
 	const [titleError, setTitleError] = useState('');
 	const [speaker, setSpeaker] = useState('');
@@ -69,18 +69,7 @@ export default function EditSermonModal({
 		setIsSaving(true);
 		setSaveError('');
 
-		// Authentication with Microsoft using MSAL to acquire an access token
 		try {
-			const account = accounts[0];
-			if (!account) {
-				throw new Error('Sign in with Microsoft again');
-			}
-
-			const response = await instance.acquireTokenSilent({
-				account,
-				scopes: ['openid', 'profile'],
-			});
-
 			const payload = {
 				title: title.trim(),
 				tags: tags
@@ -89,24 +78,15 @@ export default function EditSermonModal({
 					.filter(Boolean)
 					.map(name => ({ name })),
 			};
-			const result = await fetch(`/api/sermons/${sermon.id}`, {
-				method: 'PATCH',
-				headers: {
-					'Content-Type': 'application/json',
-					...(response?.accessToken
-						? { Authorization: `Bearer ${response.accessToken}` }
-						: {}),
-				},
-				body: JSON.stringify(payload),
-			});
-			if (!result.ok)
-				throw new Error(`Failed to update sermon (${result.status})`);
+			await axios.patch(`/api/sermons/${sermon.id}`, payload);
 
 			onClose();
 			showToast('Sermon updated successfully', 'success');
 		} catch (error: unknown) {
-			const message =
-				error instanceof Error ? error.message : 'Failed to update sermon';
+			const message = apiErrorMessage(
+				error,
+				'Failed to update sermon. Please try again.',
+			);
 			setSaveError(message);
 			showToast(message, 'error');
 		} finally {
@@ -125,7 +105,7 @@ export default function EditSermonModal({
 					<Button variant="secondary" onClick={onClose}>
 						Cancel
 					</Button>
-					<Button variant="primary" onClick={handleSave}>
+					<Button variant="primary" onClick={handleSave} disabled={isSaving}>
 						{isSaving ? 'Saving...' : 'Save Changes'}
 					</Button>
 				</>

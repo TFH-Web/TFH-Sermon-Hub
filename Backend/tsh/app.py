@@ -25,6 +25,9 @@ def create_app(
     if kwargs:
         app.config.update(kwargs)
 
+    from tsh.auth import init_auth
+    init_auth(app)
+
     # The one place REDIS_URL is read. Config wins over the environment, so tests can force inline jobs.
     app.config.setdefault("REDIS_URL", os.environ.get("REDIS_URL", ""))
 

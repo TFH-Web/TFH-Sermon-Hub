@@ -27,6 +27,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit locked frontend dependencies
+        run: npm audit --audit-level=high --json > npm-audit.json
+
+      - name: Retain frontend dependency audit
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: frontend-dependency-audit
+          path: Frontend/npm-audit.json
+          retention-days: 30
+          if-no-files-found: error
+
       - name: Build project
         run: npm run build
 

@@ -1,44 +1,90 @@
-import os 
+import os
 from functools import wraps
 
 import jwt
 from flask import current_app, g, jsonify, request
 from jwt import PyJWKClient
 
-TENANT_ID = os.environ['TENANT_ID']
-CLIENT_ID = os.environ['CLIENT_ID']
 
-JWKS_URL = f"https://login.microsoftonline.com/{TENANT_ID}/discovery/v2.0/keys"
-ISSUER = f"https://login.microsoftonline.com/{TENANT_ID}/v2.0"
+def init_auth(app):
+    """Keep identity configuration per app, not frozen at module import time."""
+    app.config.setdefault("TENANT_ID", os.environ.get("TENANT_ID", ""))
+    app.config.setdefault(
+        "ENTRA_API_AUDIENCE",
+        os.environ.get("ENTRA_API_AUDIENCE") or os.environ.get("CLIENT_ID", ""),
+    )
+    app.config.setdefault(
+        "ENTRA_API_SCOPE", os.environ.get("ENTRA_API_SCOPE", "access_as_user")
+    )
+    app.config.setdefault("AUTH_TEST_BYPASS", False)
+    if app.config["AUTH_TEST_BYPASS"] and not app.testing:
+        raise RuntimeError(
+            "AUTH_TEST_BYPASS requires TESTING=True; never enable it on a server"
+        )
+    tenant = app.config["TENANT_ID"]
+    app.extensions["entra_jwks"] = PyJWKClient(
+        f"https://login.microsoftonline.com/{tenant}/discovery/v2.0/keys"
+    )
 
-jwks_client = PyJWKClient(JWKS_URL)
+
+def canonical_role(role):
+    # Explicit aliases only: never grant an unknown or partially matching role.
+    return "Internal User" if role == "InternalUser" else role
+
 
 def parse_role_from_token():
-    if current_app.testing:
-        test_roles_header = request.headers.get("X-Test-Roles")
-
-        if test_roles_header is None:
-            g.current_user_role = ["Admin", "Internal User"]
-        elif test_roles_header.strip().lower() == "none":
-            g.current_user_role = None
-        else:
-            g.current_user_role = [r.strip() for r in test_roles_header.split(",")]
-        return  # Skip the rest of the function if in testing mode
+    g.current_user_role = None
+    # Test convenience is opt-in; TESTING alone never bypasses real validation.
+    if current_app.testing and current_app.config["AUTH_TEST_BYPASS"] is True:
+        test_roles = request.headers.get("X-Test-Roles", "Admin,Internal User")
+        if test_roles.strip().lower() != "none":
+            g.current_user_role = [
+                canonical_role(r.strip()) for r in test_roles.split(",")
+            ]
+        return
 
     try:
-        auth_header = request.headers.get('Authorization', "")
-        if not auth_header.startswith("Bearer "):
+        scheme, token = request.headers.get("Authorization", "").split()
+        if scheme.lower() != "bearer":
             raise ValueError("Missing bearer token")
-        token = auth_header.split(" ", 1)[1]
-
-        signing_key = jwks_client.get_signing_key_from_jwt(token)
-
-        token_claims = jwt.decode(token, signing_key.key, algorithms=["RS256"], audience=CLIENT_ID, issuer=ISSUER)
-
-        g.current_user_role = token_claims.get("roles", [])
-
-    except Exception:
+        tenant = current_app.config["TENANT_ID"]
+        audience = current_app.config["ENTRA_API_AUDIENCE"]
+        scope = current_app.config["ENTRA_API_SCOPE"]
+        if not tenant or not audience or not scope:
+            raise ValueError("API identity configuration is incomplete")
+        signing_key = current_app.extensions["entra_jwks"].get_signing_key_from_jwt(
+            token
+        )
+        claims = jwt.decode(
+            token,
+            signing_key.key,
+            algorithms=["RS256"],
+            audience=audience,
+            issuer=f"https://login.microsoftonline.com/{tenant}/v2.0",
+            options={
+                "require": ["exp", "iat", "nbf", "iss", "aud", "tid", "ver", "scp"]
+            },
+        )
+        if claims["tid"] != tenant or claims["ver"] != "2.0":
+            raise ValueError("Wrong tenant or token version")
+        scopes = claims["scp"]
+        roles = claims.get("roles", [])
+        if (
+            not isinstance(scopes, str)
+            or not isinstance(roles, list)
+            or any(not isinstance(role, str) for role in roles)
+        ):
+            raise ValueError("Invalid access-token claims")
+        g.current_user_role = (
+            [canonical_role(role) for role in roles] if scope in scopes.split() else []
+        )
+    # PyJWT only wraps some network errors from the JWKS fetch. A connection reset or a TLS
+    # error while reading the key set arrives as a plain OSError, so it is caught here too.
+    # An identity provider outage then looks like any other failed sign-in, not a server crash.
+    except (jwt.PyJWTError, ValueError, TypeError, OSError):
+        # Never return/log bearer tokens or identity-provider exception details.
         g.current_user_role = None
+
 
 def require_role(*accepted_roles):
     def decorator(function_to_wrap):
@@ -47,11 +93,17 @@ def require_role(*accepted_roles):
             parse_role_from_token()
 
             if g.current_user_role is None:
-                return jsonify({"error": "Missing or invalid token. Please log in."}), 401
+                message = "Missing or invalid token. Please log in."
+                return jsonify({"error": message, "message": message}), 401
 
-            if not any(role in g.current_user_role for role in accepted_roles):
-                return jsonify({"error": f"Access Denied. Required role: {' or '.join(accepted_roles)}"}), 403
+            if not any(
+                canonical_role(role) in g.current_user_role for role in accepted_roles
+            ):
+                message = "Access denied. Your account needs the API permission and an assigned staff role."
+                return jsonify({"error": message, "message": message}), 403
 
             return function_to_wrap(*args, **kwargs)
+
         return check_role_then_run
+
     return decorator
