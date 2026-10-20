@@ -56,6 +56,10 @@ def embed_chunks(sermon: Sermon) -> None:
         return
 
     chunks = embeddings.chunk(sermon, sermon.transcript_segments)
+    # Segments with only blank text give no chunks. Keep what the sermon already has
+    # instead of deleting it, the same as having no segments at all.
+    if not chunks:
+        return
     # insert().values() takes plain column values, not model objects. Keying by hash drops
     # repeated text inside one sermon, which would otherwise be the same row twice.
     rows = {
