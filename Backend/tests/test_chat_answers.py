@@ -53,6 +53,28 @@ def test_evidence_is_sent_with_grounding_rules(app: Flask, monkeypatch):
     assert response["answer"] == "Grace is a gift [1]."
 
 
+def test_invalid_video_candidates_do_not_hide_a_grounded_answer(app: Flask, monkeypatch):
+    add_sermon(
+        "Unlinkable",
+        [(f"Grace without a source link {i}.", float(i), float(i + 1)) for i in range(8)],
+        video_id=None,
+    )
+    eligible = add_sermon(
+        "Linkable", [("Grace is a gift.", 75.0, 90.0)], video_id="valid123456"
+    )
+    llm = use_fake_llm(monkeypatch)
+
+    response = answer_question("What is grace?", None, [])
+
+    assert len(llm.calls) == 1
+    assert "Unlinkable" not in llm.calls[0]["prompt"]
+    assert response["supported"] is True
+    assert [source["sermon_id"] for source in response["sources"]] == [eligible.id]
+    assert response["sources"][0]["url"] == (
+        "https://www.youtube.com/watch?v=valid123456&t=75s"
+    )
+
+
 @pytest.mark.parametrize("reply", ["UNSUPPORTED", " unsupported. ", "UNSUPPORTED\n"])
 def test_model_decline_gives_the_fixed_unsupported_answer(app: Flask, monkeypatch, reply):
     add_sermon("Under Grace", [("Grace is a gift.", 0.0, 5.0)])

@@ -48,9 +48,12 @@ def retrieve_chunks(
     Only chunks embedded with the configured EMBEDDING_MODEL are eligible, so vectors from
     two models are never compared. sermon_id restricts eligibility before the limit is
     applied; a missing or unpublished sermon gives []. Chunks without a valid YouTube video
-    id are skipped, since a citation must link to the video. Raises EmbeddingError for a
-    dimension mismatch or a bad query vector, and whatever ollama raises if it is down.
+    id are skipped before counting toward limit, since a citation must link to the video.
+    Nonpositive limits return [] without embedding. Raises EmbeddingError for a dimension
+    mismatch or a bad query vector, and whatever ollama raises if it is down.
     """
+    if limit <= 0:
+        return []
     embeddings.check_schema_dimension()
     vector = embeddings.embed_query(query)
     distance = func.vec_distance_cosine(
@@ -68,28 +71,33 @@ def retrieve_chunks(
             distance <= MAX_DISTANCE,
         )
         .order_by(distance, SermonChunk.id)
-        .limit(limit)
     )
     if sermon_id is not None:
         statement = statement.where(SermonChunk.sermon_id == sermon_id)
 
     results = []
-    for chunk, sermon, chunk_distance in db.session.execute(statement):
-        video_id = video_id_for(sermon)
-        if video_id is None:
-            continue
-        results.append(
-            RetrievedChunk(
-                chunk_id=chunk.id,
-                sermon_id=sermon.id,
-                title=sermon.title,
-                youtube_video_id=video_id,
-                start_sec=chunk.start,
-                end_sec=chunk.end,
-                text=chunk.text,
-                distance=chunk_distance,
+    # Link eligibility uses Python's shared YouTube validation. Stream bounded batches
+    # until enough linkable chunks are found, rather than limiting invalid sources in
+    # SQL or materializing the whole archive in Python. Close the cursor on early exit.
+    with db.session.execute(statement.execution_options(yield_per=32)) as rows:
+        for chunk, sermon, chunk_distance in rows:
+            video_id = video_id_for(sermon)
+            if video_id is None:
+                continue
+            results.append(
+                RetrievedChunk(
+                    chunk_id=chunk.id,
+                    sermon_id=sermon.id,
+                    title=sermon.title,
+                    youtube_video_id=video_id,
+                    start_sec=chunk.start,
+                    end_sec=chunk.end,
+                    text=chunk.text,
+                    distance=chunk_distance,
+                )
             )
-        )
+            if len(results) >= limit:
+                break
     return results
 
 
