@@ -15,7 +15,8 @@ class TranscriptSegment(TypedDict):
 
 
 def segment_length(self: TranscriptSegment) -> int:
-    return len(self["text"].split(" "))
+    """Return the number of words in the segment's text."""
+    return len(self["text"].split())
 
 
 def is_before(self: TranscriptSegment, other: object) -> float:
