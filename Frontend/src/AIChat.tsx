@@ -2,20 +2,27 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import './AIChat.css';
 import { Icon } from '@iconify-icon/react';
+import ErrorBox from '$/components/ErrorBox';
 import MainLayout from '$/components/MainLayout';
 import { sermons } from '$/data/sermons';
-
-type RefSermon = {
-	id: number;
-	title: string;
-	speaker: string;
-	date: string;
-	match: number;
-};
+import useChatRequest from '$/hooks/useChatRequest';
+import { apiErrorMessage } from '$/lib/api';
+import type {
+	ChatAnswer,
+	ChatHistoryTurn,
+	ChatRequest,
+	ChatSource,
+} from '$/types/chat';
 
 type Message =
 	| { id: number; role: 'user'; text: string }
-	| { id: number; role: 'ai'; text: string; sermons?: RefSermon[] };
+	| {
+			id: number;
+			role: 'ai';
+			text: string;
+			aiGenerated: boolean;
+			sources: ChatSource[];
+	  };
 
 const prompts = [
 	'What has Dave said about forgiveness?',
@@ -25,36 +32,8 @@ const prompts = [
 	'What is Dave\'s main point in "Under Grace"?',
 ];
 
-const MOCK_SERMONS: RefSermon[] = [
-	{
-		id: 1,
-		title: 'Under Grace',
-		speaker: 'Dave Patterson',
-		date: 'Feb 23, 2026',
-		match: 98,
-	},
-	{
-		id: 2,
-		title: 'Anchored in Hope',
-		speaker: 'Guest Speaker',
-		date: 'Feb 9, 2026',
-		match: 87,
-	},
-	{
-		id: 3,
-		title: 'Walking in Freedom',
-		speaker: 'Dave Patterson',
-		date: 'Feb 16, 2026',
-		match: 81,
-	},
-];
-
-const GENERAL_RESPONSES = [
-	'I found **12 sermons** matching that query. Here are the top results ranked by transcript relevance:',
-	'Based on the transcripts, Pastor Dave consistently connects this theme to grace and personal transformation. Here are the most relevant sermons:',
-	'Across **8 sermons** in the Hope Rising and Live Your Best Life series, this topic comes up repeatedly:',
-	"Great question — here's what I found across all sermon transcripts:",
-];
+// At most this many prior turns are sent as context; matches the server's chat.MAX_HISTORY_TURNS.
+const MAX_HISTORY_TURNS = 6;
 
 function formatDuration(seconds: number) {
 	const m = Math.floor(seconds / 60);
@@ -62,42 +41,15 @@ function formatDuration(seconds: number) {
 	return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function buildSermonResponses(data: {
-	title: string;
-	speaker: string;
-	date: string;
-	snippet?: string | null;
-	series?: string | null;
-	tags?: string[];
-	duration?: number;
-}): string[] {
-	const { title, speaker, date, snippet, series, tags, duration } = data;
-	const firstName = speaker.split(' ')[0];
-
-	const responses: string[] = [];
-
-	responses.push(
-		snippet
-			? `**${title}** by ${speaker} (${date}): ${snippet}`
-			: `**${title}** was delivered by ${speaker} on ${date}.${series ? ` It's part of the **${series}** series.` : ''}`,
-	);
-
-	const ctx: string[] = [];
-	if (series) ctx.push(`part of the **${series}** series`);
-	if (tags?.length) ctx.push(`covering themes of ${tags.join(', ')}`);
-	if (duration) ctx.push(`running ${formatDuration(duration)}`);
-
-	responses.push(
-		ctx.length
-			? `This message is ${ctx.join(', ')}. ${firstName} builds a practical framework throughout the transcript — ask me about any specific moment or theme.`
-			: `${firstName} builds a practical framework throughout this message. Is there a specific theme or moment you'd like to explore further?`,
-	);
-
-	responses.push(
-		`Based on the transcript of **${title}**, ${firstName} ties the central themes back to scripture consistently. What would you like to go deeper on — key scriptures, main points, or how it connects to other messages${series ? ` in the ${series} series` : ''}?`,
-	);
-
-	return responses;
+// The greeting message is local UI copy, not a model answer, so it's excluded here.
+function buildHistory(messages: Message[]): ChatHistoryTurn[] {
+	return messages
+		.filter(m => m.role === 'user' || m.aiGenerated)
+		.map(m => ({
+			role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
+			content: m.text,
+		}))
+		.slice(-MAX_HISTORY_TURNS);
 }
 
 function renderText(text: string) {
@@ -129,83 +81,89 @@ export default function AIChat() {
 
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [input, setInput] = useState('');
-	const [isTyping, setIsTyping] = useState(false);
+	const [lastRequest, setLastRequest] = useState<ChatRequest | null>(null);
+	const [chatError, setChatError] = useState<string | null>(null);
+	const chatRequest = useChatRequest();
 	const msgsRef = useRef<HTMLDivElement>(null);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: only reset conversation when the sermon context changes
 	useEffect(() => {
-		if (sermonId && sermonTitle && sermonSpeaker) {
+		if (sermonId && sermonTitle) {
 			const series = sermonSeries ?? canonicalSermon?.series?.title ?? null;
 			const snippet = sermonSnippet ?? null;
 			setMessages([
 				{
 					id: nextId(),
 					role: 'ai',
-					text: `I'm ready to answer questions about **${sermonTitle}** by ${sermonSpeaker}${series ? `, part of the **${series}** series` : ''}${sermonDate ? ` (${sermonDate})` : ''}. ${snippet ? `${snippet} ` : ''}Ask me anything about the message, key themes, scripture references, or specific moments from the transcript.`,
+					aiGenerated: false,
+					sources: [],
+					text: `I'm ready to answer questions about **${sermonTitle}**${sermonSpeaker ? ` by ${sermonSpeaker}` : ''}${series ? `, part of the **${series}** series` : ''}${sermonDate ? ` (${sermonDate})` : ''}. ${snippet ? `${snippet} ` : ''}Ask me anything about the message, key themes, scripture references, or specific moments from the transcript.`,
 				},
 			]);
 		} else {
 			setMessages([]);
 		}
-		setIsTyping(false);
+		setChatError(null);
 	}, [sermonId]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: messages and isTyping are the scroll triggers
+	// biome-ignore lint/correctness/useExhaustiveDependencies: messages and the pending state are the scroll triggers
 	useEffect(() => {
 		if (msgsRef.current) {
 			msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
 		}
-	}, [messages, isTyping]);
+	}, [messages, chatRequest.isPending]);
+
+	function onAnswer(answer: ChatAnswer) {
+		setMessages(prev => [
+			...prev,
+			{
+				id: nextId(),
+				role: 'ai',
+				text: answer.answer,
+				aiGenerated: answer.ai_generated,
+				sources: answer.sources,
+			},
+		]);
+	}
+
+	function onFailure(error: unknown) {
+		setChatError(
+			apiErrorMessage(error, 'Could not get an answer. Please try again.'),
+		);
+	}
 
 	function send(text?: string) {
 		const msg = (text ?? input).trim();
-		if (!msg || isTyping) return;
+		if (!msg || chatRequest.isPending) return;
 		setInput('');
-
-		const userCount = messages.filter(m => m.role === 'user').length;
+		setChatError(null);
 		setMessages(prev => [...prev, { id: nextId(), role: 'user', text: msg }]);
-		setIsTyping(true);
 
-		setTimeout(() => {
-			setIsTyping(false);
-			if (sermonId && sermonTitle && sermonSpeaker) {
-				const responses = buildSermonResponses({
-					title: sermonTitle,
-					speaker: sermonSpeaker,
-					date: sermonDate ?? '',
-					snippet: sermonSnippet,
-					series: sermonSeries ?? canonicalSermon?.series?.title,
-					tags: canonicalSermon?.tags.map(t => t.name),
-					duration: canonicalSermon?.duration,
-				});
-				setMessages(prev => [
-					...prev,
-					{
-						id: nextId(),
-						role: 'ai',
-						text: responses[userCount % responses.length],
-					},
-				]);
-			} else {
-				setMessages(prev => [
-					...prev,
-					{
-						id: nextId(),
-						role: 'ai',
-						text: GENERAL_RESPONSES[userCount % GENERAL_RESPONSES.length],
-						sermons: MOCK_SERMONS,
-					},
-				]);
-			}
-		}, 1100);
+		const parsedSermonId = sermonId ? Number(sermonId) : null;
+		const request: ChatRequest = {
+			message: msg,
+			sermonId:
+				parsedSermonId !== null && Number.isInteger(parsedSermonId)
+					? parsedSermonId
+					: null,
+			history: buildHistory(messages),
+		};
+		setLastRequest(request);
+		chatRequest.mutate(request, { onSuccess: onAnswer, onError: onFailure });
 	}
 
-	function askAboutSermon(sermon: RefSermon) {
+	function retry() {
+		if (!lastRequest || chatRequest.isPending) return;
+		chatRequest.mutate(lastRequest, {
+			onSuccess: onAnswer,
+			onError: onFailure,
+		});
+	}
+
+	function askAboutSermon(source: ChatSource) {
 		const params = new URLSearchParams({
-			sermonId: String(sermon.id),
-			title: sermon.title,
-			speaker: sermon.speaker,
-			date: sermon.date,
+			sermonId: String(source.sermon_id),
+			title: source.title,
 		});
 		navigate(`/ai-chat?${params.toString()}`);
 	}
@@ -254,28 +212,32 @@ export default function AIChat() {
 								</div>
 								<div className={`AIChat-bubble AIChat-bubble--${msg.role}`}>
 									<p>{renderText(msg.text)}</p>
-									{msg.role === 'ai' && msg.sermons && (
+									{msg.role === 'ai' && msg.aiGenerated && (
+										<p className="AIChat-ai-label">AI generated</p>
+									)}
+									{msg.role === 'ai' && msg.sources.length > 0 && (
 										<div className="AIChat-refs">
-											{msg.sermons.map(s => (
-												<div key={s.id} className="AIChat-ref">
-													<button
-														type="button"
+											{msg.sources.map(source => (
+												<div key={source.source_id} className="AIChat-ref">
+													<a
 														className="AIChat-ref-info"
-														onClick={() => navigate(`/sermons/${s.id}`)}
+														href={source.url}
+														target="_blank"
+														rel="noreferrer"
 													>
-														<span className="AIChat-ref-title">{s.title}</span>
-														<span className="AIChat-ref-meta">
-															{s.speaker} &bull; {s.date} &bull;{' '}
-															<span className="AIChat-ref-match">
-																{s.match}% match
-															</span>
+														<span className="AIChat-ref-title">
+															{source.title}
 														</span>
-													</button>
+														<span className="AIChat-ref-meta">
+															{formatDuration(source.start_sec)}–
+															{formatDuration(source.end_sec)}
+														</span>
+													</a>
 													<button
 														type="button"
 														className="AIChat-ref-chat"
-														title={`Ask AI about "${s.title}"`}
-														onClick={() => askAboutSermon(s)}
+														title={`Ask AI about "${source.title}"`}
+														onClick={() => askAboutSermon(source)}
 													>
 														<Icon
 															icon="lucide:message-circle"
@@ -290,7 +252,7 @@ export default function AIChat() {
 								</div>
 							</div>
 						))}
-						{isTyping && (
+						{chatRequest.isPending && (
 							<div className="AIChat-msg">
 								<div className="AIChat-avatar AIChat-avatar--ai">
 									<Icon icon="lucide:message-circle" width={14} height={14} />
@@ -299,6 +261,9 @@ export default function AIChat() {
 									Searching sermons…
 								</div>
 							</div>
+						)}
+						{chatError && !chatRequest.isPending && (
+							<ErrorBox message={chatError} onRetry={retry} />
 						)}
 					</div>
 				)}
