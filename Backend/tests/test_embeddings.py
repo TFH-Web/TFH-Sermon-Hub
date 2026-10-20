@@ -3,6 +3,7 @@ import pytest
 from flask import Flask
 
 from tsh import pipeline
+from tsh.embeddings import EMBEDDING_DIM
 from tsh.database import db
 from tsh.models import Sermon, SermonChunk, SermonChunkEmbedding
 
@@ -67,10 +68,10 @@ def test_embedding_round_trips_through_vec0(app: Flask):
 
     # The fake embed returns 0.1, which float32 cannot store exactly.
     saved = db.session.scalars(db.select(SermonChunkEmbedding)).one()
-    assert saved.embedding == pytest.approx([0.1] * 768)
+    assert saved.embedding == pytest.approx([0.1] * EMBEDDING_DIM)
 
     # Multiples of 0.5 are exact in float32, so this comparison can be strict.
-    vector = [i * 0.5 for i in range(768)]
+    vector = [i * 0.5 for i in range(EMBEDDING_DIM)]
     saved.embedding = vector
     db.session.commit()
     db.session.expire_all()

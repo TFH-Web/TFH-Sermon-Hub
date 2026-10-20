@@ -3,8 +3,10 @@ import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 
+import click
 from flask import current_app
-from sqlalchemy import delete, select
+from flask.cli import with_appcontext
+from sqlalchemy import delete, or_, select
 from sqlalchemy.dialects.sqlite import insert
 
 from tsh import captions, embeddings
@@ -55,6 +57,11 @@ def embed_chunks(sermon: Sermon) -> None:
     chunks are sent to ollama. Errors from ollama (or ValueError for a bad embedding batch)
     propagate before anything is written, and _run_step records them. A database error
     while replacing rolls back this sermon's whole replace and is raised again.
+
+    Raises EmbeddingError before any ollama call if the vec0 table's dimension is not
+    EMBEDDING_DIM, or if this sermon has vectors from a model other than EMBEDDING_MODEL.
+    Mixing models would make search compare unrelated vectors, so re-embedding has to
+    be deliberate: run `flask reembed` after changing EMBEDDING_MODEL.
     """
     if not sermon.transcript_segments:
         return
@@ -75,6 +82,9 @@ def embed_chunks(sermon: Sermon) -> None:
         }
         for chunk in chunks
     ]
+
+    embeddings.check_schema_dimension()
+    _require_current_model(sermon.id)
 
     # Embed before writing anything. A slow or failing ollama call then never holds the
     # database write lock, and a failure leaves the old chunks and vectors untouched.
@@ -132,10 +142,95 @@ def embed_chunks(sermon: Sermon) -> None:
             )
             for row, vector in zip(missing, vectors, strict=True)
         )
+        for row in missing:
+            by_hash[row["hash"]].embedding_model = embeddings.EMBEDDING_MODEL
         db.session.commit()
     except Exception:
         db.session.rollback()
         raise
+
+
+def _require_current_model(sermon_id: int) -> None:
+    """Raise EmbeddingError if any of the sermon's vectors came from another model."""
+    mismatch = db.session.execute(
+        _other_model_chunks().where(SermonChunk.sermon_id == sermon_id).limit(1)
+    ).first()
+    if mismatch is not None:
+        raise embeddings.EmbeddingError(
+            f"sermon {sermon_id} has vectors from {mismatch.embedding_model or 'an unrecorded model'} "
+            f"but EMBEDDING_MODEL is {embeddings.EMBEDDING_MODEL}; run flask reembed"
+        )
+
+
+def _other_model_chunks():
+    """Select chunks with a vector from a model other than EMBEDDING_MODEL, or an unrecorded one."""
+    return (
+        select(SermonChunk.id, SermonChunk.sermon_id, SermonChunk.text, SermonChunk.embedding_model)
+        .join(SermonChunkEmbedding)
+        .where(
+            or_(
+                SermonChunk.embedding_model.is_(None),
+                SermonChunk.embedding_model != embeddings.EMBEDDING_MODEL,
+            )
+        )
+    )
+
+
+def reembed_sermon(sermon_id: int) -> int:
+    """Replace the sermon's vectors from other models with EMBEDDING_MODEL ones; return how many.
+
+    Runs in one transaction, so a failure leaves the old vectors in place. Raises what
+    embed_texts raises, and EmbeddingError if the vec0 dimension is not EMBEDDING_DIM.
+    """
+    embeddings.check_schema_dimension()
+    rows = db.session.execute(
+        _other_model_chunks().where(SermonChunk.sermon_id == sermon_id)
+    ).all()
+    vectors = embeddings.embed_texts([row.text for row in rows])
+    try:
+        ids = [row.id for row in rows]
+        # vec0 has no UPDATE for the vector through the ORM, so delete and insert again.
+        db.session.execute(
+            delete(SermonChunkEmbedding)
+            .where(SermonChunkEmbedding.sermon_chunk_id.in_(ids))
+            .execution_options(synchronize_session=False)
+        )
+        chunks = {c.id: c for c in db.session.scalars(select(SermonChunk).where(SermonChunk.id.in_(ids)))}
+        for chunk_id, vector in zip(ids, vectors, strict=True):
+            chunks[chunk_id].embedding_model = embeddings.EMBEDDING_MODEL
+            db.session.add(
+                SermonChunkEmbedding(
+                    sermon_chunk_id=chunk_id, sermon_chunk=chunks[chunk_id], embedding=vector
+                )
+            )
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+    return len(rows)
+
+
+@click.command("reembed")
+@with_appcontext
+def reembed_command() -> None:
+    """Re-embed every chunk whose vector is not from the configured EMBEDDING_MODEL.
+
+    The deliberate step after changing EMBEDDING_MODEL. Each sermon is replaced in its own
+    transaction, so a failure stops the command and leaves that sermon's old vectors.
+    Safe to run again: sermons already on the current model are skipped.
+    """
+    sermon_ids = db.session.scalars(
+        select(_other_model_chunks().subquery().c.sermon_id).distinct()
+    ).all()
+    total = 0
+    for sermon_id in sermon_ids:
+        try:
+            count = reembed_sermon(sermon_id)
+        except Exception as e:
+            raise click.ClickException(f"sermon {sermon_id}: {str(e) or type(e).__name__}") from e
+        total += count
+        click.echo(f"sermon {sermon_id}: re-embedded {count} chunks")
+    click.echo(f"re-embedded {total} chunks in {len(sermon_ids)} sermons with {embeddings.EMBEDDING_MODEL}")
 
 
 def summarize_sermon(sermon: Sermon) -> None:

@@ -1,17 +1,29 @@
 import os
+import re
 from collections import Counter
 from functools import reduce
 from math import ceil, isfinite
 
 import ollama
 from blake3 import blake3
+from sqlalchemy import text
 
+from tsh.database import db
 from tsh.models import Sermon, SermonChunk
 from tsh.transcripts import TranscriptSegment, concatenate, segment_length
 
 CHUNK_SIZE_MAX = int(os.environ.get("CHUNK_SIZE_MAX", "500"))
 CHUNK_OVERLAP_PERCENT_MIN = int(os.environ.get("CHUNK_OVERLAP_PERCENT_MIN", "30"))
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "nomic-embed-text")
+# The one vector length used for chunks and queries. It must match the FLOAT[n] column of
+# the sermon_chunk_embedding vec0 table and the output size of EMBEDDING_MODEL. Changing
+# it needs a new migration for the table and a full re-embed, not just a new value here.
+EMBEDDING_DIM = 768
+VEC_TABLE = "sermon_chunk_embedding"
+
+
+class EmbeddingError(ValueError):
+    """Raised when vectors, the vec0 schema or the recorded model do not match the settings."""
 
 
 def chunk(sermon: Sermon, segments: list[TranscriptSegment]) -> list[SermonChunk]:
@@ -53,21 +65,71 @@ def chunk_hash(text: str, occurrence: int) -> bytes:
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
-    """Return one embedding per text, in order, from EMBEDDING_MODEL on ollama.
+    """Return one validated embedding per text, in order, from EMBEDDING_MODEL on ollama.
 
     Returns [] without calling ollama when texts is empty. Raises whatever ollama raises
-    if the server or model is unavailable, and ValueError if it returns the wrong number
-    of vectors.
+    if the server or model is unavailable, and EmbeddingError if it returns the wrong
+    number of vectors or any vector fails validate_vector.
     """
     if not texts:
         return []
     batch = ollama.embed(model=EMBEDDING_MODEL, input=texts)
     vectors = list(batch.embeddings)
     if len(vectors) != len(texts):
-        raise ValueError(
+        raise EmbeddingError(
             f"{EMBEDDING_MODEL} returned {len(vectors)} embeddings for {len(texts)} chunks"
         )
-    return vectors
+    return [validate_vector(vector) for vector in vectors]
+
+
+def embed_query(text: str) -> list[float]:
+    """Return the validated embedding of a search or chat query.
+
+    Uses the same EMBEDDING_MODEL and EMBEDDING_DIM as chunks, so query and chunk vectors
+    are comparable. Raises the same errors as embed_texts.
+    """
+    return embed_texts([text])[0]
+
+
+def validate_vector(vector: object) -> list[float]:
+    """Return the vector as a list of floats if it can be saved or searched safely.
+
+    Raises EmbeddingError unless it has exactly EMBEDDING_DIM finite numbers. A model with
+    a different output size, or a NaN or infinity, would otherwise be stored or compared
+    and give meaningless search results instead of a clear failure.
+    """
+    if isinstance(vector, (str, bytes)) or not hasattr(vector, "__len__"):
+        raise EmbeddingError(f"Embedding must be a list of numbers, got {type(vector).__name__}")
+    values = list(vector)  # ty: ignore[invalid-argument-type]
+    if len(values) != EMBEDDING_DIM:
+        raise EmbeddingError(
+            f"Embedding has {len(values)} dimensions but EMBEDDING_DIM is {EMBEDDING_DIM}; "
+            f"check that EMBEDDING_MODEL ({EMBEDDING_MODEL}) outputs {EMBEDDING_DIM} values"
+        )
+    if not all(
+        isinstance(v, (int, float)) and not isinstance(v, bool) and isfinite(v)
+        for v in values
+    ):
+        raise EmbeddingError("Embedding contains a value that is not a finite number")
+    return [float(v) for v in values]
+
+
+def check_schema_dimension() -> None:
+    """Raise EmbeddingError unless the vec0 table stores EMBEDDING_DIM-length vectors.
+
+    Reads the dimension from the table's CREATE statement, since sqlite-vec has no other
+    way to report it. Catches a database migrated for one size running with code for another.
+    """
+    sql = db.session.scalar(
+        text("SELECT sql FROM sqlite_master WHERE name = :name"), {"name": VEC_TABLE}
+    )
+    match = re.search(r"FLOAT\[(\d+)\]", sql or "", re.IGNORECASE)
+    if match is None:
+        raise EmbeddingError(f"Cannot find the {VEC_TABLE} vector column; run flask db upgrade")
+    if int(match[1]) != EMBEDDING_DIM:
+        raise EmbeddingError(
+            f"{VEC_TABLE} stores {match[1]}-dimension vectors but EMBEDDING_DIM is {EMBEDDING_DIM}"
+        )
 
 
 def _chunk(
