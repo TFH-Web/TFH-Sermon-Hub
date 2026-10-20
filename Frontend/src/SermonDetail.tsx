@@ -3,7 +3,7 @@ import axios from 'axios'; // Sends the HTTP request to the backend
 import { useRef, useState } from 'react'; // Allows the page remember things that changed like if something was enabled or disabled
 
 import './SermonDetail.css';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import type { YouTubeProps } from 'react-youtube';
 import YouTube from 'react-youtube';
 import Button from '$/components/Button';
@@ -14,6 +14,8 @@ import MainLayout from '$/components/MainLayout';
 import SermonTranscript from '$/components/SermonTranscript';
 import Tag from '$/components/Tag.tsx';
 import { useToast } from '$/components/ToastContext.tsx';
+import { parseSourceTimestamp } from '$/lib/sourceTimestamp';
+import { normalizeYouTubeUrl, parseYouTubeVideoId } from '$/lib/youtube';
 import DeleteSermonModal from '$/modals/DeleteSermonModal.tsx';
 import EditSermonModal from '$/modals/EditSermonModal.tsx';
 import { durationToString, Sermon } from '$/types/sermon';
@@ -34,6 +36,24 @@ function isNotFound(error: unknown): boolean {
 }
 
 export default function SermonDetail() {
+	const { id } = useParams();
+	const [searchParams] = useSearchParams();
+	const sourceTimestamp = parseSourceTimestamp(searchParams.get('t'));
+
+	// Start fresh when the selected sermon or source timestamp changes.
+	return (
+		<SermonDetailContent
+			key={`${id}:${sourceTimestamp ?? 'start'}`}
+			sourceTimestamp={sourceTimestamp}
+		/>
+	);
+}
+
+function SermonDetailContent({
+	sourceTimestamp,
+}: {
+	sourceTimestamp: number | null;
+}) {
 	const { showToast } = useToast(); // let's up pop up a little message at the corner of the screen
 
 	const [_summary, setSummary] = useState<string | null>(null); // Starts as nothing. It only holds text once the user types their own summary.
@@ -46,7 +66,8 @@ export default function SermonDetail() {
 
 	const playerRef = useRef<YouTubePlayer | null>(null); //creates reference for youtube player
 	const [playerReady, setPlayerReady] = useState(false); //remembers if the player is ready (video is loaded)
-	const [pendingSeek, setPendingSeek] = useState<number | null>(null); //remembers if the video is seeking a timestamp, setPendingSeek stores (seconds: number) to tell where to seek towards when video is loaded
+	// Remember the latest timestamp so a recreated player can restore it.
+	const pendingSeekRef = useRef<number | null>(sourceTimestamp);
 	const [videoError, setVideoError] = useState<string | null>(null); //remembers if there is an error with loading the video
 
 	const navigate = useNavigate(); // Lets us send the user to a different page
@@ -183,38 +204,29 @@ export default function SermonDetail() {
 		seriesIndex = filteredSermons.findIndex(item => item.id === sermon.id) + 1; // Add 1 to the index to offset zero-indexing
 	}
 
-	function getYouTubeEmbedUrl(videoLink: string): string | null {
-		try {
-			const url = new URL(videoLink);
-
-			if (url.hostname === 'youtu.be') {
-				return url.pathname.slice(1);
-			} else if (
-				url.hostname === 'www.youtube.com' ||
-				url.hostname === 'youtube.com'
-			) {
-				return url.searchParams.get('v');
-			}
-
-			return null;
-		} catch {
-			return null;
-		}
-	}
-
 	type YouTubePlayer = Parameters<
 		NonNullable<YouTubeProps['onReady']>
 	>[0]['target'];
 
 	const handlePlayerReady: YouTubeProps['onReady'] = event => {
-		//readies the player, also seeks to time if already requested to seek time before video start
 		playerRef.current = event.target;
 		setPlayerReady(true);
 
-		if (pendingSeek !== null) {
-			event.target.seekTo(pendingSeek, true);
+		// Restore the requested timestamp whenever the player is recreated.
+		const seconds = pendingSeekRef.current;
+
+		if (seconds === null) {
+			return;
+		}
+
+		try {
+			event.target.seekTo(seconds, true);
 			event.target.playVideo();
-			setPendingSeek(null);
+		} catch {
+			// Keep external video links available if seeking fails.
+			playerRef.current = null;
+			setPlayerReady(false);
+			setVideoError('The video could not seek to the selected timestamp.');
 		}
 	};
 
@@ -224,9 +236,11 @@ export default function SermonDetail() {
 			return false;
 		}
 
-		// Remember the timestamp if the player is still loading.
+		// Keep the latest requested timestamp if the player is recreated.
+		pendingSeekRef.current = seconds;
+
+		// Wait for the ready callback if the player is still loading.
 		if (!playerReady || !playerRef.current) {
-			setPendingSeek(seconds);
 			return true;
 		}
 
@@ -241,7 +255,8 @@ export default function SermonDetail() {
 		}
 	}
 
-	const videoId = getYouTubeEmbedUrl(sermon.videoLink);
+	// Accept the same YouTube URL formats supported by import.
+	const videoId = parseYouTubeVideoId(normalizeYouTubeUrl(sermon.videoLink));
 
 	return (
 		<MainLayout title={sermon.title}>
@@ -269,14 +284,23 @@ export default function SermonDetail() {
 										title={sermon.title}
 										onReady={handlePlayerReady}
 										onError={() => {
+											// Stop waiting for a player that failed to load.
+											playerRef.current = null;
+											pendingSeekRef.current = null;
+											setPlayerReady(false);
 											setVideoError(
 												'This video could not be loaded. It may be unavailable or embedding may be disabled.',
 											);
-											console.log({ videoError });
 										}}
 										opts={{
 											playerVars: {
 												rel: 0,
+
+												// Set the starting position when opening a source link.
+												start:
+													sourceTimestamp === null
+														? undefined
+														: Math.floor(sourceTimestamp),
 											},
 										}}
 									/>

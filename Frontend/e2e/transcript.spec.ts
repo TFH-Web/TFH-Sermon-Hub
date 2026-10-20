@@ -206,6 +206,9 @@ async function mockVideoPlayer(page: Page) {
 					constructor(
 						container: HTMLElement,
 						options: {
+							playerVars?: {
+								start?: number;
+							};
 							events: {
 								onReady: (event: { target: unknown }) => void;
 							};
@@ -214,6 +217,10 @@ async function mockVideoPlayer(page: Page) {
 						this.iframe = document.createElement('iframe');
 						// Keep a stable identifier even when the component changes the title.
 						this.iframe.dataset.testid = 'test-video-player';
+						// Record the starting position supplied when creating the player.
+						this.iframe.dataset.startTime = String(
+							options.playerVars?.start ?? 0,
+						);
 						container.replaceChildren(this.iframe);
 
 						// Let the page finish registering its player callbacks.
@@ -278,3 +285,95 @@ for (const activation of ['click', 'Enter'] as const) {
 		expect(page.context().pages()).toHaveLength(1);
 	});
 }
+
+// Source links should set the initial position and preserve exact seek times.
+for (const seconds of ['30.5', '0']) {
+	test(`source link starts the video at ${seconds} seconds`, async ({
+		page,
+	}) => {
+		await mockVideoPlayer(page);
+		await captionRoutes(page);
+
+		await page.goto(`/sermons/1?t=${seconds}`);
+
+		const player = page.getByTestId('test-video-player');
+
+		// YouTube's initial start setting uses whole seconds.
+		await expect(player).toHaveAttribute(
+			'data-start-time',
+			String(Math.floor(Number(seconds))),
+		);
+
+		// The ready callback keeps the exact timestamp.
+		await expect(player).toHaveAttribute('data-seek-time', seconds);
+		await expect(player).toHaveAttribute('data-playing', 'true');
+	});
+}
+
+test('invalid source timestamp does not request a seek', async ({ page }) => {
+	await mockVideoPlayer(page);
+	await captionRoutes(page);
+
+	await page.goto('/sermons/1?t=invalid');
+
+	const player = page.getByTestId('test-video-player');
+
+	await expect(player).toBeVisible();
+	await expect(player).toHaveAttribute('data-start-time', '0');
+	await expect(player).not.toHaveAttribute('data-seek-time');
+});
+
+test('switching sermons clears the previous source timestamp', async ({
+	page,
+}) => {
+	await mockVideoPlayer(page);
+	const state = await captionRoutes(page);
+
+	// Provide a second sermon for navigation without reloading the app.
+	const secondSermon = {
+		...state.sermon,
+		id: 2,
+		title: 'Second timestamp test sermon',
+	};
+
+	await page.route('**/api/sermons/2', route =>
+		route.fulfill({ json: secondSermon }),
+	);
+
+	await page.route('**/api/sermons/2/transcript', route =>
+		route.fulfill({
+			json: {
+				transcript: secondSermon.transcript,
+				segments: state.segments,
+			},
+		}),
+	);
+
+	await page.goto('/sermons/1?t=30.5');
+
+	const player = page.getByTestId('test-video-player');
+
+	// Confirm the first sermon received its requested timestamp.
+	await expect(player).toHaveAttribute('data-seek-time', '30.5');
+
+	// Change the route without refreshing the browser.
+	await page.evaluate(() => {
+		window.history.pushState({}, '', '/sermons/2');
+		window.dispatchEvent(new PopStateEvent('popstate'));
+	});
+
+	await expect(
+		page.getByRole('heading', {
+			name: secondSermon.title,
+			level: 1,
+			exact: true,
+		}),
+	).toBeVisible();
+
+	// Confirm the replacement player belongs to the second sermon.
+	await expect(player).toHaveAttribute('title', secondSermon.title);
+
+	// The old sermon's requested timestamp must not carry over.
+	await expect(player).toHaveAttribute('data-start-time', '0');
+	await expect(player).not.toHaveAttribute('data-seek-time');
+});
