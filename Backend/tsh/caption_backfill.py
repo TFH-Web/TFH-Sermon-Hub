@@ -8,7 +8,7 @@ from flask.cli import with_appcontext
 from sqlalchemy import func, or_
 
 from tsh import pipeline
-from tsh.captions import AUTH_EXPIRED, OAUTH_SETTINGS
+from tsh.captions import AUTH_EXPIRED, OAUTH_SETTINGS, captions_enabled
 from tsh.database import db
 from tsh.models import Sermon, UploadStatus
 from tsh.youtube_import import VIDEO_ID, parse_video_id
@@ -73,6 +73,10 @@ def backfill_captions_command(limit: int, failed_only: bool, dry_run: bool) -> N
         return
     if not selected:
         return
+    if not captions_enabled():
+        raise click.ClickException(
+            "Captions are turned off (CAPTIONS_ENABLED is false). Turn them on before backfilling captions."
+        )
     missing = [name for name in OAUTH_SETTINGS if not current_app.config.get(name)]
     if missing:
         raise click.ClickException(

@@ -4,7 +4,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_migrate import Migrate
 from werkzeug.exceptions import HTTPException, InternalServerError
-
+from tsh.captions import parse_flag
 from tsh.views import api
 
 
@@ -49,9 +49,11 @@ def create_app(
         "YOUTUBE_OAUTH_CLIENT_SECRET": "",
         "YOUTUBE_OAUTH_REFRESH_TOKEN": "",
         "YOUTUBE_CAPTION_LANGUAGE": "en",
+        "CAPTIONS_ENABLED": "true",
     }
     for name, default in youtube_defaults.items():
         app.config.setdefault(name, os.environ.get(name, default))
+    parse_flag(app.config["CAPTIONS_ENABLED"], "CAPTIONS_ENABLED")
 
     from tsh.database import db
     db.init_app(app)

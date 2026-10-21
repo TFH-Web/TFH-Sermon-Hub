@@ -108,6 +108,27 @@ If the message says `permission denied` instead, the sign-in works but the accou
 cannot manage captions on this channel. A new token will not fix that; check the
 account's channel access.
 
+## Turning captions off
+
+Set `CAPTIONS_ENABLED=false` in `Backend/.env` and in the worker's environment, then
+restart the API and the worker, to stop all caption downloads. This is useful while the
+daily quota is used up or the sign-in is being renewed. Leave it unset, blank or `true`
+for normal operation. Accepted values are `true`/`false`, `yes`/`no`, `on`/`off` and
+`1`/`0`, in any case. Any other value stops the app from starting.
+
+While captions are off:
+
+- Importing from YouTube (the Import page, single video links and `import-youtube`)
+  still works, and nothing calls the captions API.
+- A sermon that already has a transcript keeps it and still processes and publishes.
+- A sermon with no transcript is saved as Draft with the message
+  `fetch_transcript: captions are turned off (CAPTIONS_ENABLED is false); ...`. It is
+  never published without a transcript.
+- `backfill-captions` refuses to run. `--dry-run` still works.
+
+To turn captions back on, set the value to `true` (or remove it), restart, then
+reprocess the draft sermons or run `backfill-captions`.
+
 ## Review
 
 Run `poetry run pytest` from `Backend`. Caption and backfill tests use fake

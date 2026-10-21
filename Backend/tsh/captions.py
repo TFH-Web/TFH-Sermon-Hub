@@ -37,6 +37,29 @@ class CaptionQuotaError(CaptionError):
 class CaptionAuthError(CaptionError):
     """The TFH channel's OAuth sign-in expired, was revoked, or could not be renewed."""
 
+class CaptionsDisabledError(CaptionError):
+    """The TFH channel's captions are disabled, so no caption request is made."""
+
+DISABLED_MESSAGE = ("captions are turned off (CAPTIONS_ENABLED is false); turn them on and reprocess to get a transcript")
+
+
+def parse_flag(value, name: str) -> bool:
+    """Parse a boolean flag from a string, raising CaptionError for invalid values."""
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text in ("", "1", "true", "yes", "on"):
+        return True
+    if text in ("0", "false", "no", "off"):
+        return False
+    raise ValueError(f"{name} must be true or false, not {value!r}")
+
+
+def captions_enabled() -> bool:
+    """True unless CAPTIONS_ENABLED turns caption downloads off. Read each time , so tests can change it."""
+    return parse_flag(current_app.config.get("CAPTIONS_ENABLED", True), "CAPTIONS_ENABLED")
+
+
 def quota_message(resume) -> str:
     """Say when captions resume. Starts with "Youtube quota exceeded" so it is easy to identify."""
     when = resume.astimezone(caption_quota.RESET_TIMEZONE).strftime("%Y-%m-%d %H:%M %Z")
@@ -93,6 +116,8 @@ def get_transcript(video_id: str) -> list[TranscriptSegment]:
     Refreshes access tokens in memory. Raises CaptionError for missing access,
     missing captions, quota, network or parse failures; never includes remote error text.
     """
+    if not captions_enabled():
+        raise CaptionsDisabledError(DISABLED_MESSAGE)
     if not re.fullmatch(r"[A-Za-z0-9_-]{11}", video_id):
         raise CaptionError("invalid YouTube video id; correct the sermon video link, then reprocess")
     resume = caption_quota.blocked_until()
