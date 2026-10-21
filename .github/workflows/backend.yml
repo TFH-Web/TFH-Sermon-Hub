@@ -56,7 +56,7 @@ jobs:
       - name: Test deployment utilities
         # Deployment utilities deliberately live outside application test collection.
         if: ${{ !cancelled() }}
-        run: poetry run pytest -q ../deploy/test_backup.py ../deploy/tests/test_provision_staging.py
+        run: poetry run pytest -q ../deploy/test_backup.py ../deploy/test_recovery_check.py ../deploy/tests/test_provision_staging.py
 
       - name: Audit locked backend dependencies
         if: ${{ !cancelled() }}
