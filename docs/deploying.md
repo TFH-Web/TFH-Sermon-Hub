@@ -2,8 +2,10 @@
 
 This runbook deploys a **separate, SSH-only staging instance**. It does not replace
 the existing public-IP site or announce a public launch. Do not copy a developer's
-local database (including the approximately 450 local sermons), fixture data,
-`.env`, `testing.cfg`, `node_modules`, or a Windows virtualenv to the server.
+database by default. An explicitly approved library bootstrap must use the
+verified snapshot and reversible procedure in section 6.1. Never copy fixture
+data, a local `.env`, `testing.cfg`, `node_modules`, or a Windows virtualenv to
+the server.
 
 ## Current scope and outstanding gates
 
@@ -81,8 +83,9 @@ configuration are part of this document.
 The server release's `deployment.json` records the application/deployment commits,
 artifact hashes, successful checks and outstanding gates without secret values.
 
-Real browser sign-in and the Admin/read-only/unassigned role matrix have **not**
-been verified against this staging instance. DNS/HTTPS/public Entra redirects,
+Jack subsequently reported successful real Admin sign-in through the private
+tunnel. The read-only/unassigned role matrix has **not** been verified against
+this staging instance. DNS/HTTPS/public Entra redirects,
 nightly off-site automation and cloud AI are not complete. There is no server
 Ollama daemon/listener. Anthropic is a tentative answer-provider preference, not
 a configured SDK/key/model or an embedding-provider decision. Anthropic does not
@@ -91,6 +94,40 @@ provide its own embedding model; see its
 The current cloud
 adapter/model compatibility gap remains open. Keep these limitations in any
 handoff; do not mark TFH-540 complete from the infrastructure smoke checks alone.
+
+### Current private release and production-sidebar fix (2026-10-21 UTC)
+
+The active release is now
+`/opt/tfh-staging/releases/3144d67-tfh540-20261021-2`, built from
+`cf783d264dec83af4f06ce39d7c58be95118d44b` on the same `3144d67` application
+baseline. The previous release is retained for code rollback. Both use the
+external persistent database, now containing the explicitly approved local
+library described in section 6.1; switching code must never reinitialize it.
+
+The white sidebar was a **production CSS lowering regression**, not a different
+application branch: inherited `light-dark()` theme tokens were resolved at the
+root before reaching the sidebar. Sidebar-local dark surface/foreground/outline
+tokens restore the intended dark appearance without redesigning the layout.
+Locally scoped focus styling preserves text contrast of at least 4.5:1 and
+visible keyboard-focus outlines. No authentication logic changed.
+
+| Artifact/check | Verified result |
+| --- | --- |
+| Source archive SHA-256 | `07a1fd1f3a1919f51fa070d4125f44a09b62714a0a7c2ca6ed281c46384d0fcd` |
+| Frontend archive SHA-256 | `3ff971dfd8197d0469345e0fc87bfee43da2bd724cf98f21ee23c71507fc0ef7` |
+| Current frontend assets | `/assets/index-ZkgWRXxz.js` and `/assets/index-B6MM5Yah.css` |
+| Served CSS SHA-256 | `616cef9bf720b79c485c1d7a6e4030b9cbe0a7f789d1746ae8f1b0f2074aca22`; raw bytes retrieved through the actual SSH tunnel matched the tested build |
+| Frontend verification | 148 Vitest tests, TypeScript/production build, two compiled-CSS Playwright tests for light/dark OS preferences; dependency audit clean |
+| Auth configuration | Rebuilt with the approved public Entra IDs/scope and `http://localhost:5173/` redirect; `VITE_E2E_TEST=false`; no local secret files copied |
+| Pre-release backup | `/var/backups/tfh-staging/sermonhub-20261021T004402250043Z-7d3c5067.sqlite3` (450 sermons) |
+| Runtime/deploy | New release venv installed from the same locked 48 production dependencies; guarded preparation preserved existing env/DB; `up.py` confirmed schema already at head; live ORM/HTTP/auth/vec checks passed afterward |
+| Isolation and recovery | Previous code retained; API/worker healthy; backup service succeeded and timer resumed; old public service PID 738/health 200 unchanged |
+
+The new `deployment.json` records the release, library adoption, artifact hashes,
+checks and remaining gates. A browser already open on the old assets needs a
+hard refresh (`Ctrl+F5`) through the still-open SSH tunnel. Production-CSS tests
+deliberately render only an isolated sidebar fixture with the **compiled** CSS;
+they do not fake production sign-in or claim to validate real-user permissions.
 
 ## 1. Preserve the old server before any change
 
@@ -150,6 +187,7 @@ VITE_CLIENT_ID=<application-client-id> VITE_TENANT_ID=<tenant-id> \
 VITE_API_SCOPE=api://<api-application-client-id>/access_as_user \
 VITE_REDIRECT_URI=http://localhost:5173/ VITE_API_BASE_URL=/ VITE_E2E_TEST=false \
 npm run build
+npx playwright test --config=playwright.production.config.ts
 cd ..
 git archive --format=tar --output="source-${RELEASE_ID}.tar" "$DEPLOY_REV"
 tar -C Frontend -czf "frontend-${RELEASE_ID}.tar.gz" dist
@@ -163,6 +201,13 @@ Vite's development server publicly. Environment changes require a new frontend
 build. Keep the three reviewed artifacts and checksum manifest together and copy
 them to a new root-owned server staging directory. Do not build from the live
 `current` tree or overlay files into an existing release.
+
+The production-sidebar regression requires a preceding `npm run build` and a
+Playwright Chromium installation (`npx playwright install chromium` on a new
+build machine). Its standalone configuration starts no dev server and makes no
+API requests. It is also discovered by the normal E2E configuration; CI already
+builds and downloads `dist` before that job. Do not run the normal dev-server E2E
+suite against an operator's live staging tunnel on port 5173.
 
 ## 3. Extract the release, then run the guarded preparation helper
 
@@ -246,7 +291,8 @@ the existing `.env` to force the check to pass.
 
 Preparation does **not** run migrations, install/activate units, switch `current`,
 start/stop services or change the public site. Do not run additional manual
-environment-generation or database-copy commands after the helper. The template
+environment-generation or database-copy commands after the helper, except the
+separately approved and verified library bootstrap in section 6.1. The template
 `deploy/staging.env.example` documents the contract; it must not overwrite the
 auto-generated file. For later approved cloud/import credentials, edit the
 existing private server file without displaying it in logs/chat/Jira/git, retaining
@@ -393,6 +439,53 @@ redirect/logout URI, rebuild the bundle for it and verify the access policy. Pub
 `sermonhub.tfh.org` DNS/HTTPS/production redirects remain a separate launch step.
 Microsoft requires HTTPS redirects except for localhost testing:
 [redirect URI restrictions](https://learn.microsoft.com/en-us/entra/identity-platform/reply-url).
+
+### 6.1 Explicitly approved local-library bootstrap (2026-10-21 UTC)
+
+After seeing the empty staging library, Jack explicitly approved copying his
+local library into **only the new private staging database**. This is a one-time
+data adoption, not a normal deployment step or permission to overwrite later
+staging edits. The original public site/database and local source DB were not
+changed. Do not repeat this operation over a populated staging library without
+a new explicit data-replacement decision.
+
+Recorded checks and rollback material:
+
+| Item | Verified result |
+| --- | --- |
+| Source | Consistent SQLite online backup of the local `Backend/instance/testing.db`; no live-file copy |
+| Snapshot SHA-256 | `7575d8199b69b00d3338a4eef2e815f30a972c615a65be8e300b3e0a98511f87` |
+| Server compatibility | Full integrity/FK checks passed using server SQLite 3.46.1 and sqlite-vec `v0.1.9`; exact schema matched empty staging; Alembic `958b50d14869` and `FLOAT[768]` unchanged |
+| Copied data | 450 sermons, 37 speakers, 71 series, five tags and 12 sermon/tag associations |
+| Preserved statuses | 257 DRAFT, 190 PUBLISHED, two FAILED and one PROCESSING; no automatic retries or status rewriting |
+| Preserved transcript data | 189 nonempty transcripts and 188 nonempty caption arrays; no AI/YouTube calls |
+| Retrieval limitation | No sermon chunks or embeddings existed in the source; this copy does **not** make cloud search/chat ready |
+| Queue guard | Redis DB 1 queue empty, worker idle, no active/scheduled/deferred jobs before replacement |
+| Fresh pre-replacement backup | `/var/backups/tfh-staging/sermonhub-20261021T004010053824Z-a0c4e1ee.sqlite3` |
+| Reversible original DB | `/var/lib/tfh-staging/recovery-library-octK4ypK/sermonhub.sqlite3`; private recovery directory retained |
+| Post-copy backup | `/var/backups/tfh-staging/sermonhub-20261021T004049422299Z-0b2e0d68.sqlite3`; SHA-256 `db4c486624246030de9fa61583f9aeec42c6291fe460c022c4f2dc5cea49a55f` |
+| Off-server recovery copy | DB and manifest checksum/integrity/FK/counts verified under ACL-protected `.local-dev/tfh-540-server/backups/20261020T234424Z/copied-staging-library-20261021/`; still one-off, not scheduled off-site automation |
+| Live verification | Production ORM saw 450 sermons/37 speakers/71 series, exact original statuses, schema and vec checks; HTTP health/SPA passed; unauthenticated and test-role-header requests remained 401 |
+| Services | New API/worker restarted; nightly backup service succeeded and timer resumed; old public service PID 738 and health 200 unchanged |
+
+For an approved bootstrap, first use `deploy/backup.py` on the local machine to
+create a verified standalone snapshot plus manifest in a private backup folder.
+Transfer that pair over SSH to a root-only incoming directory, not a web-served
+path. Compare SHA-256 and all counts/revision/vector schema on the server using
+its release Python and sqlite-vec **before** changing the active DB. A newer local
+SQLite version is not itself proof of server compatibility. Compare the schemas;
+do not blindly migrate or re-embed this snapshot.
+
+Stage a verified, app-owned `0600` copy on the persistent filesystem. Take a fresh
+backup of staging, drain/check its queue, then use section 7's exact pause-timer,
+stop-backup/API/worker and confirm-inactive sequence. Recheck that staging is
+still empty for this bootstrap. Keep its DB and any WAL/SHM siblings in a new
+private recovery directory, then atomically rename the prepared standalone
+snapshot to `/var/lib/tfh-staging/sermonhub.sqlite3`. Verify it again before
+starting services. Repeat production schema/auth/health/count checks, create and
+verify a new backup, then resume the timer and verify an off-server copy.
+Preserve statuses and vectors exactly; copying data never authorizes retrying
+imports, provider calls, re-embedding or flushing Redis.
 
 ## 7. Nightly backups, restore and rollback
 
