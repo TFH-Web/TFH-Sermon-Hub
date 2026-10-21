@@ -147,8 +147,7 @@ test("keeps a cited sermon's conversation separate from the general one", async 
 	// A question in that chat is scoped to the sermon.
 	const sermonRequest = page.waitForRequest(
 		request =>
-			isChat(new URL(request.url())) &&
-			request.postDataJSON()?.sermonId === 7,
+			isChat(new URL(request.url())) && request.postDataJSON()?.sermonId === 7,
 	);
 	await ask(page, followUp);
 	await sermonRequest;
@@ -161,5 +160,7 @@ test("keeps a cited sermon's conversation separate from the general one", async 
 	await expect(page.getByText(question, { exact: true })).toBeVisible();
 	await expect(page.getByText(answer.answer)).toHaveCount(1);
 	await expect(page.getByText(followUp, { exact: true })).toHaveCount(0);
-	await expect(page.getByText(/ready to answer questions about/)).toHaveCount(0);
+	await expect(page.getByText(/ready to answer questions about/)).toHaveCount(
+		0,
+	);
 });

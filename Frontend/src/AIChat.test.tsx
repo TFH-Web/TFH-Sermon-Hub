@@ -19,7 +19,8 @@ interface ChatCallbacks {
 
 // useChatRequest is the network boundary, so it is replaced: no axios or TanStack Query here, only AIChat's own wiring.
 const { mutate, chatRequest } = vi.hoisted(() => {
-	const mutate = vi.fn<(request: ChatRequest, options: ChatCallbacks) => void>();
+	const mutate =
+		vi.fn<(request: ChatRequest, options: ChatCallbacks) => void>();
 	return { mutate, chatRequest: { mutate, isPending: false } };
 });
 vi.mock('$/hooks/useChatRequest', () => ({ default: () => chatRequest }));
@@ -121,7 +122,9 @@ it('shows the empty-state prompts on a general chat, and clicking one fills the 
 	expect(screen.getByText('Ask about any sermon')).toBeTruthy();
 
 	await userEvent.click(
-		screen.getByRole('button', { name: 'What has Dave said about forgiveness?' }),
+		screen.getByRole('button', {
+			name: 'What has Dave said about forgiveness?',
+		}),
 	);
 
 	const input = screen.getByPlaceholderText(placeholder) as HTMLInputElement;
@@ -287,8 +290,12 @@ it('resumes each scope when switching back, without a second greeting', async ()
 	answerCall(0, answer);
 
 	// Into the sermon's chat: its own greeting, none of the general answer.
-	await userEvent.click(screen.getByRole('link', { name: 'Go to sermon chat' }));
-	expect(screen.getAllByText(/ready to answer questions about/)).toHaveLength(1);
+	await userEvent.click(
+		screen.getByRole('link', { name: 'Go to sermon chat' }),
+	);
+	expect(screen.getAllByText(/ready to answer questions about/)).toHaveLength(
+		1,
+	);
 	expect(screen.queryByText('Grace is a gift.')).toBeNull();
 
 	// Back to the general chat: the earlier question and answer are still there.
@@ -299,13 +306,19 @@ it('resumes each scope when switching back, without a second greeting', async ()
 	expect(screen.queryByText(/ready to answer questions about/)).toBeNull();
 
 	// Into the sermon's chat again: resumed, not greeted a second time.
-	await userEvent.click(screen.getByRole('link', { name: 'Go to sermon chat' }));
-	expect(screen.getAllByText(/ready to answer questions about/)).toHaveLength(1);
+	await userEvent.click(
+		screen.getByRole('link', { name: 'Go to sermon chat' }),
+	);
+	expect(screen.getAllByText(/ready to answer questions about/)).toHaveLength(
+		1,
+	);
 });
 
 it('seeds exactly one greeting under StrictMode', () => {
 	// StrictMode runs the greeting effect twice on mount.
 	renderAt(sermonPath, { strict: true });
 
-	expect(screen.getAllByText(/ready to answer questions about/)).toHaveLength(1);
+	expect(screen.getAllByText(/ready to answer questions about/)).toHaveLength(
+		1,
+	);
 });

@@ -20,9 +20,9 @@ const ChatContext = createContext<ChatContextValue | null>(null);
 // Holds every scope's conversation above the route lifecycle, so navigating within the app doesn't lose it.
 // Nothing here touches localStorage/sessionStorage, so a refresh still clears it for free.
 export function ChatProvider({ children }: { children: React.ReactNode }) {
-	const [conversations, setConversations] = useState<
-		Record<string, Message[]>
-	>({});
+	const [conversations, setConversations] = useState<Record<string, Message[]>>(
+		{},
+	);
 
 	// Mirrors AuthSession's queryClient.clear() rule: drop every conversation when the account changes
 	// or the session is lost, even without a full page reload. useAuth is read instead of useUser() because
