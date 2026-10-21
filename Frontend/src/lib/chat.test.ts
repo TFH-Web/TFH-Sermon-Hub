@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'vitest';
 import type { Message } from '$/types/chat';
-import { buildHistory, formatDuration, MAX_HISTORY_TURNS } from './chat';
+import {
+	buildHistory,
+	formatDuration,
+	MAX_HISTORY_CHARS,
+	MAX_HISTORY_TURNS,
+	MAX_MESSAGE_CHARS,
+} from './chat';
 
 // Small builders for the two kinds of message the chat stores.
 function userMessage(id: number, text: string): Message {
@@ -89,8 +95,39 @@ describe('buildHistory', () => {
 		expect(buildHistory([])).toEqual([]);
 	});
 
+	// A long answer would otherwise make the server reject every follow-up with a 400.
+	test('cuts a turn longer than MAX_HISTORY_CHARS, keeping its start', () => {
+		const long = `${'a'.repeat(MAX_HISTORY_CHARS)}${'b'.repeat(500)}`;
+
+		const [turn] = buildHistory([answerMessage(2, long)]);
+
+		expect(turn.content).toBe('a'.repeat(MAX_HISTORY_CHARS));
+	});
+
+	// A turn right at the limit is accepted by the server, so it must go through whole.
+	test('leaves a turn of exactly MAX_HISTORY_CHARS untouched', () => {
+		const exact = 'a'.repeat(MAX_HISTORY_CHARS);
+
+		const [turn] = buildHistory([userMessage(2, exact)]);
+
+		expect(turn.content).toBe(exact);
+	});
+
+	// The server counts code points, and cutting mid-emoji would send a lone surrogate it can't encode.
+	test('counts characters like the server, never splitting an emoji', () => {
+		const [turn] = buildHistory([answerMessage(2, '😀'.repeat(1200))]);
+
+		expect(turn.content).toBe('😀'.repeat(MAX_HISTORY_CHARS));
+	});
+
 	// The server rejects longer histories, so the two limits must stay equal (Backend/tsh/chat.py).
 	test('MAX_HISTORY_TURNS matches the server cap', () => {
 		expect(MAX_HISTORY_TURNS).toBe(6);
+	});
+
+	// Same for the per-turn and question lengths (Backend/tsh/chat.py).
+	test('MAX_HISTORY_CHARS and MAX_MESSAGE_CHARS match the server caps', () => {
+		expect(MAX_HISTORY_CHARS).toBe(1000);
+		expect(MAX_MESSAGE_CHARS).toBe(1000);
 	});
 });
