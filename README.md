@@ -431,7 +431,14 @@ Current planned testing tools include Vitest and Playwright for the frontend, an
 
 ## Deployment
 
-Deployment instructions will be added next semester.
+The [DigitalOcean staging runbook](docs/deploying.md) and `deploy/` templates cover
+isolated gunicorn/RQ/Redis services, private NGINX access, production configuration,
+migrations, backups and restore. The existing public-IP application stays intact.
+
+The first staging instance is SSH-only, not a public launch or general team URL.
+Cloud AI/embedding configuration, full real-role verification and automated
+off-server backups remain explicit readiness gates. Ollama is for local development
+only; do not install it or download models on the droplet.
 
 ---
 
