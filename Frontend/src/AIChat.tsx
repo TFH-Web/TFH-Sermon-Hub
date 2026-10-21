@@ -74,6 +74,8 @@ export default function AIChat() {
 	}, [messages, chatRequest.isPending]);
 
 	function onAnswer(answer: ChatAnswer) {
+		// An answer ends any failed attempt, so a Retry that works must not leave the old error showing.
+		setChatError(null);
 		setMessages(prev => [
 			...prev,
 			{
