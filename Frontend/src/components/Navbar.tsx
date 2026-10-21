@@ -1,7 +1,9 @@
 import './Navbar.css';
+import { useIsAdmin } from '$/lib/auth';
 import NavbarItem from './NavbarItem';
 
 export default function Navbar() {
+	const isAdmin = useIsAdmin();
 	return (
 		<nav className="Navbar">
 			<h2 className="Navbar-header">Main</h2>
@@ -32,26 +34,32 @@ export default function Navbar() {
 
 			<h2 className="Navbar-header">Content</h2>
 			<ul className="Navbar-list">
-				<NavbarItem icon="lucide:upload" to="/upload">
-					Import / Upload
-				</NavbarItem>
+				{isAdmin && (
+					<NavbarItem icon="lucide:upload" to="/upload">
+						Import / Upload
+					</NavbarItem>
+				)}
 				<NavbarItem icon="lucide:tag" to="/tags">
 					Tags &amp; Metadata
 				</NavbarItem>
 			</ul>
 
-			<h2 className="Navbar-header">Admin</h2>
-			<ul className="Navbar-list">
-				<NavbarItem icon="lucide:user" to="/user-management">
-					User Management
-				</NavbarItem>
-				<NavbarItem icon="lucide:bell" to="/notifications">
-					Notifications
-				</NavbarItem>
-				<NavbarItem icon="lucide:settings" to="/settings">
-					Settings
-				</NavbarItem>
-			</ul>
+			{isAdmin && (
+				<>
+					<h2 className="Navbar-header">Admin</h2>
+					<ul className="Navbar-list">
+						<NavbarItem icon="lucide:user" to="/user-management">
+							User Management
+						</NavbarItem>
+						<NavbarItem icon="lucide:bell" to="/notifications">
+							Notifications
+						</NavbarItem>
+						<NavbarItem icon="lucide:settings" to="/settings">
+							Settings
+						</NavbarItem>
+					</ul>
+				</>
+			)}
 		</nav>
 	);
 }

@@ -8,8 +8,7 @@ from tsh import create_app
 from tests.populate import populate
 import pytest
 
-# Matches the FLOAT[768] column on sermon_chunk_embedding.
-FAKE_EMBEDDING_DIM = 768
+from tsh.embeddings import EMBEDDING_DIM as FAKE_EMBEDDING_DIM
 
 
 @pytest.fixture(autouse=True)
@@ -45,9 +44,10 @@ def pytest_configure(config):
 @pytest.fixture()
 def app():
     app = create_app(
-        "testing.cfg",
+        None,
         settings={
             "TESTING": True,
+            "AUTH_TEST_BYPASS": True,
             "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
             # Always run jobs inline, even when .env or devenv sets REDIS_URL for the whole shell.
             "REDIS_URL": "",

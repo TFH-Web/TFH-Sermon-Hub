@@ -7,6 +7,7 @@ on:
 
 env:
   PYTHON_VERSION: '3.13'
+  POETRY_VIRTUALENVS_IN_PROJECT: 'true'
 
 defaults:
   run:
@@ -31,7 +32,7 @@ jobs:
         id: cached-poetry-dependencies
         uses: actions/cache@v4
         with:
-          path: .venv
+          path: Backend/.venv
           key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
 
       - name: Install dependencies
@@ -51,3 +52,16 @@ jobs:
           TENANT_ID: "ci-only-dummy-tenant-id"
           CLIENT_ID: "ci-only-dummy-client-id"
         run: poetry run pytest
+
+      - name: Audit locked backend dependencies
+        if: ${{ !cancelled() }}
+        run: poetry run pip-audit --format=json --output=pip-audit.json
+
+      - name: Retain backend dependency audit
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: backend-dependency-audit
+          path: Backend/pip-audit.json
+          retention-days: 30
+          if-no-files-found: error

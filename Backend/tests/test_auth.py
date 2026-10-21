@@ -26,9 +26,10 @@ def test_protected_routes_reject_wrong_role(client: FlaskClient):
         assert response.is_json
         assert "error" in response.json
 
-def test_protected_routes_allow_internal_user(client: FlaskClient):
+@pytest.mark.parametrize("role", ["Internal User", "InternalUser"])
+def test_protected_routes_allow_internal_user(client: FlaskClient, role):
     for route in PROTECTED_ROUTES:
-        response = client.get(route, headers={"X-Test-Roles": "Internal User"})
+        response = client.get(route, headers={"X-Test-Roles": role})
         assert response.status_code == 200, f"Route {route} did not allow Internal User"
 
 def test_protected_routes_allow_admin(client: FlaskClient):

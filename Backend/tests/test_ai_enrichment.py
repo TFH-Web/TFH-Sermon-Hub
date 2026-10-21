@@ -87,7 +87,7 @@ def test_anthropic_requires_model(monkeypatch):
 def test_provider_is_read_per_call(monkeypatch):
     """The switch must be an env change, not an import-time constant."""
     monkeypatch.setenv("LLM_PROVIDER", "ollama")
-    monkeypatch.setattr(llm, "_ollama", lambda p, s, j=False: "from-ollama")
+    monkeypatch.setattr(llm, "_ollama", lambda p, s, j=False, m=1024: "from-ollama")
     monkeypatch.setattr(llm, "_anthropic", lambda p, s, m: "from-anthropic")
     assert llm.generate("hi") == "from-ollama"
     monkeypatch.setenv("LLM_PROVIDER", "anthropic")

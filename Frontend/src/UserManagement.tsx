@@ -16,6 +16,8 @@ import {
 export default function UserManagement() {
 	const [addUserOpen, setAddUserOpen] = useState(false);
 	const currentUser = useUser();
+	// ProtectedRoute redirects to sign-in on session loss; render nothing until it does.
+	if (!currentUser) return null;
 
 	return (
 		<MainLayout title="User Management">

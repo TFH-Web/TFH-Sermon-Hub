@@ -16,6 +16,9 @@
 
 ## Overview
 
+Staff sign-in, API scope/role configuration and security verification are documented
+in [docs/authentication.md](docs/authentication.md).
+
 TFH Sermon Hub is an internal web application built for The Father's House church staff to organize, manage, and explore their sermon library. The platform provides a rich dashboard for tracking sermon content, a speaker and series management system, and AI-powered tools that allow staff to search across transcripts using natural language and have contextual conversations about specific sermons.
 
 ---
@@ -314,6 +317,21 @@ npm run dev
 ```
 
 The frontend will be available at `http://localhost:5173`.
+
+#### API scope for sign-in
+
+The backend only accepts API access tokens, so the frontend has to ask Microsoft
+for the Sermon Hub API scope. If you already have a `Frontend/.env`, add this line
+to it (a fresh copy of `Frontend/.env.example` already has it):
+
+```sh
+VITE_API_SCOPE=api://f8108595-ffa8-4c94-957f-b92b006da038/access_as_user
+```
+
+Restart `npm run dev` after changing `.env`. Without this line, sign-in shows
+"API access is not configured" and no API request is sent. Your account also
+needs the `Admin` or `InternalUser` app role; see
+[docs/authentication.md](docs/authentication.md) for the Entra setup.
 
 ---
 

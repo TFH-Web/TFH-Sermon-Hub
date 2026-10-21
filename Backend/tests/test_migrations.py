@@ -10,9 +10,9 @@ from sqlalchemy import inspect, text
 import down
 import up
 from tests.populate import populate
-from tsh import create_app
+from tsh import create_app, pipeline
 from tsh.database import db
-from tsh.models import Sermon
+from tsh.models import Sermon, SermonChunk, SermonChunkEmbedding, SyncRun
 from tsh.schemas import sermon_schema
 
 
@@ -50,12 +50,43 @@ def test_caption_segments_round_trip_and_downgrade_keeps_text(migration_app):
         assert len(sermon.tags) == 2
 
 
+def test_sync_run_upgrade_preserves_existing_chunk_models_and_vectors(migration_app):
+    with migration_app.app_context():
+        upgrade(directory=str(up.MIGRATIONS), revision="5616dbd32dfd")
+        populate(migration_app)
+        sermon = db.session.get(Sermon, 1)
+        sermon.transcript_segments = [{"start": 12.0, "end": 18.0, "text": "Grace is a gift."}]
+        db.session.commit()
+        pipeline.embed_chunks(sermon)
+        db.session.expire_all()
+        chunk = db.session.scalars(db.select(SermonChunk)).one()
+        chunk_id = chunk.id
+        before = (chunk.text, chunk.start, chunk.end, chunk.embedding_model)
+        vector = db.session.get(SermonChunkEmbedding, chunk_id).embedding
+
+        upgrade(directory=str(up.MIGRATIONS))
+        run = SyncRun(id=None)
+        db.session.add(run)
+        db.session.commit()
+        assert db.session.get(SyncRun, run.id).state.value == "queued"
+
+        # The new migration can be rolled back and reapplied above the embedding
+        # migration without rebuilding or losing the existing vectors.
+        downgrade(directory=str(up.MIGRATIONS), revision="5616dbd32dfd")
+        upgrade(directory=str(up.MIGRATIONS))
+        db.session.remove()
+        restored = db.session.get(SermonChunk, chunk_id)
+        assert (restored.text, restored.start, restored.end, restored.embedding_model) == before
+        assert db.session.get(SermonChunkEmbedding, chunk_id).embedding == vector
+
+
 @pytest.fixture()
 def migration_app(tmp_path, monkeypatch):
     app = create_app(
         config_path="",
         settings={
             "TESTING": True,
+            "AUTH_TEST_BYPASS": True,
             "SQLALCHEMY_DATABASE_URI": f"sqlite:///{(tmp_path / 'migration.db').as_posix()}",
         },
     )

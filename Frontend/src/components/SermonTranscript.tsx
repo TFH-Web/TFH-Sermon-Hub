@@ -171,7 +171,7 @@ export default function SermonTranscript({ sermon }: { sermon: Sermon }) {
 							</Button>
 						</>
 					)}
-					{user.role === 'Admin' && (
+					{user?.role === 'Admin' && (
 						<Button
 							variant="secondary"
 							disabled={processing}

@@ -5,18 +5,22 @@ from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy import false, func
 from sqlalchemy.orm import defer, with_expression
+from tsh import chat as chat_service
 from tsh.auth import require_role
 
 # API routes for series, speakers, and sermons
-from datetime import date
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.exceptions import RequestEntityTooLarge
 
 from tsh.database import db
+from tsh import schemas
 from tsh.models import (
     Series,
     Sermon,
     Speaker,
+    SyncRun,
+    SyncRunState,
     Tag,
     UploadStatus,
     sermon_tag_m2m,
@@ -24,8 +28,7 @@ from tsh.models import (
 from tsh.pagination import paginate
 from tsh.pipeline import regenerate_summary, start_processing
 from tsh.queue import enqueue
-from tsh.youtube import YouTubeError
-from tsh.youtube_import import VideoImportError, import_channel, import_video, parse_video_id
+from tsh.youtube_import import VideoImportError, active_sync_run, import_video, parse_video_id, start_sync
 from tsh.schemas import (
     counted_speakers_schema,
     counted_tags_schema,
@@ -34,7 +37,6 @@ from tsh.schemas import (
     sermon_schema,
     sermons_schema,
     speaker_schema,
-    tags_schema,
 )
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -239,7 +241,7 @@ def get_sermons():
 
                                                                                 # Post Sermon
 @api.post("/sermons")
-@require_role("Internal User", "Admin")
+@require_role("Admin")
 def create_sermon():
     """Create a new sermon from validated data and existing related records."""
     payload = request.get_json(silent=True)
@@ -553,30 +555,71 @@ def import_youtube():
 
     An optional body limits it to videos dated in a range, ends included: {"from": "2026-09-01", "to": "2026-09-30"}.
     Either date can be left out. See import_channel for which date is compared.
-    Returns 202 with {"queued": true, "jobId": ...} when the import was sent to the worker, or
-    200 with {"queued": false, "report": {...}} when it already ran inline (no REDIS_URL). See ImportReport for the fields.
+    Every submission is saved as a new SyncRun, and each response carries its "runId" and "state".
+    Returns 202 with {"queued": true, "jobId": ..., "runId": ..., "state": "queued"} when the import was sent to
+    the worker, or 200 with {"queued": false, "report": {...}, "runId": ..., "state": "succeeded"} when it already
+    ran inline (no REDIS_URL). See ImportReport for the report fields, and GET /import/youtube/runs/<id> to follow a run.
     Sends 400 if a date cannot be read or "from" is after "to", 401 without a valid token, 403 for non-Admins,
-    502 if YouTube fails during an inline run, and 503 if Redis cannot be reached.
+    409 with the active run's "runId" if a sync is already queued or running, 502 if an inline run fails,
+    and 503 if Redis cannot be reached. The 502 and 503 bodies also carry the failed run's "runId".
     """
     try:
         date_from, date_to = read_date_range(request.get_json(silent=True))
     except ValueError as e:
         return jsonify({"error": str(e), "message": str(e)}), 400
 
+    active = active_sync_run()
+    if active is not None:
+        message = f"A YouTube sync is already {active.state.value}. Wait for run {active.id} to finish."
+        return jsonify({"error": message, "message": message, "runId": active.id}), 409
+
+    run = SyncRun(id=None, date_from=date_from, date_to=date_to)
     try:
-        result = enqueue(import_channel, date_from, date_to)
+        job = start_sync(run)
     except (RedisConnectionError, RedisTimeoutError):
         current_app.logger.exception("Could not queue the YouTube import")
         message = "The job queue is unavailable. Please try again later."
-        return jsonify({"error": message, "message": message}), 503
-    except YouTubeError as e:
-        current_app.logger.exception("YouTube import failed")
-        message = f"YouTube import failed: {e}"
-        return jsonify({"error": message, "message": message}), 502
+        return jsonify({"error": message, "message": message, "runId": run.id, "state": run.state.value}), 503
 
     if current_app.config["REDIS_URL"]:
-        return jsonify({"queued": True, "jobId": result.id}), 202
-    return jsonify({"queued": False, "report": result.as_dict()}), 200
+        return jsonify({"queued": True, "jobId": job.id, "runId": run.id, "state": run.state.value}), 202
+
+    # Inline, run_sync has already finished, and it loaded this same run object, so its outcome is already here.
+    if run.state != SyncRunState.SUCCEEDED:
+        message = f"YouTube import failed: {run.error}"
+        return jsonify({"error": message, "message": message, "runId": run.id, "state": run.state.value}), 502
+    return jsonify({"queued": False, "report": run.report, "runId": run.id, "state": run.state.value}), 200
+
+
+@api.get("/import/youtube/runs")
+@require_role("Admin")
+def get_sync_runs():
+    """List YouTube sync runs, newest first, with their counts but not their full reports.
+
+    With ?page= (and optionally pageSize), returns the paginated envelope from paginate under the "runs" key.
+    Without it, returns a plain list of the 20 most recent runs, since runs are never deleted and the list only grows.
+    Reconciles lost workers before returning their persisted status.
+    Sends 400 for a bad page or pageSize, 401 without a valid token, and 403 for non-Admins.
+    """
+    active_sync_run()
+    query = db.select(SyncRun).options(defer(SyncRun.report)).order_by(SyncRun.id.desc())
+    pagination = paginate(query, request, schemas.sync_runs_schema, "runs", default_page_size=20)
+    if pagination is None:
+        return schemas.sync_runs_schema.dump(db.session.scalars(query.limit(20)))
+    return pagination
+
+
+@api.get("/import/youtube/runs/<int:id>")
+@require_role("Admin")
+def get_sync_run(id: int):
+    """Return one YouTube sync run with its full report (null until it succeeds).
+
+    Reconciles lost workers so polling reaches a terminal state even if no new sync is submitted.
+    Sends 401 without a valid token, 403 for non-Admins, and 404 with JSON error and message if there is no such run.
+    """
+    active_sync_run()
+    run = db.get_or_404(SyncRun, id, description=f"Sync run with id {id} not found")
+    return schemas.sync_run_schema.dump(run)
 
 
 @api.post("/import/youtube/video")
@@ -641,7 +684,7 @@ def health():
 
 
 @api.get("/whoami")
-@require_role("Internal User")
+@require_role("Internal User", "Admin")
 def whoami():
     return jsonify({"roles": g.current_user_role})
 
@@ -718,3 +761,44 @@ def search():
     return filtered
 
 
+
+
+@api.post("/chat")
+@require_role("Internal User", "InternalUser", "Admin")
+def chat():
+    """Answer a question from published TFH sermons only, with timestamped sources.
+
+    Body: {"message": str, "sermonId": int | null, "history": [{"role": "user" | "assistant", "content": str}]}.
+    See docs/ai-chat.md for the limits and the response. Returns 200 with the answer, or
+    the fixed unsupported answer when published sermons do not support one.
+    Sends 400 with per-field "errors" for an invalid body, 401 without a valid token,
+    403 for other roles, 413 if the body is larger than chat.MAX_REQUEST_BYTES, 502 if
+    the AI model fails, and 503 if the question cannot be embedded or searched.
+    """
+    limit = chat_service.MAX_REQUEST_BYTES
+    # Cap the bytes actually read, not just the header, so a chunked body without
+    # Content-Length is limited too. Werkzeug stops a chunked stream at the cap without an
+    # error, so read one byte past it to tell an oversized body from one that fits.
+    request.max_content_length = limit + 1
+    try:
+        too_large = len(request.get_data(cache=True)) > limit
+    except RequestEntityTooLarge:
+        too_large = True
+    if too_large:
+        message = f"Request body must be at most {limit} bytes."
+        return jsonify({"error": message, "message": message}), 413
+    try:
+        data = chat_service.parse_chat_request(request.get_json(silent=True))
+    except ValidationError as err:
+        message = "Invalid chat request."
+        return jsonify({"error": message, "message": message, "errors": err.messages}), 400
+    try:
+        return jsonify(chat_service.answer_question(data["message"], data["sermon_id"], data["history"]))
+    except chat_service.SearchUnavailable:
+        current_app.logger.exception("Chat could not search sermons")
+        message = "Sermon search is unavailable right now. Please try again later."
+        return jsonify({"error": message, "message": message}), 503
+    except chat_service.AnswerUnavailable:
+        current_app.logger.exception("Chat model failed")
+        message = "The AI model could not answer right now. Please try again later."
+        return jsonify({"error": message, "message": message}), 502
