@@ -433,6 +433,7 @@ Current planned testing tools include Vitest and Playwright for the frontend, an
 
 Start with [how to access private staging](docs/deploying.md#open-private-staging-now).
 It lists prerequisites, the SSH command, browser URL, sign-in and troubleshooting.
+For the ownership transfer, read [Samip: start here](docs/deploying.md#samip-start-here).
 Maintainers can use the [redeployment checklist](docs/deploying.md#redeploy-a-reviewed-change-maintainers)
 or [TFH-540 closeout checklist](docs/deploying.md#what-is-left-before-tfh-540-is-done)
 without reading the full operational history.

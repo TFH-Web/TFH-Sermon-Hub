@@ -17,6 +17,7 @@ timer. Check these again before a later handoff; this is a dated record, not a
 live status page.
 
 Testers only need the access steps below. Maintainers can jump to the
+[Samip handoff](#samip-start-here),
 [redeployment checklist](#redeploy-a-reviewed-change-maintainers) or
 [remaining TFH-540 work](#what-is-left-before-tfh-540-is-done).
 Detailed commands and collapsible audit evidence follow.
@@ -61,6 +62,44 @@ Troubleshooting:
 The older site at `http://167.71.149.116/` is separate and unchanged. It is
 **not** this staging release.
 
+## Samip: start here
+
+This is an **SSH-only maintainer handoff**, not public launch or a claim that all
+features are ready. The TFH-540 PR targets `dev`; review its actual merge status
+before assuming these files are on that branch. Merging the PR does **not**
+automatically redeploy the droplet. The deployed app source is still `cf783d2`;
+the newer recovery utilities are installed separately under
+`/opt/tfh-staging/tools/recovery-598d6ef/deploy/`.
+
+1. Use your own authorized SSH key and the [access steps](#open-private-staging-now).
+   Preserve the 450-sermon persistent library, private server `.env`, previous
+   release/backups and unchanged old public site. Keep access SSH-only.
+2. Confirm the **answer provider/model** and **embedding provider/model**, required
+   SDKs/endpoints and 768-dimensional compatibility. Anthropic is only tentative;
+   the existing embedding implementation is Ollama-specific. Coordinate any
+   missing adapter with the owning feature story before runtime activation.
+3. Provision approved credentials privately in `/etc/tfh-staging/.env`, never
+   chat, Git or PR comments. Cloud AI remains `cloud-pending` until configured.
+   Do **not** install Ollama or download models on the droplet; Ollama is local-only.
+4. Put reviewed dependency/configuration changes into a new release and follow
+   the [backup/redeploy checklist](#redeploy-a-reviewed-change-maintainers).
+   Do not install into the active venv, seed/re-copy the database, start imports
+   or re-embed as a shortcut. Verify provider connectivity as the service user.
+5. Finish your portable Python/macOS setup guidance and optional acceleration
+   work; `Backend/devenv.nix` still forces ROCm. Then coordinate a staff-only
+   tester and the [real-account checklist](#real-account-acceptance-checklist-no-data-changes)
+   with Jack. Only Jack's Admin account is currently available.
+6. Once the runtime/features are ready, agree on a small import/processing test
+   and verify transcript seeking, real search, grounded chat and failure recovery.
+   Record the release and results without secrets. Keep DNS/HTTPS changes, full
+   reboot and batch reprocessing separate until explicitly approved.
+
+Already verified: private services/auth guards, migrations/sqlite-vec, consistent
+nightly backups, a protected off-droplet copy, full-content isolated restore and
+compatible previous-release startup. Synthetic vectors and harmless queue jobs
+are not model-backed feature acceptance. Jack coordinates access, recovery and
+final integrated acceptance; Samip owns supported cloud runtime/setup work.
+
 ## What is left before TFH-540 is Done
 
 This maps to the [current Jira acceptance criteria](https://csus-team-nekos.atlassian.net/browse/TFH-540).
@@ -75,7 +114,7 @@ are already verified. Remaining work:
 | Feature-backed recovery follow-up | Jack + Samip | AC 5-6, 8: the current 450-sermon restore, off-droplet restore, prior-release compatibility and synthetic nonempty-vector checks passed. Repeat with real processed chunks once available. A full host reboot is not rehearsed or authorized; schedule it separately if required. |
 | Portable Python/macOS and Ollama setup | Samip | AC 7: verified macOS guidance and optional acceleration. `Backend/devenv.nix` still forces `ollama-rocm`; this is not fixed. Server extension loading already passed. |
 | Integrated staging acceptance | Jack + Samip | AC 8: staff-only/unassigned roles, import/queue completion and failure recovery, transcript seeking, real search and grounded chat as owning feature stories land. Admin sign-in was reported successful. |
-| Publish the reviewed handoff | Jack | AC 7 / delivery: review/merge the TFH-540 code/docs; share access, deployed commit, health evidence, limitations and owners. Changes are currently on the local TFH-540 branch, not `dev`. |
+| Publish the reviewed handoff | Jack | AC 7 / delivery: review/merge the TFH-540 PR into `dev`; share access, deployed commit, health evidence, limitations and owners. Check the PR's merge status rather than assuming it is already in `dev`; merging does not deploy automatically. |
 
 The copied library has no chunks/embeddings yet. Nonempty vector preservation is
 covered by isolated synthetic tests, not a claim of cloud/feature acceptance.
@@ -154,7 +193,9 @@ the compatibility checks, migration if required, and deliberate re-embedding.
 
 Infrastructure startup, SQLite checks and authentication can be verified without
 making AI/YouTube requests. Successful infrastructure checks do **not** mean
-AI works, the team can be handed off, or TFH-540 is Done. Remaining gates include
+AI works, full feature testing/public launch is ready, or TFH-540 is Done.
+An SSH-only maintainer knowledge handoff may proceed with these limitations
+recorded. Remaining gates include
 cloud provider/models, actual role-based staging acceptance, worker/model-backed
 feature checks and documented off-server recovery ownership. Automated off-server
 backup scheduling remains a recommended operational follow-up, not an added
@@ -610,10 +651,13 @@ data merely to test an authorization boundary; use a reviewed non-mutating/inval
 request where appropriate. Confirm API and worker recovery using an authorized,
 scheduled staging-only restart when no jobs are active.
 
-This is private operator verification, **not a generally usable team staging URL**.
+This is private operator verification and maintainer access, **not a generally
+usable team staging URL**. The authorized SSH-only maintainer handoff does not
+require changing public routing or adding a public redirect.
 NGINX HTTP on the public IP cannot replace HTTPS/Entra setup. Before broader
-handoff, select a trusted HTTPS staging hostname, configure its exact Entra SPA
-redirect/logout URI, rebuild the bundle for it and verify the access policy. Public
+browser access without individual SSH tunnels, select a trusted HTTPS staging
+hostname, configure its exact Entra SPA redirect/logout URI, rebuild the bundle
+for it and verify the access policy. Public
 `sermonhub.tfh.org` DNS/HTTPS/production redirects remain a separate launch step.
 Microsoft requires HTTPS redirects except for localhost testing:
 [redirect URI restrictions](https://learn.microsoft.com/en-us/entra/identity-platform/reply-url).
