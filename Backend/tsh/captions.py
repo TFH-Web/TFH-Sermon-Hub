@@ -34,10 +34,27 @@ class CaptionError(RuntimeError):
 class CaptionQuotaError(CaptionError):
     """YouTube's daily quota is used up, so no caption request is made until it resets."""
 
+class CaptionAuthError(CaptionError):
+    """The TFH channel's OAuth sign-in expired, was revoked, or could not be renewed."""
+
 def quota_message(resume) -> str:
     """Say when captions resume. Starts with "Youtube quota exceeded" so it is easy to identify."""
     when = resume.astimezone(caption_quota.RESET_TIMEZONE).strftime("%Y-%m-%d %H:%M %Z")
     return f"YouTube quota exceeded; no caption requests are sent until {when}, then reprocess."
+
+
+AUTH_EXPIRED = "YouTube sign-in expired, refresh the token"
+
+
+def auth_message(category: str) -> str:
+    """Tell an admin to renew the sign-in. category is a label like invalid_grant, never a credential value."""
+    steps = (
+        "create a new refresh token for the TFH channel, set YOUTUBE_OAUTH_REFRESH_TOKEN in Backend/.env "
+        "and the worker's environment, restart the API and worker, then reprocess"
+    )
+    if category == "token refresh failed":
+        steps = "check YOUTUBE_OAUTH_CLIENT_ID and YOUTUBE_OAUTH_CLIENT_SECRET, or " + steps
+    return f"{AUTH_EXPIRED} ({category}); {steps}"
 
 
 
@@ -116,9 +133,7 @@ def _get(session: AuthorizedSession, url: str, params: dict) -> requests.Respons
         response = session.get(url, params=params, timeout=TIMEOUT)
     except RefreshError as error:
         invalid_grant = any(isinstance(arg, dict) and arg.get("error") == "invalid_grant" for arg in error.args)
-        if invalid_grant:
-            raise CaptionError("invalid_grant: OAuth refresh token expired or was revoked; obtain a new TFH channel refresh token, then reprocess") from None
-        raise CaptionError("OAuth token refresh failed; check the OAuth client and TFH channel credentials, then reprocess") from None
+        raise CaptionAuthError(auth_message("invalid_grant" if invalid_grant else "token refresh failed")) from None
     except (requests.RequestException, TransportError):
         raise CaptionError("YouTube caption request timed out or could not connect; reprocess later") from None
     if response.status_code != 200:

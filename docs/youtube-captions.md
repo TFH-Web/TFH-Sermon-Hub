@@ -76,6 +76,38 @@ approves a quota increase, set `blocked_until` to `NULL` in the configured datab
 sqlite3 instance/testing.db "UPDATE caption_quota SET blocked_until = NULL"
 ```
 
+## Renewing the YouTube sign-in
+
+A caption failure that starts with `YouTube sign-in expired, refresh the token` means
+Google no longer accepts the saved sign-in. The label in parentheses says why:
+
+- `(invalid_grant)`: the refresh token expired or was revoked. A common cause is a
+  Google Cloud consent screen left in Testing, where refresh tokens expire after 7 days.
+- `(token refresh failed)`: Google rejected the renewal for another reason, often a
+  wrong or changed OAuth client ID or secret.
+
+To fix it:
+
+1. For `(token refresh failed)`, check that `YOUTUBE_OAUTH_CLIENT_ID` and
+   `YOUTUBE_OAUTH_CLIENT_SECRET` match the OAuth client in the Google Cloud project.
+2. Signed in as a user who manages the TFH channel, create a new refresh token for
+   that client with the `https://www.googleapis.com/auth/youtube.force-ssl` scope.
+3. Set `YOUTUBE_OAUTH_REFRESH_TOKEN` in `Backend/.env` and in the worker's
+   environment, then restart the API and the worker.
+4. Retry the failed sermons:
+
+```sh
+poetry run flask --app "tsh:create_app('testing.cfg')" backfill-captions --failed-only
+```
+
+`backfill-captions` stops at the first sign-in failure instead of trying every
+sermon. The message never includes the token, so it is safe to copy into a ticket.
+Do not paste a token itself into tickets or chat.
+
+If the message says `permission denied` instead, the sign-in works but the account
+cannot manage captions on this channel. A new token will not fix that; check the
+account's channel access.
+
 ## Review
 
 Run `poetry run pytest` from `Backend`. Caption and backfill tests use fake

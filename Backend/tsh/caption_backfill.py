@@ -8,12 +8,13 @@ from flask.cli import with_appcontext
 from sqlalchemy import func, or_
 
 from tsh import pipeline
-from tsh.captions import OAUTH_SETTINGS
+from tsh.captions import AUTH_EXPIRED, OAUTH_SETTINGS
 from tsh.database import db
 from tsh.models import Sermon, UploadStatus
 from tsh.youtube_import import VIDEO_ID, parse_video_id
 
 QUOTA_ERROR = "fetch_transcript: YouTube quota exceeded"
+AUTH_ERROR = "fetch_transcript: " + AUTH_EXPIRED
 
 
 @click.command("backfill-captions")
@@ -107,7 +108,7 @@ def backfill_captions_command(limit: int, failed_only: bool, dry_run: bool) -> N
             break
         if error.startswith(
             (
-                "fetch_transcript: invalid_grant:",
+                AUTH_ERROR,
                 "fetch_transcript: OAuth ",
                 "fetch_transcript: YouTube caption permission denied",
             )
