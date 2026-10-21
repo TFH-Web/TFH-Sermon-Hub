@@ -1,4 +1,112 @@
-# DigitalOcean private staging (TFH-540)
+# DigitalOcean deployment and access (TFH-540)
+
+**Start here:** this release is running on the droplet as **private staging**,
+not a public launch. `http://localhost:5173/` reaches the server through an SSH
+tunnel; the app and database are not running on your laptop. Neither
+`sermonhub.tfh.org` nor the proposed temporary sslip.io address is configured
+for this release yet.
+
+Last verified **2026-10-21 UTC**: deployed source `cf783d2` (application baseline
+`3144d67`), 450 sermons, healthy API/worker/Redis and an active nightly backup
+timer. Check these again before a later handoff; this is a dated record, not a
+live status page.
+
+Testers only need the access steps below. Maintainers can jump to the
+[redeployment checklist](#redeploy-a-reviewed-change-maintainers) or
+[remaining TFH-540 work](#what-is-left-before-tfh-540-is-done).
+Detailed commands and collapsible audit evidence follow.
+
+## Open private staging now
+
+You need an SSH key authorized on the droplet and a Microsoft account with the
+intended app role. Ask Jack/Samip to arrange access; never share private keys or
+passwords. This is the current operator access method, not a shared team URL.
+
+1. Stop your local development app if it uses **port 5173**. Do not run
+   `dev.bat` at the same time as this tunnel.
+2. In PowerShell (Windows) or Terminal (macOS/Linux), run:
+
+   ```sh
+   ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:5173:127.0.0.1:8081 root@167.71.149.116
+   ```
+
+   Keep this terminal open. No prompt/output is normal while forwarding. On
+   first connection, verify the host fingerprint with Jack/Samip before
+   accepting it; do not disable host-key checks.
+3. Open **http://localhost:5173/**. Use `localhost` exactly so Microsoft sign-in
+   matches the registered redirect, not the public IP or `127.0.0.1`.
+4. Sign in with your assigned Microsoft account. If styling looks stale, use
+   **Ctrl+F5** on Windows or your browser's reload-without-cache command. The
+   library is real saved data. AI/import processing is still pending; do not
+   start batch imports/reprocessing merely to test access.
+5. When finished, press **Ctrl+C** in the SSH terminal. This closes your tunnel,
+   **not** the server. Reopen the tunnel the next time you test.
+
+Troubleshooting:
+
+- **Port already in use:** close local development or reuse your existing
+  tunnel. Do not kill an unfamiliar process or change browser ports without
+  matching the frontend and Entra configuration.
+- **Permission denied (publickey):** ask Jack/Samip to authorize your own key.
+- **Browser cannot connect:** check the SSH terminal is still running; then ask
+  a maintainer to run the [health checks](#6-verify-private-access-without-changing-the-public-site).
+- **Microsoft redirect error / 403:** confirm the exact URL and assigned role;
+  never enable auth-test bypasses on the server.
+
+The older site at `http://167.71.149.116/` is separate and unchanged. It is
+**not** this staging release.
+
+## What is left before TFH-540 is Done
+
+This maps to the [current Jira acceptance criteria](https://csus-team-nekos.atlassian.net/browse/TFH-540).
+Hosting, persistent SQLite, server migrations/extension loading, private secrets,
+restartable services, nightly on-droplet backups and one-off off-droplet copies
+are already verified. Remaining work:
+
+| Work | Owner | Completion evidence |
+| --- | --- | --- |
+| HTTPS/team access and production domain | Jack | AC 3-4: exact Entra redirect/logout URLs; DNS owner recorded; HTTPS and certificate renewal verified for `sermonhub.tfh.org` once pointed. A temporary hostname does not finish production-domain acceptance. |
+| Cloud runtime/provider checks | Samip | AC 2, 8: selected supported providers/models, runtime SDKs/private credentials and connectivity/resources verified under the service user. Any missing adapter implementation is a feature dependency, not extra TFH-540 scope. |
+| Final recovery rehearsal | Jack + Samip | AC 5-6, 8: restore/application rollback using representative sermon/chunk/vector data. Process crash recovery passed; a full host reboot has not been rehearsed and needs a coordinated window. Record ongoing off-droplet custody/schedule. |
+| Portable Python/macOS and Ollama setup | Samip | AC 7: verified macOS guidance and optional acceleration. `Backend/devenv.nix` still forces `ollama-rocm`; this is not fixed. Server extension loading already passed. |
+| Integrated staging acceptance | Jack + Samip | AC 8: staff-only/unassigned roles, import/queue completion and failure recovery, transcript seeking, real search and grounded chat as owning feature stories land. Admin sign-in was reported successful. |
+| Publish the reviewed handoff | Jack | AC 7 / delivery: review/merge the TFH-540 code/docs; share access, deployed commit, health evidence, limitations and owners. Changes are currently on the local TFH-540 branch, not `dev`. |
+
+The copied library has no chunks/embeddings yet, so integrity checks with empty
+vector tables are not final processed-data recovery evidence. Scheduled
+off-droplet automation is a recommended operational follow-up: the verified
+one-off external recovery copy already exists, but is not automated protection.
+The initial safe staging handoff is separate from final closeout; teammates do
+**not** wait for every AC 8 smoke test before starting their feature stories.
+
+## Redeploy a reviewed change (maintainers)
+
+This is the reading order for the detailed commands, not a standalone script.
+Build examples use **Bash on a controlled build machine**; server commands run
+in **Linux Bash over SSH**, not unchanged in local PowerShell.
+
+1. Select reviewed commits and a new release label; [build/test and archive](#2-build-a-reviewed-immutable-release).
+   Use the intended browser URL's public Entra settings, never local secret files.
+2. [Record the current release/schema/counts and take a verified backup](#1-preserve-the-old-server-before-any-change).
+   Stop if verification fails; leave the old public site untouched.
+3. [Prepare a new release](#3-extract-the-release-then-run-the-guarded-preparation-helper).
+   Preserve the existing private config and persistent database.
+4. Drain the staging queue, stop its API/worker, then [migrate and preflight](#4-back-up-the-prepared-database-then-migrate-safely).
+   Never seed, overwrite the library or re-embed during deployment.
+5. [Switch `current`, start services and validate NGINX](#5-install-separate-services-and-private-nginx-site).
+   Stopped staging processes must start against the new release. Do not interrupt
+   shared Redis or an active worker job.
+6. [Verify health, sign-in/roles and the changed feature](#6-verify-private-access-without-changing-the-public-site).
+   Confirm the intended DB/release and backup timer; retain the compatible
+   previous release/backup for [rollback](#7-nightly-backups-restore-and-rollback).
+7. Record results/limitations, update the server runbook and tell testers which
+   access method and commit they are using. Health alone is not feature acceptance.
+
+Other shortcuts: [backup/restore](#7-nightly-backups-restore-and-rollback),
+[Python capability check](#python-sqlite-extension-capability-check),
+[caption-token renewal and ownership](#ownership-and-credential-renewal).
+
+## Detailed operator reference
 
 This runbook deploys a **separate, SSH-only staging instance**. It does not replace
 the existing public-IP site or announce a public launch. Do not copy a developer's
@@ -31,6 +139,9 @@ models on the droplet. `LLM_PROVIDER=cloud-pending` deliberately avoids silently
 using the local-development provider. The current embedding implementation is
 Ollama-specific, so a selected cloud embedding provider/adapter and compatible
 768-dimensional model are prerequisites to enabling search/chat/import processing.
+Any new adapter implementation belongs to the relevant feature dependency;
+TFH-540 owns runtime configuration/dependencies and connectivity verification
+once a supported implementation is available.
 Do not change the embedding model or dimension against existing vectors without
 the compatibility checks, migration if required, and deliberate re-embedding.
 
@@ -38,7 +149,12 @@ Infrastructure startup, SQLite checks and authentication can be verified without
 making AI/YouTube requests. Successful infrastructure checks do **not** mean
 AI works, the team can be handed off, or TFH-540 is Done. Remaining gates include
 cloud provider/models, actual role-based staging acceptance, worker/model-backed
-feature checks and an automated off-server backup owner.
+feature checks and documented off-server recovery ownership. Automated off-server
+backup scheduling remains a recommended operational follow-up, not an added
+acceptance criterion.
+
+<details>
+<summary>Recorded deployment history, checksums and rehearsal evidence (expand for audit/recovery)</summary>
 
 ### Recorded first deployment (run begun 2026-10-20 UTC)
 
@@ -128,6 +244,8 @@ checks and remaining gates. A browser already open on the old assets needs a
 hard refresh (`Ctrl+F5`) through the still-open SSH tunnel. Production-CSS tests
 deliberately render only an isolated sidebar fixture with the **compiled** CSS;
 they do not fake production sign-in or claim to validate real-user permissions.
+
+</details>
 
 ## 1. Preserve the old server before any change
 
@@ -579,9 +697,31 @@ verified DB+manifest pairs through an authenticated channel, compare checksums
 at the destination, document retention/access and perform an isolated restore
 drill there. Credentials belong in server/backup infrastructure, never this
 repository. The existing protected local baseline copy is not proof of scheduled
-off-site recovery. TFH-540 cannot claim full recovery acceptance until this is done.
+off-site recovery. AC 6 requires a recovery copy outside the droplet; the verified
+one-off copies meet that portion, but must not be presented as a scheduled
+off-droplet recovery service. Automation/custody and a representative populated
+restore rehearsal remain explicit operational follow-ups.
 
 ## Operational references
+
+### Python SQLite-extension capability check
+
+Run this with the intended Python environment and its locked `sqlite-vec`
+dependency installed. It creates only an in-memory database: no app configuration,
+credentials, model requests or real library changes are involved.
+
+```sh
+python -c "import sqlite3, sqlite_vec; c = sqlite3.connect(':memory:'); c.enable_load_extension(True); sqlite_vec.load(c); c.enable_load_extension(False); print('SQLite', sqlite3.sqlite_version, 'sqlite-vec', c.execute('SELECT vec_version()').fetchone()[0]); c.close()"
+```
+
+Use `Backend/.venv/Scripts/python.exe` on this Windows checkout or
+`/opt/tfh-staging/current/Backend/.venv/bin/python` on the droplet if the venv
+is not activated. Record both versions and whether extension loading succeeds.
+Missing `enable_load_extension`, a load error or a missing module is a failed
+prerequisite, not something to bypass. Verified runtimes are recorded in the
+deployment evidence above. Verified macOS installation guidance and portable
+Ollama/optional-acceleration configuration are still AC 7 follow-up work; do not
+claim they were validated on a Mac from a Windows/Linux check.
 
 ### Ownership and credential renewal
 

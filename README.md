@@ -431,14 +431,23 @@ Current planned testing tools include Vitest and Playwright for the frontend, an
 
 ## Deployment
 
-The [DigitalOcean staging runbook](docs/deploying.md) and `deploy/` templates cover
+Start with [how to access private staging](docs/deploying.md#open-private-staging-now).
+It lists prerequisites, the SSH command, browser URL, sign-in and troubleshooting.
+Maintainers can use the [redeployment checklist](docs/deploying.md#redeploy-a-reviewed-change-maintainers)
+or [TFH-540 closeout checklist](docs/deploying.md#what-is-left-before-tfh-540-is-done)
+without reading the full operational history.
+
+The [full runbook](docs/deploying.md) and `deploy/` templates cover
 isolated gunicorn/RQ/Redis services, private NGINX access, production configuration,
 migrations, backups and restore. The existing public-IP application stays intact.
 
 The first staging instance is SSH-only, not a public launch or general team URL.
-Cloud AI/embedding configuration, full real-role verification and automated
-off-server backups remain explicit readiness gates. Ollama is for local development
-only; do not install it or download models on the droplet.
+Cloud AI/embedding configuration and full real-role verification remain explicit
+readiness gates. One-off off-server recovery copies are verified; automated
+off-server scheduling is a recommended operational follow-up. Ollama is for local
+development only; do not install it or download models on the droplet.
+New cloud-provider adapters belong to their owning feature stories; deployment
+owns configuring and verifying supported providers on the server.
 
 ---
 
