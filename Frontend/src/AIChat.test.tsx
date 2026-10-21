@@ -7,6 +7,7 @@ import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { ChatProvider } from '$/components/ChatContext';
 import { useAuth } from '$/lib/auth';
+import { MAX_HISTORY_CHARS, MAX_MESSAGE_CHARS } from '$/lib/chat';
 import type { ChatAnswer, ChatRequest, ChatSource } from '$/types/chat';
 import AIChat from './AIChat';
 
@@ -245,6 +246,26 @@ it('sends earlier turns as history but never the greeting', async () => {
 		{ role: 'user', content: 'What is grace?' },
 		{ role: 'assistant', content: 'Grace is a gift.' },
 	]);
+});
+
+// The server rejects a question over its limit and Retry would resend the same one, so the input stops it.
+it("caps the chat input at the server's message limit", () => {
+	renderAt('/ai-chat');
+
+	const input = screen.getByPlaceholderText(placeholder) as HTMLInputElement;
+	expect(input.maxLength).toBe(MAX_MESSAGE_CHARS);
+});
+
+// An answer can be longer than the server accepts as a history turn, which would fail every follow-up.
+it('cuts a long earlier answer to the history limit in the next request', async () => {
+	renderAt('/ai-chat');
+	await ask('What is grace?');
+	answerCall(0, { ...answer, answer: 'a'.repeat(1500) });
+
+	await ask('Tell me more');
+
+	const { history } = mutate.mock.calls[1][0];
+	expect(history[1].content).toBe('a'.repeat(MAX_HISTORY_CHARS));
 });
 
 it('"ask about this sermon" navigates with only sermonId and title', async () => {

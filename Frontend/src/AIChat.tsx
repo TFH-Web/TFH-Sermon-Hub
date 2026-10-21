@@ -7,7 +7,7 @@ import ErrorBox from '$/components/ErrorBox';
 import MainLayout from '$/components/MainLayout';
 import useChatRequest from '$/hooks/useChatRequest';
 import { apiErrorMessage } from '$/lib/api';
-import { buildHistory, formatDuration } from '$/lib/chat';
+import { buildHistory, formatDuration, MAX_MESSAGE_CHARS } from '$/lib/chat';
 import type { ChatAnswer, ChatRequest, ChatSource } from '$/types/chat';
 
 const prompts = [
@@ -231,9 +231,11 @@ export default function AIChat() {
 				)}
 
 				<div className="AIChat-input-row">
+					{/* The server rejects a question over this length, and Retry would resend the same one. Counts UTF-16 units, so never looser than the server's code-point limit. */}
 					<input
 						className="AIChat-input"
 						type="text"
+						maxLength={MAX_MESSAGE_CHARS}
 						placeholder="Ask anything about sermons, speakers, topics, or scripture..."
 						value={input}
 						onChange={e => setInput(e.target.value)}
