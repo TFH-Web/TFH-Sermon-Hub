@@ -15,6 +15,7 @@ import SermonTag from '$/components/SermonTag';
 import SermonTranscript from '$/components/SermonTranscript';
 import Tag from '$/components/Tag.tsx';
 import { useToast } from '$/components/ToastContext.tsx';
+import { formatCalendarDate } from '$/lib/date';
 import { parseSourceTimestamp } from '$/lib/sourceTimestamp';
 import { normalizeYouTubeUrl, parseYouTubeVideoId } from '$/lib/youtube';
 import DeleteSermonModal from '$/modals/DeleteSermonModal.tsx';
@@ -324,11 +325,7 @@ function SermonDetailContent({
 							<p className="SermonDetail-meta">
 								{getFullName(sermon.speaker)}
 								{' • '}
-								{sermon.date.toLocaleDateString('en-US', {
-									month: 'short',
-									day: 'numeric',
-									year: 'numeric',
-								})}
+								{formatCalendarDate(sermon.date)}
 								{sermon.duration
 									? ` • ${durationToString(sermon.duration)}`
 									: ''}
@@ -447,11 +444,7 @@ function SermonDetailContent({
 
 						<span className="SermonDetail-metadata-label">Date</span>
 						<span className="SermonDetail-metadata-value">
-							{sermon.date.toLocaleDateString('en-US', {
-								month: 'long',
-								day: 'numeric',
-								year: 'numeric',
-							})}
+							{formatCalendarDate(sermon.date, 'long')}
 						</span>
 
 						<span className="SermonDetail-metadata-label">Duration</span>

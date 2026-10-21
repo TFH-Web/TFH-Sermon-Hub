@@ -7,6 +7,7 @@ import { FormField, FormRow } from '$/components/FormField';
 import Modal from '$/components/Modal';
 import SermonTag from '$/components/SermonTag';
 import { useToast } from '$/components/ToastContext';
+import { toCalendarDateString } from '$/lib/date';
 import type { Sermon } from '$/types/sermon';
 import { getFullName } from '$/types/speaker';
 
@@ -44,7 +45,8 @@ export default function EditSermonModal({
 			setSeries(sermon.series?.title ?? '');
 			setTags(sermon.tags.map(t => t.name).join(', '));
 			setSeriesIndex('');
-			setDate('');
+			// Shows the saved day. The date is not part of the save request yet.
+			setDate(toCalendarDateString(sermon.date));
 			setVideoLink('');
 			setNotes('');
 			setTranscript('');

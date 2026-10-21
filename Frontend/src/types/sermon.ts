@@ -1,5 +1,6 @@
 import z from 'zod';
 import type { TagVariant } from '$/components/Tag';
+import { CalendarDate } from '$/lib/date';
 import { paginated } from './pagination';
 import { Series } from './series';
 import { Speaker } from './speaker';
@@ -15,7 +16,7 @@ export const Sermon = z.object({
 	title: z.string().nonempty(),
 	videoLink: z.httpUrl(),
 	duration: z.number().nonnegative(),
-	date: z.coerce.date(),
+	date: CalendarDate,
 	description: z.string().nonempty(),
 	tags: Tag.array(),
 	transcript: z.string().nullish(),
