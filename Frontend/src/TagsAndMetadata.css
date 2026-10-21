@@ -18,3 +18,20 @@
 .tag-card {
 	padding: 16px;
 }
+
+/* The tag name is a row header (<th scope="row">) for accessibility, but the
+ * shared UserManagement table styles treat <th> as a faded column heading.
+ * Make it look like the neighbouring <td> cells so the row dividers stay
+ * continuous and the tag pill isn't dimmed. The shared styles also set
+ * justify-self: start on <th>, which shrinks the cell to its pill and leaves
+ * a gap in the divider and hover background, so stretch it to the column. */
+.UserManagement-users tbody th {
+	justify-self: stretch;
+	text-align: left;
+	padding-block: 1rem;
+	font-size: inherit;
+	text-transform: none;
+	letter-spacing: normal;
+	border-block-start: 1px solid var(--cl-outline);
+	opacity: 1;
+}
