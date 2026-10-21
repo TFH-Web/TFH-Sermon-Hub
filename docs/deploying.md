@@ -6,6 +6,11 @@ tunnel; the app and database are not running on your laptop. Neither
 `sermonhub.tfh.org` nor the proposed temporary sslip.io address is configured
 for this release yet.
 
+**Access decision (2026-10-21 UTC): Jack requested SSH-only access for now.** Do
+not expose staging, change public ports/DNS or add public Entra redirects as part
+of routine maintenance. HTTPS/public access and church DNS ownership remain
+deferred external follow-ups, not changes authorized by this guide.
+
 Last verified **2026-10-21 UTC**: deployed source `cf783d2` (application baseline
 `3144d67`), 450 sermons, healthy API/worker/Redis and an active nightly backup
 timer. Check these again before a later handoff; this is a dated record, not a
@@ -65,15 +70,16 @@ are already verified. Remaining work:
 
 | Work | Owner | Completion evidence |
 | --- | --- | --- |
-| HTTPS/team access and production domain | Jack | AC 3-4: exact Entra redirect/logout URLs; DNS owner recorded; HTTPS and certificate renewal verified for `sermonhub.tfh.org` once pointed. A temporary hostname does not finish production-domain acceptance. |
+| HTTPS/team access and production domain | Jack | AC 3-4: deferred while Jack requests SSH-only access. Retain the localhost Entra redirect; record the church DNS owner and verify final HTTPS/redirects/certificate renewal when approved and DNS is pointed. No temporary public hostname is enabled. |
 | Cloud runtime/provider checks | Samip | AC 2, 8: selected supported providers/models, runtime SDKs/private credentials and connectivity/resources verified under the service user. Any missing adapter implementation is a feature dependency, not extra TFH-540 scope. |
-| Final recovery rehearsal | Jack + Samip | AC 5-6, 8: restore/application rollback using representative sermon/chunk/vector data. Process crash recovery passed; a full host reboot has not been rehearsed and needs a coordinated window. Record ongoing off-droplet custody/schedule. |
+| Feature-backed recovery follow-up | Jack + Samip | AC 5-6, 8: the current 450-sermon restore, off-droplet restore, prior-release compatibility and synthetic nonempty-vector checks passed. Repeat with real processed chunks once available. A full host reboot is not rehearsed or authorized; schedule it separately if required. |
 | Portable Python/macOS and Ollama setup | Samip | AC 7: verified macOS guidance and optional acceleration. `Backend/devenv.nix` still forces `ollama-rocm`; this is not fixed. Server extension loading already passed. |
 | Integrated staging acceptance | Jack + Samip | AC 8: staff-only/unassigned roles, import/queue completion and failure recovery, transcript seeking, real search and grounded chat as owning feature stories land. Admin sign-in was reported successful. |
 | Publish the reviewed handoff | Jack | AC 7 / delivery: review/merge the TFH-540 code/docs; share access, deployed commit, health evidence, limitations and owners. Changes are currently on the local TFH-540 branch, not `dev`. |
 
-The copied library has no chunks/embeddings yet, so integrity checks with empty
-vector tables are not final processed-data recovery evidence. Scheduled
+The copied library has no chunks/embeddings yet. Nonempty vector preservation is
+covered by isolated synthetic tests, not a claim of cloud/feature acceptance.
+Real processed-data acceptance still follows the owning feature stories. Scheduled
 off-droplet automation is a recommended operational follow-up: the verified
 one-off external recovery copy already exists, but is not automated protection.
 The initial safe staging handoff is separate from final closeout; teammates do
@@ -103,6 +109,7 @@ in **Linux Bash over SSH**, not unchanged in local PowerShell.
    access method and commit they are using. Health alone is not feature acceptance.
 
 Other shortcuts: [backup/restore](#7-nightly-backups-restore-and-rollback),
+[real-account acceptance checklist](#real-account-acceptance-checklist-no-data-changes),
 [Python capability check](#python-sqlite-extension-capability-check),
 [caption-token renewal and ownership](#ownership-and-credential-renewal).
 
@@ -244,6 +251,59 @@ checks and remaining gates. A browser already open on the old assets needs a
 hard refresh (`Ctrl+F5`) through the still-open SSH tunnel. Production-CSS tests
 deliberately render only an isolated sidebar fixture with the **compiled** CSS;
 they do not fake production sign-in or claim to validate real-user permissions.
+
+### Jack-owned recovery and private-access checks (2026-10-21 UTC)
+
+Jack explicitly chose to keep SSH-only access, and confirmed that only his
+Admin account is available now. Staff-only/unassigned account checks are pending
+for Samip or another tester; the reported Admin sign-in does not count as those
+checks. No public listeners, DNS, Entra redirects, app code, live DB or service
+symlinks were changed during this recovery rehearsal. No full host reboot or
+model/YouTube call was made.
+
+- A fresh nightly-service backup was created at
+  `/var/backups/tfh-staging/sermonhub-20261021T010555800370Z-2abefacc.sqlite3`,
+  SHA-256 `db4c486624246030de9fa61583f9aeec42c6291fe460c022c4f2dc5cea49a55f`.
+  Its paired manifest hash is
+  `c6e77c759db4c31a1f27d0d0cb961da92523d535bfa205a9d85d8e6d46ea105e`.
+- Separate restores on server SQLite 3.46.1 and off-droplet Windows SQLite 3.50.4
+  matched all **14 table fingerprints**, schema, accessible rowids, source/caption
+  fields, counts, revision and vec0 shadow data. Source backups were unchanged;
+  scratch copies were removed. Different engine-produced file hashes are not
+  content loss: cross-platform logical fingerprints were identical.
+- With networking disabled, the actual production factories from the current
+  `3144d67-tfh540-20261021-2` and previous compatible
+  `3144d67-tfh540-20261020-1` release both opened a separate 450-sermon restore.
+  Health was 200, unauthenticated/test-role-header access remained 401, bypasses
+  stayed false, and the restored file was unchanged afterward. This rehearsed
+  compatible application rollback without switching the running application.
+- Source, captions and statuses were preserved. Real chunk/vector counts remain
+  zero. Independent synthetic tests exercise nonempty 768-dimensional vectors,
+  rowid/vector-only corruption, changed inputs/manifests and cleanup without
+  putting fixtures into the application DB.
+- Automated results: **105 auth/runtime tests** passed; Windows deployment
+  utilities **36 passed / one symlink-permission skip**; server backup/recovery
+  regressions **20 passed**, including the symlink case. Unit-test identities
+  and provider fakes are not real Entra/provider acceptance.
+- Recovery utility source is `598d6efd900748fb68f719962ec58d2f6ca5ca0e`.
+  Its separately installed operator bundle is
+  `/opt/tfh-staging/tools/recovery-598d6ef/deploy/`; archive SHA-256
+  `7c8e316c24f29b20ce129f3324132c9110b1d4866101cd861f86dda7243f3cd8`.
+  The running app remains at `cf783d2`; installing tools is not an app deployment.
+- Private listeners/permissions and 401 guards passed. Raw Redis reads confirmed
+  no queued/active/scheduled/deferred work and an idle fresh-heartbeat worker
+  matching systemd PID 758444. RQ registry helpers that clean up Redis were not
+  used for this audit. These observations are not a lock against new submissions.
+- Nightly backups stayed enabled/active. The live DB still matched the original
+  adopted snapshot hash `7575d8199b69b00d3338a4eef2e815f30a972c615a65be8e300b3e0a98511f87`;
+  old public service PID 738 was unchanged.
+
+The checksum-verified backup/manifest and JSON content proofs are retained in
+ACL-protected off-droplet storage at
+`.local-dev/tfh-540-server/backups/20261020T234424Z/recovery-rehearsal-20261021/`.
+Jack owns these recovery copies and their access/retention. They are one-off
+copies, not an automated off-site backup service. Samip owns runtime/provider
+configuration; public DNS ownership is still unconfirmed and deferred.
 
 </details>
 
@@ -558,6 +618,34 @@ redirect/logout URI, rebuild the bundle for it and verify the access policy. Pub
 Microsoft requires HTTPS redirects except for localhost testing:
 [redirect URI restrictions](https://learn.microsoft.com/en-us/entra/identity-platform/reply-url).
 
+### Real-account acceptance checklist (no data changes)
+
+Jack currently has only his Admin account; staff-only and unassigned account
+checks are **pending** for a later tester. Use the existing SSH access steps.
+Keep fake JWTs, `X-Test-Roles` and development auth modes out of this real-user
+acceptance. Record only account category, route, status/outcome and non-secret
+screenshots; never copy authorization headers, passwords or tokens.
+
+1. **Admin:** sign in; confirm your name/Admin label and `/api/whoami` succeeds
+   (200 in browser Network). Browse Sermons, a saved sermon, Series and Speakers;
+   refresh a saved-sermon deep link. Admin navigation/edit/delete controls should
+   appear. Open `/upload` if needed, but do not submit, edit or delete anything.
+2. **Staff-only (later):** repeat read-only browsing; `/api/whoami` should succeed
+   with the assigned staff role. Admin/edit/delete controls should be hidden;
+   directly opening `/upload` should return you to the dashboard.
+3. **No assigned role (later):** Microsoft may deny app access, or the app must
+   show staff-access denial. The library must not be accessible.
+4. **Session/account separation:** sign out, then reload a protected route;
+   sign-in should be required. Switching accounts must not display the previous
+   account's cached data. Record actual outcomes rather than assuming a role
+   alias or different account works from the Admin result.
+
+Import/reprocessing, queue failure recovery, transcript seeking with processed
+data, real search and grounded chat remain feature-backed checks. Do not mark
+them passed from static pages, fake embeddings, empty vectors or the harmless
+queue job. Run a reviewed small feature test only after Samip configures the
+supported cloud runtime and the corresponding features/data are ready.
+
 ### 6.1 Explicitly approved local-library bootstrap (2026-10-21 UTC)
 
 After seeing the empty staging library, Jack explicitly approved copying his
@@ -624,6 +712,35 @@ current_python=/opt/tfh-staging/current/Backend/.venv/bin/python
 sha256sum /var/backups/tfh-staging/<exact-backup-name>.sqlite3
 # Compare the hash, row counts and Alembic revision with the paired JSON manifest.
 ```
+
+### Rehearse recovery without replacing the running library
+
+The tested `deploy/recovery_check.py` verifies a selected backup/manifest, creates
+one private scratch copy, compares every table's typed content/schema/rowid
+fingerprints (including vectors/shadows), checks the input did not change, then
+removes only its scratch directory. It does **not** restore over the running DB,
+run migrations, start an app, touch Redis or contact a provider. Preserve original
+backup filenames and paired `.sqlite3.json` manifests when transferring copies;
+the verifier checks the name as well as the hash.
+
+On the current droplet, run the installed, reviewed operator utility as the app
+user. This exact example selects the recorded 450-sermon backup, not the live DB:
+
+```bash
+runuser -u tfh-staging -- /opt/tfh-staging/current/Backend/.venv/bin/python \
+  /opt/tfh-staging/tools/recovery-598d6ef/deploy/recovery_check.py \
+  --backup /var/backups/tfh-staging/sermonhub-20261021T010555800370Z-2abefacc.sqlite3 \
+  --scratch-parent /var/lib/tfh-staging
+```
+
+Require exit status 0 with `manifest_verified`, `all_table_content_verified`,
+`input_unchanged` and `scratch_removed` all true. Keep the JSON proof privately;
+it contains aggregate hashes/counts, not private transcript rows. Missing/mismatched
+manifests, sidecars, symlinks, corrupt content or changing input must fail the
+check, not trigger a live restore. After a future app release includes the helper,
+its own `deploy/recovery_check.py` can be used with that release's Python instead.
+
+### Actually restore or roll back (planned maintenance only)
 
 For an actual restore, first drain the staging queue, pause the backup timer,
 then stop any **already running backup service** as well as API/worker. Stopping
