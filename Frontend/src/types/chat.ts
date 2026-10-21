@@ -30,3 +30,14 @@ export interface ChatRequest {
 	sermonId: number | null;
 	history: ChatHistoryTurn[];
 }
+
+// One entry in a chat conversation. Lives here (not in a component) so plain helpers can use it too.
+export type Message =
+	| { id: number; role: 'user'; text: string }
+	| {
+			id: number;
+			role: 'ai';
+			text: string;
+			aiGenerated: boolean;
+			sources: ChatSource[];
+	  };

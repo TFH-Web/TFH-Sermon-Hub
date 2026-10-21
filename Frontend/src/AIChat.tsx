@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import './AIChat.css';
 import { Icon } from '@iconify-icon/react';
+import { nextId, useChatConversation } from '$/components/ChatContext';
 import ErrorBox from '$/components/ErrorBox';
 import MainLayout from '$/components/MainLayout';
-import { sermons } from '$/data/sermons';
 import useChatRequest from '$/hooks/useChatRequest';
 import { apiErrorMessage } from '$/lib/api';
 import type {
@@ -12,17 +12,8 @@ import type {
 	ChatHistoryTurn,
 	ChatRequest,
 	ChatSource,
+	Message,
 } from '$/types/chat';
-
-type Message =
-	| { id: number; role: 'user'; text: string }
-	| {
-			id: number;
-			role: 'ai';
-			text: string;
-			aiGenerated: boolean;
-			sources: ChatSource[];
-	  };
 
 const prompts = [
 	'What has Dave said about forgiveness?',
@@ -60,11 +51,6 @@ function renderText(text: string) {
 	);
 }
 
-let msgIdCounter = 0;
-function nextId() {
-	return ++msgIdCounter;
-}
-
 export default function AIChat() {
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
@@ -76,21 +62,20 @@ export default function AIChat() {
 	const sermonSnippet = searchParams.get('snippet');
 	const sermonSeries = searchParams.get('series');
 
-	const canonicalSermon = sermonId
-		? sermons.find(s => s.id === Number(sermonId))
-		: null;
-
-	const [messages, setMessages] = useState<Message[]>([]);
+	// Each selected sermon keeps its own conversation, separate from the general one.
+	const scopeKey = sermonId ?? 'general';
+	const { messages, setMessages } = useChatConversation(scopeKey);
 	const [input, setInput] = useState('');
 	const [lastRequest, setLastRequest] = useState<ChatRequest | null>(null);
 	const [chatError, setChatError] = useState<string | null>(null);
 	const chatRequest = useChatRequest();
 	const msgsRef = useRef<HTMLDivElement>(null);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: only reset conversation when the sermon context changes
+	// biome-ignore lint/correctness/useExhaustiveDependencies: only seed a greeting when switching to a scope with no history yet
 	useEffect(() => {
-		if (sermonId && sermonTitle) {
-			const series = sermonSeries ?? canonicalSermon?.series?.title ?? null;
+		// This scope already has a conversation (from an earlier visit), so resume it instead of re-greeting or wiping it.
+		if (messages.length === 0 && sermonId && sermonTitle) {
+			const series = sermonSeries;
 			const snippet = sermonSnippet ?? null;
 			setMessages([
 				{
@@ -101,10 +86,10 @@ export default function AIChat() {
 					text: `I'm ready to answer questions about **${sermonTitle}**${sermonSpeaker ? ` by ${sermonSpeaker}` : ''}${series ? `, part of the **${series}** series` : ''}${sermonDate ? ` (${sermonDate})` : ''}. ${snippet ? `${snippet} ` : ''}Ask me anything about the message, key themes, scripture references, or specific moments from the transcript.`,
 				},
 			]);
-		} else {
-			setMessages([]);
 		}
+		// The retry state belongs to one attempt in one scope, so it never carries over to another.
 		setChatError(null);
+		setLastRequest(null);
 	}, [sermonId]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: messages and the pending state are the scroll triggers
