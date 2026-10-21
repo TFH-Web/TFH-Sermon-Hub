@@ -27,9 +27,9 @@
  * a gap in the divider and hover background, so stretch it to the column. */
 .UserManagement-users tbody th {
 	justify-self: stretch;
-	text-align: left;
 	padding-block: 1rem;
 	font-size: inherit;
+	text-align: left;
 	text-transform: none;
 	letter-spacing: normal;
 	border-block-start: 1px solid var(--cl-outline);

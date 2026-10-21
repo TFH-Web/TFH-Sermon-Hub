@@ -34,11 +34,17 @@ export async function setupTagMutationRoutes(page: Page) {
 	// the extra path segment, so renames and deletes need their own registration.
 	await page.route('**/api/tags/*', async route => {
 		const request = route.request();
-		const name = decodeURIComponent(new URL(request.url()).pathname.split('/').pop() ?? '');
+		const name = decodeURIComponent(
+			new URL(request.url()).pathname.split('/').pop() ?? '',
+		);
 		const tag = mutableTags.find(t => t.name === name);
 
 		if (request.method() === 'PATCH') {
-			if (!tag) return route.fulfill({ status: 404, json: { message: 'Tag not found' } });
+			if (!tag)
+				return route.fulfill({
+					status: 404,
+					json: { message: 'Tag not found' },
+				});
 			const { newName } = request.postDataJSON();
 			tag.name = newName;
 			return route.fulfill({ status: 200, json: tag });
@@ -72,7 +78,9 @@ export async function setupTagMutationRoutes(page: Page) {
 				// Mirrors the real backend: ?used=true (the sermon filter's query) only returns
 				// tags attached to at least one sermon, same as views.py's get_tags.
 				const used = ['true', '1'].includes(url.searchParams.get('used') ?? '');
-				const visible = used ? mutableTags.filter(t => t.count > 0) : mutableTags;
+				const visible = used
+					? mutableTags.filter(t => t.count > 0)
+					: mutableTags;
 				return paginated(visible, route, url.searchParams);
 			}
 			case '/api/sermons':

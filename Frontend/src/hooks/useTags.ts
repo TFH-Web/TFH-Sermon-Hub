@@ -7,7 +7,13 @@ import type { QueryClient } from '@tanstack/react-query';
  * The promise settles once the lists on screen have been refetched, for callers that want to wait for that.
  */
 export function invalidateTagData(queryClient: QueryClient) {
-	const stale = ['tags', 'paginated-tags', 'sermons', 'paginated-sermons', 'sermon'];
+	const stale = [
+		'tags',
+		'paginated-tags',
+		'sermons',
+		'paginated-sermons',
+		'sermon',
+	];
 	return Promise.all(
 		stale.map(key => queryClient.invalidateQueries({ queryKey: [key] })),
 	);

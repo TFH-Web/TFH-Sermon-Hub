@@ -49,7 +49,9 @@ async function addTag(page: Page, name: string) {
 // Renames a tag through the Tags & Metadata table's Edit modal, exactly as a user would, and
 // waits for the modal to close afterwards so callers can act on the page immediately.
 async function renameTag(page: Page, oldName: string, newName: string) {
-	const row = page.getByRole('rowheader', { name: oldName, exact: true }).locator('..');
+	const row = page
+		.getByRole('rowheader', { name: oldName, exact: true })
+		.locator('..');
 	await row.getByRole('button', { name: 'Edit' }).click();
 
 	const input = page.getByPlaceholder('e.g. forgiveness');
@@ -81,7 +83,9 @@ test('renaming a tag shows up immediately and survives a reload', async ({
 }) => {
 	await renameTag(page, 'grace', 'amazing-grace');
 
-	await expect(page.getByRole('rowheader', { name: 'grace', exact: true })).toHaveCount(0);
+	await expect(
+		page.getByRole('rowheader', { name: 'grace', exact: true }),
+	).toHaveCount(0);
 	await expect(
 		page.getByRole('rowheader', { name: 'amazing-grace' }),
 	).toBeVisible();
@@ -97,13 +101,20 @@ test('deleting a tag removes it immediately and it stays gone after a reload', a
 }) => {
 	const graceRow = page.getByRole('rowheader', { name: 'grace' }).locator('..');
 	await graceRow.getByRole('button', { name: 'Delete' }).click();
-	await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
+	await page
+		.getByRole('dialog')
+		.getByRole('button', { name: 'Delete' })
+		.click();
 	await waitForModalToClose(page);
 
-	await expect(page.getByRole('rowheader', { name: 'grace', exact: true })).toHaveCount(0);
+	await expect(
+		page.getByRole('rowheader', { name: 'grace', exact: true }),
+	).toHaveCount(0);
 
 	await page.reload();
-	await expect(page.getByRole('rowheader', { name: 'grace', exact: true })).toHaveCount(0);
+	await expect(
+		page.getByRole('rowheader', { name: 'grace', exact: true }),
+	).toHaveCount(0);
 });
 
 test('a renamed tag shows up as the sermon filter option, not the old name', async ({
@@ -122,7 +133,9 @@ test('a renamed tag shows up as the sermon filter option, not the old name', asy
 	// input is excluded from the accessibility tree in every engine - getByRole('radio', ...)
 	// can never find it. Match on the label's own text instead (rendered capitalized).
 	const topics = page.locator('.Sermons-topics');
-	await expect(topics.getByText('Amazing-grace', { exact: true })).toBeVisible();
+	await expect(
+		topics.getByText('Amazing-grace', { exact: true }),
+	).toBeVisible();
 	await expect(topics.getByText('Grace', { exact: true })).toHaveCount(0);
 });
 
@@ -144,5 +157,7 @@ test('a brand-new tag does not show as a sermon filter option until a sermon use
 	// pass), then confirm the unused tag isn't one of its options.
 	const topics = page.locator('.Sermons-topics');
 	await expect(topics.getByText('All', { exact: true })).toBeVisible();
-	await expect(topics.getByText('unused-topic', { exact: true })).toHaveCount(0);
+	await expect(topics.getByText('unused-topic', { exact: true })).toHaveCount(
+		0,
+	);
 });
