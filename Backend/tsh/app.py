@@ -4,6 +4,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_migrate import Migrate
 from werkzeug.exceptions import HTTPException, InternalServerError
+
 from tsh.captions import parse_flag
 from tsh.views import api
 

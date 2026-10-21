@@ -293,7 +293,7 @@ def process_sermon(sermon_id: int) -> None:
 
     # Set here as well as in start_processing, so a job queued any other way still shows as processing.
     sermon.status = UploadStatus.PROCESSING
-    sermon.processing_error = None    
+    sermon.processing_error = None
     db.session.commit()
 
     # Captions off and nothing saved: there is no transcript to build on, so hold it as a draft.

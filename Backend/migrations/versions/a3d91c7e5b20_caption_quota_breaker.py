@@ -1,7 +1,7 @@
 """Shared YouTube caption quota breaker migration
 
 Revision ID: a3d91c7e5b20
-Revises: 6e74e4e52cc6
+Revises: 958b50d14869
 Create Date: 2026-10-19 16:00:00.000000
 
 """

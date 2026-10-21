@@ -44,7 +44,7 @@ DISABLED_MESSAGE = ("captions are turned off (CAPTIONS_ENABLED is false); turn t
 
 
 def parse_flag(value, name: str) -> bool:
-    """Parse a boolean flag from a string, raising CaptionError for invalid values."""
+    """Parse a boolean flag from a string, raising ValueError for invalid values."""
     if isinstance(value, bool):
         return value
     text = str(value).strip().lower()
