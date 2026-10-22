@@ -68,6 +68,26 @@ def quota_message(resume) -> str:
 
 AUTH_EXPIRED = "YouTube sign-in expired, refresh the token"
 
+# How a caption failure starts once the pipeline saves it in processing_error as "fetch_transcript: <message>".
+# Shared so backfill and the sync report recognise the same pauses.
+QUOTA_PREFIX = "fetch_transcript: YouTube quota exceeded"
+AUTH_PREFIX = "fetch_transcript: " + AUTH_EXPIRED
+DISABLED_PREFIX = "fetch_transcript: " + DISABLED_MESSAGE.split(";")[0]
+
+
+def pause_reason() -> str | None:
+    """Say why caption downloads are on hold right now, or None if they are not.
+
+    Reads the CAPTIONS_ENABLED flag and the saved quota breaker only, so it never calls YouTube.
+    An expired sign-in has no saved state: it is only known from a sermon's processing_error (AUTH_PREFIX).
+    """
+    if not captions_enabled():
+        return DISABLED_MESSAGE
+    resume = caption_quota.blocked_until()
+    if resume is not None:
+        return quota_message(resume)
+    return None
+
 
 def auth_message(category: str) -> str:
     """Tell an admin to renew the sign-in. category is a label like invalid_grant, never a credential value."""
