@@ -1,18 +1,26 @@
 # Processing pipeline for a sermon: transcript, then embeddings, then summary.
 import time
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
 import click
 from flask import current_app
 from flask.cli import with_appcontext
-from sqlalchemy import delete, or_, select
+from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.dialects.sqlite import insert
 
 from tsh import captions, embeddings
 from tsh.database import db
-from tsh.models import Sermon, SermonChunk, SermonChunkEmbedding, UploadStatus
-from tsh.queue import enqueue
+from tsh.models import (
+    Sermon,
+    SermonChunk,
+    SermonChunkEmbedding,
+    SummaryRegenState,
+    UploadStatus,
+    utcnow,
+)
+from tsh.queue import JOB_TIMEOUT, enqueue
 from tsh.transcripts import transcript_text
 from tsh.summarize import summarize_transcript
 from tsh.tagging import save_ai_tags, suggest_tags
@@ -33,6 +41,9 @@ def fetch_transcript(sermon: Sermon) -> None:
 
     The pipeline commits both together. Chunking receives the persisted segments on the sermon.
     """
+    # Captions off: keep what is saved. process_sermon already held back sermons with nothing saved
+    if not captions.captions_enabled():
+        return
     # The importer also queues this pipeline, so importing its URL parser here avoids a cycle.
     from tsh.youtube_import import parse_video_id
 
@@ -293,6 +304,14 @@ def process_sermon(sermon_id: int) -> None:
     sermon.processing_error = None
     db.session.commit()
 
+    # Captions off and nothing saved: there is no transcript to build on, so hold it as a draft.
+    # A sermon that already has a transcript carries on, so saved captions are never thrown away.
+    if not captions.captions_enabled() and not (sermon.transcript or "").strip():
+        sermon.status = UploadStatus.DRAFT
+        sermon.processing_error = "fetch_transcript: " + captions.DISABLED_MESSAGE
+        db.session.commit()
+        return
+
     # Steps are looked up when this runs, not at import, so tests can monkeypatch them.
     required_steps = (
         ("dummy_delay", dummy_delay),
@@ -322,17 +341,95 @@ def process_sermon(sermon_id: int) -> None:
     db.session.commit()
 
 
-def regenerate_summary(sermon_id: int) -> None:
+# RQ kills a job after JOB_TIMEOUT, and a worker that dies leaves its state behind. A request still QUEUED or
+# RUNNING this long after it started can no longer finish, so the next request may take over from it.
+REGEN_STALE_AFTER = timedelta(seconds=JOB_TIMEOUT + 300)
+_REGEN_FREE = (SummaryRegenState.IDLE, SummaryRegenState.COMPLETED, SummaryRegenState.FAILED)
+
+
+def claim_summary_regeneration(sermon_id: int) -> str | None:
+    """Mark the sermon's summary QUEUED for a new request and return that request's id, or None if refused.
+
+    The check and the claim are one conditional UPDATE, so two clicks at the same moment cannot both win.
+    Refused when the sermon is missing or not PUBLISHED, or when a request is still QUEUED or RUNNING and
+    not yet stale (REGEN_STALE_AFTER). Pass the id to regenerate_summary so the job can tell if it is current.
+    """
+    now = utcnow()
+    run_id = uuid4().hex
+    last_activity = func.coalesce(Sermon.summary_regen_started_at, Sermon.summary_regen_requested_at)
+    result = db.session.execute(
+        update(Sermon)
+        .where(
+            Sermon.id == sermon_id,
+            Sermon.status == UploadStatus.PUBLISHED,
+            or_(
+                Sermon.summary_regen_state.in_(_REGEN_FREE),
+                last_activity < now - REGEN_STALE_AFTER,
+            ),
+        )
+        .values(
+            summary_regen_state=SummaryRegenState.QUEUED,
+            summary_regen_error=None,
+            summary_regen_run_id=run_id,
+            summary_regen_requested_at=now,
+            summary_regen_started_at=None,
+            summary_regen_finished_at=None,
+        )
+        .execution_options(synchronize_session=False)
+    )
+    db.session.commit()
+    return run_id if result.rowcount == 1 else None
+
+
+def release_summary_regeneration(sermon_id: int, run_id: str) -> None:
+    """Put the sermon back to IDLE after its job could not be queued, so the admin can try again.
+
+    Does nothing if a newer request has taken over since.
+    """
+    db.session.execute(
+        update(Sermon)
+        .where(Sermon.id == sermon_id, Sermon.summary_regen_run_id == run_id)
+        .values(
+            summary_regen_state=SummaryRegenState.IDLE,
+            summary_regen_run_id=None,
+            summary_regen_requested_at=None,
+        )
+        .execution_options(synchronize_session=False)
+    )
+    db.session.commit()
+
+
+def regenerate_summary(sermon_id: int, run_id: str | None = None) -> None:
     """Run only the summary step, for the "Regenerate with AI" buttons.
 
     Leaves the status alone. Saves "summarize_sermon: <error>" to processing_error if it fails.
     If it works, clears processing_error only when that was an old summary error.
     Does nothing unless the sermon exists and is PUBLISHED.
+
+    With a run_id from claim_summary_regeneration, the sermon's summary_regen_* fields follow the job:
+    RUNNING when it starts, then COMPLETED, or FAILED with the reason. A job whose run_id is no longer the
+    sermon's current one was replaced after going stale, so it does nothing. Without a run_id none of that is
+    recorded.
     """
     sermon = db.session.get(Sermon, sermon_id)
-    # The summary needs the transcript, which only a PUBLISHED sermon is sure to have.
-    if sermon is None or sermon.status != UploadStatus.PUBLISHED:
+    if sermon is None:
         return
+    tracked = run_id is not None
+    if tracked and sermon.summary_regen_run_id != run_id:
+        return
+    # The summary needs the transcript, which only a PUBLISHED sermon is sure to have.
+    if sermon.status != UploadStatus.PUBLISHED:
+        if tracked:
+            sermon.summary_regen_state = SummaryRegenState.FAILED
+            sermon.summary_regen_error = "The sermon is no longer published"
+            sermon.summary_regen_finished_at = utcnow()
+            db.session.commit()
+        return
+
+    if tracked:
+        sermon.summary_regen_state = SummaryRegenState.RUNNING
+        sermon.summary_regen_started_at = utcnow()
+        db.session.commit()
 
     error = _run_step("summarize_sermon", summarize_sermon, sermon_id)
     sermon = db.session.get(Sermon, sermon_id)
@@ -342,6 +439,11 @@ def regenerate_summary(sermon_id: int) -> None:
         sermon.processing_error = error
     elif (sermon.processing_error or "").startswith("summarize_sermon:"):
         sermon.processing_error = None
+    # Look again: another request may have taken over while the summary was being written.
+    if tracked and sermon.summary_regen_run_id == run_id:
+        sermon.summary_regen_state = SummaryRegenState.FAILED if error else SummaryRegenState.COMPLETED
+        sermon.summary_regen_error = error.removeprefix("summarize_sermon: ") if error else None
+        sermon.summary_regen_finished_at = utcnow()
     db.session.commit()
 
 
