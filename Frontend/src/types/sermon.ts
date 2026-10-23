@@ -14,6 +14,7 @@ export const Sermon = z.object({
 	id: z.number(),
 	title: z.string().nonempty(),
 	videoLink: z.httpUrl(),
+	youtubeVideoId: z.string().nullish(), // Keep the stored ID so the frontend can check it against the link.
 	duration: z.number().nonnegative(),
 	date: z.coerce.date(),
 	description: z.string().nonempty(),

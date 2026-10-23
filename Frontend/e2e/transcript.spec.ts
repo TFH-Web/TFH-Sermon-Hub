@@ -64,7 +64,7 @@ test('shows saved full text and timestamp links from the transcript API', async 
 	await page.getByRole('button', { name: 'Timestamps', exact: true }).click();
 	await expect(
 		panel.getByRole('link', { name: 'Watch from 0:01' }),
-	).toHaveAttribute('href', 'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y&t=1');
+	).toHaveAttribute('href', 'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y&t=1s');
 	await expect(panel.getByRole('link')).toHaveCount(2);
 	await page.getByRole('button', { name: 'Full text', exact: true }).click();
 	await expect(panel).toHaveText('Welcome to church. God is good.');
@@ -90,7 +90,7 @@ test('tag keywords stay highlighted in full text and timestamp views', async ({
 	await expect(panel.locator('mark')).toHaveText(['GOD', 'C++']);
 	await expect(panel.getByRole('link')).toHaveAttribute(
 		'href',
-		'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y&t=1',
+		'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y&t=1s',
 	);
 });
 
@@ -302,7 +302,7 @@ for (const activation of ['click', 'Enter'] as const) {
 		// The source link remains available for external navigation.
 		await expect(cue).toHaveAttribute(
 			'href',
-			'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y&t=1',
+			'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y&t=1s',
 		);
 		expect(page.context().pages()).toHaveLength(1);
 	});
@@ -489,7 +489,7 @@ test('unavailable videos retain the external fallback and errors reset on naviga
 	const popup = await popupPromise;
 
 	await expect(popup).toHaveURL(
-		'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y&t=1',
+		'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y&t=1s',
 	);
 	await popup.close();
 
@@ -579,4 +579,98 @@ test('editing shows saved tag origins without labeling unsaved changes', async (
 	await expect(detailTags).toContainText('grace · AI Generated');
 	await expect(detailTags).toContainText('faith');
 	await expect(detailTags).not.toContainText('new-unsaved-tag');
+});
+
+// Invalid links and mismatched IDs must not produce playable or clickable links.
+for (const scenario of [
+	{
+		name: 'invalid saved video link',
+		videoLink: 'https://www.youtube.com.evil.example/watch?v=F_OiCiZ3Y3Y',
+		youtubeVideoId: null,
+	},
+	{
+		name: 'stored ID disagrees with the saved link',
+		videoLink: 'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y',
+		youtubeVideoId: 'abcdefghijk',
+	},
+]) {
+	test(`${scenario.name} displays a safe unavailable state`, async ({
+		page,
+	}) => {
+		await mockVideoPlayer(page);
+		const state = await captionRoutes(page);
+
+		Object.assign(state.sermon, {
+			videoLink: scenario.videoLink,
+			youtubeVideoId: scenario.youtubeVideoId,
+		});
+
+		await page.goto('/sermons/1');
+
+		// The page stays readable without creating a video player.
+		await expect(page.locator('.SermonDetail-player')).toContainText(
+			'Invalid YouTube video link',
+		);
+		await expect(page.getByTestId('test-video-player')).toHaveCount(0);
+		await expect(
+			page.getByRole('link', { name: 'Watch', exact: true }),
+		).toHaveCount(0);
+
+		// Metadata must not expose the unsafe or mismatched address.
+		await expect(page.locator('.SermonDetail-metadata-link')).toHaveCount(0);
+		await expect(page.locator('.SermonDetail-metadata')).toContainText(
+			'Video unavailable',
+		);
+
+		await page.getByRole('button', { name: 'Timestamps', exact: true }).click();
+
+		const transcript = page.getByRole('region', {
+			name: 'Sermon transcript',
+		});
+
+		// Keep caption text and times, but remove source links.
+		await expect(transcript).toContainText('Welcome to church.');
+		await expect(transcript).toContainText('God is good.');
+		await expect(transcript.getByRole('link')).toHaveCount(0);
+		await expect(
+			transcript.getByTitle('Video unavailable', { exact: true }),
+		).toHaveCount(2);
+	});
+}
+
+test('an older record without a stored ID still plays and seeks', async ({
+	page,
+}) => {
+	await mockVideoPlayer(page);
+	const state = await captionRoutes(page);
+
+	// This older record has a supported short link and no stored ID.
+	state.sermon.videoLink = 'https://youtu.be/F_OiCiZ3Y3Y?si=legacy';
+
+	await page.goto('/sermons/1');
+
+	const player = page.getByTestId('test-video-player');
+	await expect(player).toBeVisible();
+
+	// Display a canonical link built from the validated ID.
+	const watchUrl = 'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y';
+
+	await expect(
+		page.getByRole('link', { name: 'Watch', exact: true }),
+	).toHaveAttribute('href', watchUrl);
+	await expect(page.locator('.SermonDetail-metadata-link')).toHaveAttribute(
+		'href',
+		watchUrl,
+	);
+
+	await page.getByRole('button', { name: 'Timestamps', exact: true }).click();
+
+	const cue = page.getByRole('link', { name: 'Watch from 0:01' });
+	await expect(cue).toHaveAttribute('href', `${watchUrl}&t=1s`);
+
+	// Embedded seeking keeps the original fractional timestamp.
+	await cue.click();
+	await expect(player).toHaveAttribute('data-seek-time', '1.25');
+	await expect(player).toHaveAttribute('data-playing', 'true');
+	expect(page.context().pages()).toHaveLength(1);
 });

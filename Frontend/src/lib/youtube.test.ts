@@ -5,6 +5,7 @@ import {
 	buildYouTubeWatchUrl,
 	normalizeYouTubeUrl,
 	parseYouTubeVideoId,
+	resolveYouTubeVideoId,
 	youtubeLinkError,
 } from './youtube';
 
@@ -160,5 +161,54 @@ describe('validated YouTube link builders', () => {
 		expect(buildYouTubeSourceUrl(ID, input)).toBe(
 			`https://www.youtube.com/watch?v=${ID}&t=${expected}s`,
 		);
+	});
+});
+
+describe('resolveYouTubeVideoId', () => {
+	const videoLink = `https://youtu.be/${ID}`;
+
+	// Older records can use their valid link without a stored ID.
+	it('supports older records without a stored ID', () => {
+		expect(resolveYouTubeVideoId({ videoLink })).toBe(ID);
+
+		expect(
+			resolveYouTubeVideoId({
+				videoLink,
+				youtubeVideoId: null,
+			}),
+		).toBe(ID);
+	});
+
+	// The saved ID and link must identify the same video.
+	it('accepts a matching stored ID', () => {
+		expect(
+			resolveYouTubeVideoId({
+				videoLink,
+				youtubeVideoId: ID,
+			}),
+		).toBe(ID);
+	});
+
+	it.each([
+		'tooShort',
+		'',
+		'abcdefghijk',
+	])('rejects an invalid or mismatched stored ID %j', youtubeVideoId => {
+		expect(
+			resolveYouTubeVideoId({
+				videoLink,
+				youtubeVideoId,
+			}),
+		).toBeNull();
+	});
+
+	// A valid stored ID must not hide an unsafe saved link.
+	it('does not use a valid ID to hide an invalid saved link', () => {
+		expect(
+			resolveYouTubeVideoId({
+				videoLink: 'https://evil.example/video',
+				youtubeVideoId: ID,
+			}),
+		).toBeNull();
 	});
 });

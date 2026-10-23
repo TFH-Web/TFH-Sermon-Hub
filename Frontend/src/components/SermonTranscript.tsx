@@ -2,6 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useMemo, useState } from 'react';
+import { buildYouTubeSourceUrl, resolveYouTubeVideoId } from '$/lib/youtube';
 import { Sermon } from '$/types/sermon';
 import { Transcript } from '$/types/transcript';
 import { useUser } from '$/types/user';
@@ -14,12 +15,6 @@ function timestamp(seconds: number): string {
 	const whole = Math.floor(seconds);
 	const minutes = Math.floor(whole / 60);
 	return `${minutes}:${String(whole % 60).padStart(2, '0')}`;
-}
-
-function videoAt(link: string, seconds: number): string {
-	const url = new URL(link);
-	url.searchParams.set('t', String(Math.floor(seconds)));
-	return url.href;
 }
 
 function keyed<T>(values: T[], identify: (value: T) => string) {
@@ -121,6 +116,7 @@ export default function SermonTranscript({
 			showToast('Could not start caption processing. Try again.', 'error');
 		},
 	});
+	const videoId = resolveYouTubeVideoId(sermon); // Use the same validated video identity as the embedded player.
 	const text = query.data ? query.data.transcript : sermon.transcript;
 	const segments = query.data?.segments ?? [];
 	const processing = refresh.isPending || sermon.status === 'Processing';
@@ -218,36 +214,48 @@ export default function SermonTranscript({
 				tabIndex={0}
 			>
 				{timed && segments.length > 0 ? (
-					cues.map(({ value: segment, key }) => (
-						<div className="SermonDetail-transcript-cue" key={key}>
-							<a
-								href={videoAt(sermon.videoLink, segment.start)}
-								target="_blank"
-								rel="noreferrer"
-								aria-label={`Watch from ${timestamp(segment.start)}`}
-								onClick={event => {
-									// Keep normal browser behavior for opening another tab or window.
-									if (
-										event.button !== 0 ||
-										event.ctrlKey ||
-										event.metaKey ||
-										event.shiftKey ||
-										event.altKey
-									) {
-										return;
-									}
+					cues.map(({ value: segment, key }) => {
+						const sourceUrl = videoId
+							? buildYouTubeSourceUrl(videoId, segment.start)
+							: null;
 
-									// Use the embedded player when it can accept this timestamp.
-									if (onSeek?.(segment.start)) {
-										event.preventDefault();
-									}
-								}}
-							>
-								{timestamp(segment.start)}
-							</a>
-							<p>{highlightKeywords(segment.text, keywordPattern)}</p>
-						</div>
-					))
+						return (
+							<div className="SermonDetail-transcript-cue" key={key}>
+								{sourceUrl ? (
+									<a
+										href={sourceUrl}
+										target="_blank"
+										rel="noreferrer"
+										aria-label={`Watch from ${timestamp(segment.start)}`}
+										onClick={event => {
+											// Preserve modified clicks for external navigation.
+											if (
+												event.button !== 0 ||
+												event.ctrlKey ||
+												event.metaKey ||
+												event.shiftKey ||
+												event.altKey
+											) {
+												return;
+											}
+
+											// Keep exact fractional seconds for the embedded player.
+											if (onSeek?.(segment.start)) {
+												event.preventDefault();
+											}
+										}}
+									>
+										{timestamp(segment.start)}
+									</a>
+								) : (
+									<span title="Video unavailable">
+										{timestamp(segment.start)}
+									</span>
+								)}
+								<p>{highlightKeywords(segment.text, keywordPattern)}</p>
+							</div>
+						);
+					})
 				) : text ? (
 					paragraphs.map(({ value: paragraph, key }) => (
 						<p className="SermonDetail-transcript-paragraph" key={key}>

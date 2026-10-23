@@ -116,3 +116,23 @@ function isYouTubeHost(url: string): boolean {
 		return false;
 	}
 }
+
+// Older records can use their valid link when no stored ID exists.
+// Refuse invalid links, invalid IDs, or IDs that disagree.
+export function resolveYouTubeVideoId(sermon: {
+	videoLink: string;
+	youtubeVideoId?: string | null;
+}): string | null {
+	const linkId = parseYouTubeVideoId(sermon.videoLink);
+
+	if (!linkId) return null;
+
+	if (sermon.youtubeVideoId == null) {
+		return linkId;
+	}
+
+	return VIDEO_ID.test(sermon.youtubeVideoId) &&
+		sermon.youtubeVideoId === linkId
+		? linkId
+		: null;
+}

@@ -16,7 +16,7 @@ import SermonTranscript from '$/components/SermonTranscript';
 import Tag from '$/components/Tag.tsx';
 import { useToast } from '$/components/ToastContext.tsx';
 import { parseSourceTimestamp } from '$/lib/sourceTimestamp';
-import { normalizeYouTubeUrl, parseYouTubeVideoId } from '$/lib/youtube';
+import { buildYouTubeWatchUrl, resolveYouTubeVideoId } from '$/lib/youtube';
 import DeleteSermonModal from '$/modals/DeleteSermonModal.tsx';
 import EditSermonModal from '$/modals/EditSermonModal.tsx';
 import { durationToString, Sermon } from '$/types/sermon';
@@ -262,8 +262,9 @@ function SermonDetailContent({
 		}
 	}
 
-	// Accept the same YouTube URL formats supported by import.
-	const videoId = parseYouTubeVideoId(normalizeYouTubeUrl(sermon.videoLink));
+	// Validate the saved link and ID before displaying a video or link.
+	const videoId = resolveYouTubeVideoId(sermon);
+	const watchUrl = videoId ? buildYouTubeWatchUrl(videoId) : null;
 
 	return (
 		<MainLayout title={sermon.title}>
@@ -340,14 +341,18 @@ function SermonDetailContent({
 								))}
 							</div>
 							<div className="SermonDetail-btn-group">
-								<a
-									className="Button Button--primary"
-									href={sermon.videoLink}
-									target="_blank"
-									rel="noreferrer"
-								>
-									Watch
-								</a>
+								{watchUrl ? (
+									<a
+										className="Button Button--primary"
+										href={watchUrl}
+										target="_blank"
+										rel="noreferrer"
+									>
+										Watch
+									</a>
+								) : (
+									<span>Video unavailable</span>
+								)}
 								<Button
 									variant="secondary"
 									onClick={() => setEditSermonOpen(true)}
@@ -460,16 +465,20 @@ function SermonDetailContent({
 						</span>
 
 						<span className="SermonDetail-metadata-label">Video</span>
-						{/* The real video address from the server, shown without the https:// */}
+						{/* Show only a link built from a validated video ID. */}
 						<span className="SermonDetail-metadata-value">
-							<a
-								href={sermon.videoLink}
-								target="_blank"
-								rel="noreferrer"
-								className="SermonDetail-metadata-link"
-							>
-								{sermon.videoLink.replace('https://', '')}
-							</a>
+							{watchUrl ? (
+								<a
+									href={watchUrl}
+									target="_blank"
+									rel="noreferrer"
+									className="SermonDetail-metadata-link"
+								>
+									{watchUrl.replace('https://', '')}
+								</a>
+							) : (
+								'Video unavailable'
+							)}
 						</span>
 
 						<span className="SermonDetail-metadata-label">Transcript</span>
