@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+	buildYouTubeEmbedUrl,
+	buildYouTubeSourceUrl,
+	buildYouTubeWatchUrl,
 	normalizeYouTubeUrl,
 	parseYouTubeVideoId,
 	youtubeLinkError,
@@ -91,5 +94,71 @@ describe('youtubeLinkError', () => {
 		`https://music.youtube.com/watch?v=${ID}`,
 	])('says only video links are supported for %s', link => {
 		expect(youtubeLinkError(link)).toMatch(/^Only video links are supported/);
+	});
+});
+
+describe('strict YouTube link validation', () => {
+	it.each([
+		`https://www.youtube.com.evil.example/watch?v=${ID}`,
+		`https://user@youtube.com/watch?v=${ID}`,
+		`https://youtube.com:443/watch?v=${ID}`,
+		`https://youtube.com/watch?v=${ID}&v=${ID}`,
+		`https://youtube.com/watch?v=${ID}&v=`,
+		`https://youtu.be/${ID}/extra`,
+		`https://youtube.com/shorts/${ID}/extra`,
+		`https://youtube.com/other/../watch?v=${ID}`,
+		`https://youtube.com\\@evil.example/watch?v=${ID}`,
+		`https://youtu.be/${ID}?label=hello world`,
+		`https://youtu.be/${ID}?label=café`,
+		`javascript:alert(1)`,
+		`ftp://youtu.be/${ID}`,
+	])('rejects %s', url => {
+		expect(parseYouTubeVideoId(url)).toBeNull();
+	});
+
+	it.each([
+		`https://youtu.be/${ID}/`,
+		`https://youtube.com/shorts/${ID}/`,
+		`HTTPS://WWW.YOUTUBE.COM/watch?v=${ID}`,
+	])('accepts %s', url => {
+		expect(parseYouTubeVideoId(url)).toBe(ID);
+	});
+});
+
+describe('validated YouTube link builders', () => {
+	it('builds canonical watch and embed links', () => {
+		expect(buildYouTubeWatchUrl(ID)).toBe(
+			`https://www.youtube.com/watch?v=${ID}`,
+		);
+		expect(buildYouTubeEmbedUrl(ID)).toBe(
+			`https://www.youtube.com/embed/${ID}`,
+		);
+	});
+
+	it.each([
+		'',
+		'tooShort',
+		`${ID}X`,
+		'javascript:alert(1)',
+	])('refuses invalid ID %j', videoId => {
+		expect(buildYouTubeWatchUrl(videoId)).toBeNull();
+		expect(buildYouTubeEmbedUrl(videoId)).toBeNull();
+		expect(buildYouTubeSourceUrl(videoId, 30)).toBeNull();
+	});
+
+	it.each([
+		[0, 0],
+		[30, 30],
+		[30.5, 30],
+		[-1, 0],
+		[Number.NaN, 0],
+		[Number.POSITIVE_INFINITY, 0],
+		['30', 0],
+		[null, 0],
+		[true, 0],
+	])('builds a source link for %j', (input, expected) => {
+		expect(buildYouTubeSourceUrl(ID, input)).toBe(
+			`https://www.youtube.com/watch?v=${ID}&t=${expected}s`,
+		);
 	});
 });
