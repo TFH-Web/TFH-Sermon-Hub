@@ -1,6 +1,7 @@
 import { Icon } from '@iconify-icon/react';
 import { useNavigate } from 'react-router';
 import type { SearchResult } from '$/AISearchResults';
+import { formatCalendarDateString } from '$/lib/date';
 import './SearchResultCard.css';
 
 interface SearchResultCardProps {
@@ -28,7 +29,8 @@ export default function SearchResultCard({ result }: SearchResultCardProps) {
 					<h2 className="SearchResultCard-title">{result.title}</h2>
 
 					<p className="SearchResultCard-meta">
-						{result.type} • {result.speaker} • {result.date}
+						{result.type} • {result.speaker} •{' '}
+						{formatCalendarDateString(result.date)}
 					</p>
 
 					<p className="SearchResultCard-summary">{result.summary}</p>

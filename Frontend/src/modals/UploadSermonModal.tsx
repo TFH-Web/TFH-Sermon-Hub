@@ -11,6 +11,7 @@ import Modal from '$/components/Modal';
 import { useToast } from '$/components/ToastContext';
 import { invalidateSermonData } from '$/hooks/useImportSermons';
 import { apiErrorMessage } from '$/lib/api';
+import { toCalendarDateString } from '$/lib/date';
 import { normalizeYouTubeUrl, youtubeLinkError } from '$/lib/youtube';
 import { linkTo, Sermon } from '$/types/sermon';
 import { getFullName } from '$/types/speaker';
@@ -61,7 +62,7 @@ export default function UploadSermonModal({
 				title: imported.title,
 				speaker: getFullName(imported.speaker),
 				series: imported.series?.title ?? '',
-				date: imported.date.toISOString().slice(0, 10),
+				date: toCalendarDateString(imported.date),
 				description: imported.description,
 			}
 		: details;

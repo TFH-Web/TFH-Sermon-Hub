@@ -6,7 +6,7 @@ import clsx from 'clsx';
 import './ImportItem.css';
 import { invalidateSermonData } from '$/hooks/useImportSermons';
 import { apiErrorMessage } from '$/lib/api';
-import { formatDate } from '$/lib/date';
+import { formatCalendarDate } from '$/lib/date';
 import { linkTo, Sermon, type Status } from '$/types/sermon';
 import { getFullName } from '$/types/speaker';
 import { useUser } from '$/types/user';
@@ -17,13 +17,7 @@ import { useToast } from './ToastContext';
 export default function SermonImportItem({ sermon }: { sermon: Sermon }) {
 	const user = useUser();
 	const failed = sermon.status === 'Failed';
-	// Sermon dates have no time, so format in UTC or the day can slip back one.
-	const date = formatDate(sermon.date, {
-		month: 'short',
-		day: 'numeric',
-		year: 'numeric',
-		timeZone: 'UTC',
-	});
+	const date = formatCalendarDate(sermon.date);
 
 	return (
 		<div className={clsx('ImportItem', failed && 'ImportItem--failed')}>

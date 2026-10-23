@@ -1,6 +1,7 @@
 import './SermonCard.css';
 import { Icon } from '@iconify-icon/react';
 import clsx from 'clsx';
+import { formatCalendarDate, toCalendarDateString } from '$/lib/date';
 import {
 	createOverlayInfo,
 	durationToDateTime,
@@ -31,8 +32,11 @@ export default function SermonCard({ className, sermon }: SermonCardProps) {
 
 			<div className="SermonCard-info">
 				<p className="SermonCard-speaker">{getFullName(sermon.speaker)}</p>
-				<time className="SermonCard-date" dateTime={sermon.date.toISOString()}>
-					{formatDate(sermon.date)}
+				<time
+					className="SermonCard-date"
+					dateTime={toCalendarDateString(sermon.date)}
+				>
+					{formatCalendarDate(sermon.date)}
 				</time>
 			</div>
 
@@ -71,14 +75,4 @@ export default function SermonCard({ className, sermon }: SermonCardProps) {
 			</div>
 		</Container>
 	);
-}
-
-function formatDate(date: Date): string {
-	const formatter = Intl.DateTimeFormat('en-US', {
-		month: 'short',
-		day: 'numeric',
-		year: 'numeric',
-		timeZone: 'UTC',
-	});
-	return formatter.format(date);
 }

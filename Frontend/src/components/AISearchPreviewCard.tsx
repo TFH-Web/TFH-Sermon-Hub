@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 // Use the shared result type for cards displaying API search results.
 import type { AISearchVisibleResult } from '$/lib/aiSearch';
+import { formatCalendarDateString } from '$/lib/date';
 
 import type { AISearchResultPreview } from '$/types/aiSearch';
 import './AISearchPreviewCard.css';
@@ -109,7 +110,8 @@ export default function AISearchPreviewCard({
 					<h2 className="AISearchPreviewCard-title">{result.title}</h2>
 
 					<p className="AISearchPreviewCard-meta">
-						{result.speaker} • {result.date} • {result.series}
+						{result.speaker} • {formatCalendarDateString(result.date)} •{' '}
+						{result.series}
 					</p>
 
 					<p className="AISearchPreviewCard-snippet">
