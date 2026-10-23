@@ -13,7 +13,7 @@ export type Status = z.infer<typeof Status>;
 export const Sermon = z.object({
 	id: z.number(),
 	title: z.string().nonempty(),
-	videoLink: z.httpUrl(),
+	videoLink: z.string(), // Keep legacy text readable; shared builders decide whether it is safe to link.
 	youtubeVideoId: z.string().nullish(), // Keep the stored ID so the frontend can check it against the link.
 	duration: z.number().nonnegative(),
 	date: z.coerce.date(),

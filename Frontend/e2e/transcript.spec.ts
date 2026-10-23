@@ -593,6 +593,16 @@ for (const scenario of [
 		videoLink: 'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y',
 		youtubeVideoId: 'abcdefghijk',
 	},
+	{
+		name: 'legacy JavaScript URL',
+		videoLink: 'javascript:alert(1)',
+		youtubeVideoId: null,
+	},
+	{
+		name: 'legacy malformed URL',
+		videoLink: 'not a video URL',
+		youtubeVideoId: null,
+	},
 ]) {
 	test(`${scenario.name} displays a safe unavailable state`, async ({
 		page,
