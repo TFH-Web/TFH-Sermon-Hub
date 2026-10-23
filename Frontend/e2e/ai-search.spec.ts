@@ -61,7 +61,7 @@ test('submits filters and displays highlighted search results', async ({
 	const card = page.locator('.AISearchPreviewCard');
 	await expect(card.getByRole('heading', { name: result.title })).toBeVisible();
 	await expect(card).toContainText(result.speaker);
-	await expect(card).toContainText(result.date);
+	await expect(card).toContainText('Sep 27, 2026'); // Display the intended calendar day in the formatted date.
 	await expect(card).toContainText(result.series);
 	await expect(card).not.toContainText('% match'); // Retrieval scores must not appear as confidence percentages.
 	await expect(card.locator('mark')).toHaveText('anxiety');
