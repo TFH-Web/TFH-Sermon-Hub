@@ -122,10 +122,6 @@ export default function AISearchPreviewCard({
 					</p>
 
 					<div className="AISearchPreviewCard-tags">
-						<span className="AISearchPreviewCard-tag AISearchPreviewCard-tag--match">
-							{result.match}% match
-						</span>
-
 						<span className="AISearchPreviewCard-tag">
 							{result.contentType}
 						</span>

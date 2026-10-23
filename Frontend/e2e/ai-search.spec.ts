@@ -63,7 +63,7 @@ test('submits filters and displays highlighted search results', async ({
 	await expect(card).toContainText(result.speaker);
 	await expect(card).toContainText(result.date);
 	await expect(card).toContainText(result.series);
-	await expect(card).toContainText('97% match');
+	await expect(card).not.toContainText('% match'); // Retrieval scores must not appear as confidence percentages.
 	await expect(card.locator('mark')).toHaveText('anxiety');
 });
 
