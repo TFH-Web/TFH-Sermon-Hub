@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SyncResult } from './import';
+import { SyncResult, SyncRun, SyncStartFailure } from './import';
 
 // A finished sync's report, as POST /api/import/youtube sends it.
 const report = {
@@ -65,5 +65,89 @@ describe('SyncResult schema', () => {
 
 	it('rejects a result that does not say whether it was queued', () => {
 		expect(() => SyncResult.parse({ report, ...saved })).toThrow();
+	});
+});
+
+// A saved run as GET /api/import/youtube/runs sends it: queued, so nothing has started and there are no counts.
+const queuedRun = {
+	id: 4,
+	dateFrom: null,
+	dateTo: '2026-09-30',
+	state: 'queued',
+	createdAt: '2026-10-20T06:49:24.750747',
+	startedAt: null,
+	finishedAt: null,
+	seriesCreated: null,
+	sermonsCreated: null,
+	sermonsUpdated: null,
+	sermonsUnchanged: null,
+	error: null,
+};
+
+describe('SyncRun schema', () => {
+	it('parses a queued run, which has no counts and no report', () => {
+		expect(SyncRun.parse(queuedRun)).toEqual(queuedRun);
+	});
+
+	it('parses a succeeded run with its counts and report', () => {
+		const succeeded = {
+			...queuedRun,
+			state: 'succeeded',
+			startedAt: '2026-10-20T06:49:24.752000',
+			finishedAt: '2026-10-20T06:49:25.100000',
+			seriesCreated: 3,
+			sermonsCreated: 11,
+			sermonsUpdated: 2,
+			sermonsUnchanged: 431,
+			report,
+		};
+		expect(SyncRun.parse(succeeded)).toEqual(succeeded);
+	});
+
+	it('parses a failed run with its error and no report', () => {
+		const failed = {
+			...queuedRun,
+			state: 'failed',
+			finishedAt: '2026-10-20T06:49:25.100000',
+			report: null,
+			error: 'queue: Connection refused',
+		};
+		expect(SyncRun.parse(failed)).toEqual(failed);
+	});
+
+	it('parses the list of runs', () => {
+		expect(SyncRun.array().parse([queuedRun, { ...queuedRun, id: 3 }])).toHaveLength(2);
+	});
+
+	it('rejects a state it does not know', () => {
+		expect(() => SyncRun.parse({ ...queuedRun, state: 'paused' })).toThrow();
+	});
+
+	it('rejects a run with no id', () => {
+		expect(() => SyncRun.parse({ ...queuedRun, id: undefined })).toThrow();
+	});
+
+	it('rejects a count that is not a number', () => {
+		expect(() =>
+			SyncRun.parse({ ...queuedRun, sermonsCreated: '11' }),
+		).toThrow();
+	});
+});
+
+describe('SyncStartFailure schema', () => {
+	it('reads the run id from a refused or failed sync, whatever else the body says', () => {
+		const body = {
+			error: 'The job queue is unavailable. Please try again later.',
+			message: 'The job queue is unavailable. Please try again later.',
+			runId: 3,
+			state: 'failed',
+		};
+		expect(SyncStartFailure.parse(body)).toEqual({ runId: 3 });
+	});
+
+	it('rejects an error body that names no run', () => {
+		expect(() =>
+			SyncStartFailure.parse({ error: 'Not an admin', message: 'Not an admin' }),
+		).toThrow();
 	});
 });

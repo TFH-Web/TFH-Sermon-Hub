@@ -8,10 +8,11 @@ import { SyncRun } from '$/types/import';
 
 // The key of the list. Each run read by id is stored under it too, so invalidating this refetches both.
 export const SYNC_RUNS_KEY = 'sync-runs';
-const POLL_INTERVAL = 5000;
+// Exported so the tests can move time by the same amounts.
+export const POLL_INTERVAL = 5000;
 // The backend only gives up on a queued run after 24 hours, so polling cannot go on until then.
 // After this long the page stops asking and shows a Check status button instead.
-const POLL_WINDOW = 10 * 60 * 1000;
+export const POLL_WINDOW = 10 * 60 * 1000;
 
 /**
  * A query that refetches every few seconds while `isActive` says what it fetched is still changing, for up to POLL_WINDOW.

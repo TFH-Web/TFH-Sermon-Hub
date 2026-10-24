@@ -27,8 +27,27 @@ function sermon(
 	return { ...sermons[0], id, title: `Import ${id}`, status, processingError };
 }
 
-/** A finished sync run, as GET /api/import/youtube/runs/<id> sends it, for the range the sync was asked for. */
-function savedRun(id: number, range: { from?: string; to?: string }) {
+/** A saved sync run, as GET /api/import/youtube/runs/<id> sends it. */
+interface Run {
+	id: number;
+	dateFrom: string | null;
+	dateTo: string | null;
+	state: string;
+	createdAt: string;
+	startedAt: string | null;
+	finishedAt: string | null;
+	seriesCreated: number | null;
+	sermonsCreated: number | null;
+	sermonsUpdated: number | null;
+	sermonsUnchanged: number | null;
+	report: typeof REPORT | null;
+	error: string | null;
+}
+
+type Range = { from?: string; to?: string };
+
+/** A sync that finished, for the range it was asked for. */
+function savedRun(id: number, range: Range): Run {
 	return {
 		id,
 		dateFrom: range.from ?? null,
@@ -46,6 +65,31 @@ function savedRun(id: number, range: { from?: string; to?: string }) {
 	};
 }
 
+/** A sync the worker has not started: no times, no counts and no report yet. */
+function queuedRun(id: number, range: Range): Run {
+	return {
+		...savedRun(id, range),
+		state: 'queued',
+		startedAt: null,
+		finishedAt: null,
+		seriesCreated: null,
+		sermonsCreated: null,
+		sermonsUpdated: null,
+		sermonsUnchanged: null,
+		report: null,
+	};
+}
+
+/** A sync that ended with an error and no report. */
+function failedRun(id: number, range: Range, error: string): Run {
+	return {
+		...queuedRun(id, range),
+		state: 'failed',
+		finishedAt: '2026-10-20T06:49:24.746941',
+		error,
+	};
+}
+
 /** Serve the import endpoints from a list of sermons the test can change, and record what the page posts. */
 async function importRoutes(
 	page: Page,
@@ -54,7 +98,9 @@ async function importRoutes(
 	const state = {
 		sermons: initial,
 		// The sync runs the server has saved, oldest first. POST /api/import/youtube adds one.
-		runs: [] as ReturnType<typeof savedRun>[],
+		runs: [] as Run[],
+		// Makes the next POST /api/import/youtube fail as if the job queue were down.
+		failNextSync: false,
 		posts: [] as { path: string; body: unknown }[],
 		// Makes GET /api/sermons fail, as if the server were down.
 		broken: false,
@@ -115,8 +161,24 @@ async function importRoutes(
 			return route.fulfill({ status: 201, json: imported });
 		}
 		if (url.pathname === '/api/import/youtube') {
+			const range: Range = request.postDataJSON() ?? {};
+			if (state.failNextSync) {
+				state.failNextSync = false;
+				// The sync is saved as failed, and the request is refused.
+				const run = failedRun(
+					state.runs.length + 1,
+					range,
+					'queue: Connection refused',
+				);
+				state.runs.push(run);
+				const message = 'The job queue is unavailable. Please try again later.';
+				return route.fulfill({
+					status: 503,
+					json: { error: message, message, runId: run.id, state: 'failed' },
+				});
+			}
 			// As without a job queue: the sync has already finished by the time this answers.
-			const run = savedRun(state.runs.length + 1, request.postDataJSON() ?? {});
+			const run = savedRun(state.runs.length + 1, range);
 			state.runs.push(run);
 			return route.fulfill({
 				json: {
@@ -330,5 +392,91 @@ test('lists show their empty text, and an error box whose Retry recovers', async
 			name: 'Import 1',
 			exact: true,
 		}),
+	).toBeVisible();
+});
+
+const RANGE = { from: '2026-09-01', to: '2026-09-30' };
+
+test('a queued sync survives a reload and completes', async ({ page }) => {
+	const state = await importRoutes(page);
+	state.runs.push(queuedRun(1, RANGE));
+	await page.goto('/upload');
+	// A sync that is going leads Active Imports.
+	await expect(page.getByText('Queued', { exact: true })).toBeVisible();
+
+	// The sync is not in the browser, so a reload loses nothing.
+	await page.reload();
+	await tab(page, 'Bulk Import').click();
+	await expect(
+		page.getByRole('button', { name: 'Sync queued…' }),
+	).toBeDisabled();
+
+	// The worker finishes. Nothing tells the page, so it has to find out by polling.
+	state.runs[0] = savedRun(1, RANGE);
+	const dialog = page.getByRole('dialog');
+	await expect(dialog).toContainText('YouTube bulk import', { timeout: 15000 });
+	await expect(
+		dialog.locator('.ImportSyncResult-count', { hasText: 'Sermons created' }),
+	).toContainText('3');
+	await expect(
+		page.getByRole('button', { name: 'Sync from YouTube' }),
+	).toBeEnabled();
+});
+
+test('a sync that finishes while the page is away reports its result on return', async ({
+	page,
+}) => {
+	const state = await importRoutes(page);
+	state.runs.push(queuedRun(1, RANGE));
+	await page.goto('/upload');
+	await expect(page.getByText('Queued', { exact: true })).toBeVisible();
+
+	// Away from the page, nothing polls. Leave through the navbar, which keeps what the page had loaded.
+	await page.getByRole('link', { name: 'Dashboard' }).click();
+	await expect(page).toHaveURL('/');
+	state.runs[0] = savedRun(1, RANGE);
+
+	// The page still has the sync as going from before, so it reports the end it finds on return.
+	await page.getByRole('link', { name: 'Import / Upload' }).click();
+	const dialog = page.getByRole('dialog');
+	await expect(dialog).toContainText('YouTube bulk import');
+	await expect(
+		dialog.locator('.ImportSyncResult-count', { hasText: 'Sermons created' }),
+	).toContainText('3');
+});
+
+test('a sync the queue refuses shows why, and the next one can go', async ({
+	page,
+}) => {
+	const state = await importRoutes(page);
+	state.failNextSync = true;
+	await page.goto('/upload');
+	await tab(page, 'Bulk Import').click();
+	await page.getByRole('button', { name: 'Sync from YouTube' }).click();
+
+	const dialog = page.getByRole('dialog');
+	await expect(dialog).toContainText(
+		'The job queue was unavailable, so the sync never started. Try again.',
+	);
+	await dialog
+		.locator('.Modal-footer')
+		.getByRole('button', { name: 'Close' })
+		.click();
+	await expect(dialog).toHaveCount(0);
+
+	// A failed sync is over, so the form is free.
+	await page.getByRole('button', { name: 'Sync from YouTube' }).click();
+	await expect(dialog.getByText('Sync finished')).toBeVisible();
+	expect(
+		state.posts.filter(post => post.path === '/api/import/youtube'),
+	).toHaveLength(2);
+});
+
+test('Sync History says when no sync has finished yet', async ({ page }) => {
+	await importRoutes(page);
+	await page.goto('/upload');
+	await tab(page, 'Import History').click();
+	await expect(
+		card(page, 'Sync History').getByText('No finished syncs yet'),
 	).toBeVisible();
 });
