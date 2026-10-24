@@ -1,8 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import clsx from 'clsx';
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import './ImportUpload.css';
+import ActiveSyncItem from '$/components/ActiveSyncItem';
 import Button from '$/components/Button';
 import { Card, CardHeader } from '$/components/Card';
 import ErrorBox from '$/components/ErrorBox';
@@ -11,6 +12,7 @@ import Loading from '$/components/Loading';
 import MainLayout from '$/components/MainLayout';
 import Pagination from '$/components/Pagination';
 import SermonImportItem from '$/components/SermonImportItem';
+import SyncRunHistory from '$/components/SyncRunHistory';
 import TabBar from '$/components/TabBar';
 import Tag from '$/components/Tag';
 import { useToast } from '$/components/ToastContext';
@@ -21,7 +23,10 @@ import {
 	useImportSermons,
 	useProcessingCount,
 } from '$/hooks/useImportSermons';
+import { SYNC_RUNS_KEY, useSyncRuns } from '$/hooks/useSyncRuns';
 import { apiErrorMessage } from '$/lib/api';
+import { formatDateRange } from '$/lib/date';
+import { isActiveRun } from '$/lib/syncRuns';
 import BulkImportModal from '$/modals/BulkImportModal';
 import UploadSermonModal from '$/modals/UploadSermonModal';
 import { type BulkImport, SyncResult } from '$/types/import';
@@ -69,10 +74,6 @@ export default function ImportUpload() {
 		wasProcessing.current = processing;
 	}, [processing, queryClient]);
 
-	// LIMITATION (backend): the "Syncing…" state does not survive a reload. A sync is one long request, which
-	// the browser drops when the page reloads, and the backend keeps no record of a running sync to ask about.
-	// The sync still finishes on the server, but this page cannot tell, and its result pop-up never appears.
-	// Fixing it needs the backend to record sync runs and expose the latest one.
 	const sync = useMutation({
 		mutationFn: async (range: Pick<BulkImport, 'from' | 'to'>) => {
 			// Only the dates that were filled in are sent. With neither, the whole channel is synced.
@@ -82,14 +83,19 @@ export default function ImportUpload() {
 			});
 			return SyncResult.parse(response.data);
 		},
-		onSuccess: (result, range) => {
+		onSuccess: async (result, range) => {
+			// Every outcome saved a run. Waiting for the list keeps the button locked until a queued run shows as active.
+			await queryClient.invalidateQueries({ queryKey: [SYNC_RUNS_KEY] });
+			if (result.queued) {
+				// Nothing has been imported yet. The run shows in Active Imports until the worker finishes it.
+				showToast('Sync queued.', 'info');
+				return;
+			}
 			invalidateSermonData(queryClient);
 			if (mountedRef.current) {
 				setFinishedRun({ ...range, result });
-			} else if (result.queued) {
-				// The page is gone, so there is nowhere to pop the result up. Say it in a toast instead.
-				showToast('Sync queued.', 'info');
 			} else {
+				// The page is gone, so there is nowhere to pop the result up. Say it in a toast instead.
 				const { report } = result;
 				showToast(
 					`Sync finished. New sermons: ${report.sermons_created}. Updated: ${report.sermons_updated}.`,
@@ -97,7 +103,17 @@ export default function ImportUpload() {
 				);
 			}
 		},
-		onError: (failure, range) => {
+		onError: async (failure, range) => {
+			// A sync that was refused or failed after it was saved is a run too.
+			await queryClient.invalidateQueries({ queryKey: [SYNC_RUNS_KEY] });
+			if (axios.isAxiosError(failure) && failure.response?.status === 409) {
+				// Only one sync runs at a time, and this is not a failure: the one already going shows in Active Imports.
+				showToast(
+					apiErrorMessage(failure, 'A YouTube sync is already in progress.'),
+					'info',
+				);
+				return;
+			}
 			const error = syncErrorMessage(failure);
 			if (mountedRef.current) {
 				setFinishedRun({ ...range, error });
@@ -107,8 +123,49 @@ export default function ImportUpload() {
 		},
 	});
 
+	// The server saves every sync as a run, so the recent ones (and whether one is still going) survive a reload.
+	// A sync that is queued or running, started here or anywhere else, keeps the form locked until it ends.
+	const runs = useSyncRuns();
+	const activeRun = runs.query.data?.find(isActiveRun);
+	const syncing = sync.isPending || activeRun !== undefined;
+	let syncLabel = 'Sync from YouTube';
+	if (sync.isPending || activeRun?.state === 'running') {
+		syncLabel = 'Syncing…';
+	} else if (activeRun) {
+		syncLabel = 'Sync queued…';
+	}
+
+	// A sync that is going is an active import, so it leads the Active Imports list.
+	let activeSync: ReactNode = null;
+	if (activeRun) {
+		activeSync = (
+			<ActiveSyncItem
+				range={formatDateRange(activeRun.dateFrom ?? '', activeRun.dateTo ?? '')}
+				state={activeRun.state === 'queued' ? 'queued' : 'running'}
+				since={
+					activeRun.state === 'queued'
+						? activeRun.createdAt
+						: (activeRun.startedAt ?? activeRun.createdAt)
+				}
+				stalled={!runs.polling}
+				onCheckStatus={runs.checkNow}
+			/>
+		);
+	} else if (sync.isPending && sync.variables) {
+		// Without a job queue the sync runs inside this request, so no run can be read until it ends. Show it from the dates sent.
+		activeSync = (
+			<ActiveSyncItem
+				range={formatDateRange(sync.variables.from, sync.variables.to)}
+				state="running"
+				since={null}
+				stalled={false}
+				onCheckStatus={runs.checkNow}
+			/>
+		);
+	}
+
 	function handleSync() {
-		if (sync.isPending) return;
+		if (syncing) return;
 		// Date inputs give YYYY-MM-DD, which sorts as text in date order.
 		if (dateFrom && dateTo && dateFrom > dateTo) {
 			setDateError('The start date must be on or before the end date.');
@@ -159,6 +216,7 @@ export default function ImportUpload() {
 							status="Processing"
 							emptyText="No active imports"
 							poll={processing}
+							leading={activeSync}
 						/>
 					</div>
 				</div>
@@ -173,11 +231,11 @@ export default function ImportUpload() {
 							    Both fields are locked while a sync runs. */}
 							<FormField
 								label="Import Source"
-								className={clsx(sync.isPending && 'ImportUpload-locked')}
+								className={clsx(syncing && 'ImportUpload-locked')}
 							>
 								<select
 									value={source}
-									disabled={sync.isPending}
+									disabled={syncing}
 									onChange={e => setSource(e.target.value)}
 								>
 									<option>{YOUTUBE_SOURCE}</option>
@@ -192,14 +250,14 @@ export default function ImportUpload() {
 									<FormField
 										label="Date Range (optional)"
 										error={dateError}
-										className={clsx(sync.isPending && 'ImportUpload-locked')}
+										className={clsx(syncing && 'ImportUpload-locked')}
 									>
 										<FormRow>
 											<input
 												type="date"
 												aria-label="From date"
 												value={dateFrom}
-												disabled={sync.isPending}
+												disabled={syncing}
 												onChange={e => {
 													setDateFrom(e.target.value);
 													setDateError('');
@@ -209,7 +267,7 @@ export default function ImportUpload() {
 												type="date"
 												aria-label="To date"
 												value={dateTo}
-												disabled={sync.isPending}
+												disabled={syncing}
 												onChange={e => {
 													setDateTo(e.target.value);
 													setDateError('');
@@ -217,14 +275,14 @@ export default function ImportUpload() {
 											/>
 										</FormRow>
 									</FormField>
-									{/* The result pops up in BulkImportModal when the sync ends. */}
+									{/* A sync that runs inside the request pops its result up in BulkImportModal. One that is going shows in Active Imports, and a finished one in Sync History on the Import History tab. */}
 									<Button
 										variant="primary"
-										disabled={sync.isPending}
-										aria-busy={sync.isPending}
+										disabled={syncing}
+										aria-busy={syncing}
 										onClick={handleSync}
 									>
-										{sync.isPending ? 'Syncing…' : 'Sync from YouTube'}
+										{syncLabel}
 									</Button>
 								</>
 							) : (
@@ -238,17 +296,21 @@ export default function ImportUpload() {
 						status="Processing"
 						emptyText="No active imports"
 						poll={processing}
+						leading={activeSync}
 					/>
 				</div>
 			)}
 
 			{activeTab === 'Import History' && (
-				<ImportSermonList
-					title="Import History"
-					status="Published"
-					emptyText="No import history yet"
-					poll={processing}
-				/>
+				<div className="ImportUpload-grid">
+					<SyncRunHistory runs={runs} />
+					<ImportSermonList
+						title="Import History"
+						status="Published"
+						emptyText="No import history yet"
+						poll={processing}
+					/>
+				</div>
 			)}
 
 			{activeTab === 'Failed Imports' && (
@@ -283,6 +345,8 @@ interface ImportSermonListProps {
 	poll: boolean;
 	// Show the number of sermons in the card header, as the Failed Imports card does.
 	showCount?: boolean;
+	// Rows to show above the sermons, such as a sync that is going. With any, the empty text is not shown.
+	leading?: ReactNode;
 }
 
 /** A card listing the sermons with one status, ten to a page, with its own loading, error and empty states. */
@@ -292,6 +356,7 @@ function ImportSermonList({
 	emptyText,
 	poll,
 	showCount = false,
+	leading = null,
 }: ImportSermonListProps) {
 	const queryClient = useQueryClient();
 	const [page, setPage] = useState(1);
@@ -312,6 +377,7 @@ function ImportSermonList({
 				}
 			/>
 			<div className="Card-body">
+				{leading}
 				{query.isPending ? (
 					<Loading />
 				) : query.isError ? (
@@ -323,7 +389,9 @@ function ImportSermonList({
 						}
 					/>
 				) : query.data.total === 0 ? (
-					<p className="ImportUpload-empty">{emptyText}</p>
+					leading === null && (
+						<p className="ImportUpload-empty">{emptyText}</p>
+					)
 				) : (
 					<>
 						{query.data.items.map(sermon => (

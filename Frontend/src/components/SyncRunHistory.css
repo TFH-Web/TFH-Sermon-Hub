@@ -1,0 +1,6 @@
+.SyncRunHistory-empty {
+	padding: 24px 0;
+	font-size: 13px;
+	color: var(--cl-on-surface-muted);
+	text-align: center;
+}

@@ -61,6 +61,14 @@ async function importRoutes(
 			);
 		}
 
+		// The Import page reads the saved sync runs on every visit. None have run yet.
+		if (
+			request.method() === 'GET' &&
+			url.pathname === '/api/import/youtube/runs'
+		) {
+			return route.fulfill({ json: [] });
+		}
+
 		if (request.method() !== 'POST') return route.abort();
 		state.posts.push({ path: url.pathname, body: request.postDataJSON() });
 		await state.hold;
@@ -74,7 +82,9 @@ async function importRoutes(
 			return route.fulfill({ status: 201, json: imported });
 		}
 		if (url.pathname === '/api/import/youtube') {
-			return route.fulfill({ json: { queued: false, report: REPORT } });
+			return route.fulfill({
+				json: { queued: false, report: REPORT, runId: 1, state: 'succeeded' },
+			});
 		}
 		const reprocess = url.pathname.match(/^\/api\/sermons\/(\d+)\/reprocess$/);
 		const retried =
