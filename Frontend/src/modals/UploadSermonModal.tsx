@@ -232,17 +232,6 @@ export default function UploadSermonModal({
 					</div>
 				</>
 			)}
-
-			<div className="UploadModal-checkboxes">
-				<label className="UploadModal-checkbox">
-					<input type="checkbox" defaultChecked />
-					Auto-generate transcript via AI
-				</label>
-				<label className="UploadModal-checkbox">
-					<input type="checkbox" defaultChecked />
-					Auto-generate summary and tags via AI
-				</label>
-			</div>
 		</Modal>
 	);
 }

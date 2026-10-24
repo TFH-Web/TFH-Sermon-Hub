@@ -224,25 +224,6 @@ export default function ImportUpload() {
 							onClick={() => setUploadOpen(true)}
 							className="ImportUpload-uploadZone"
 						/>
-						<Card>
-							<CardHeader title="AI Processing Options" />
-							<div className="Card-body">
-								<div className="ImportUpload-checkboxGroup">
-									<label className="ImportUpload-checkbox">
-										<input type="checkbox" defaultChecked />
-										Auto-generate transcript via AI
-									</label>
-									<label className="ImportUpload-checkbox">
-										<input type="checkbox" defaultChecked />
-										Auto-generate summary via AI
-									</label>
-									<label className="ImportUpload-checkbox">
-										<input type="checkbox" defaultChecked />
-										Auto-generate tags via AI
-									</label>
-								</div>
-							</div>
-						</Card>
 					</div>
 
 					<div>
