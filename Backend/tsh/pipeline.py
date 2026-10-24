@@ -34,7 +34,7 @@ def fetch_transcript(sermon: Sermon) -> None:
     The pipeline commits both together. Chunking receives the persisted segments on the sermon.
     """
     # The importer also queues this pipeline, so importing its URL parser here avoids a cycle.
-    from tsh.youtube_import import parse_video_id
+    from tsh.youtube_links import parse_video_id
 
     video_id = sermon.youtube_video_id or parse_video_id(sermon.video_link)
     if not video_id:
