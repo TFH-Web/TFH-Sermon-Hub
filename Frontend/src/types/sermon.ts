@@ -22,6 +22,7 @@ export const Sermon = z.object({
 	tags: Tag.array(),
 	transcript: z.string().nullish(),
 	summary: z.string().nullish(),
+	summarySource: z.enum(['ai', 'manual']).nullish(), // Missing or null means the summary's origin is unknown.
 	speaker: Speaker,
 	series: Series.nullish(),
 	status: Status,

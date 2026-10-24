@@ -11,6 +11,7 @@ import { Card } from '$/components/Card.tsx';
 import ErrorBox from '$/components/ErrorBox.tsx';
 import Loading from '$/components/Loading.tsx';
 import MainLayout from '$/components/MainLayout';
+import SermonSummaryOrigin from '$/components/SermonSummaryOrigin';
 import SermonTag from '$/components/SermonTag';
 import SermonTranscript from '$/components/SermonTranscript';
 import Tag from '$/components/Tag.tsx';
@@ -374,6 +375,11 @@ function SermonDetailContent({
 					<div className="SermonDetail-card-header">
 						<h2 className="SermonDetail-card-title">Summary</h2>
 						<div className="SermonDetail-card-actions">
+							{/* Keep the saved origin visible while viewing or editing. */}
+							<SermonSummaryOrigin
+								summary={sermon.summary}
+								summarySource={sermon.summarySource}
+							/>
 							<Button
 								variant="ghost"
 								className="SermonDetail-regenerate-btn"

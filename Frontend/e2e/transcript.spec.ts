@@ -684,3 +684,71 @@ test('an older record without a stored ID still plays and seeks', async ({
 	await expect(player).toHaveAttribute('data-playing', 'true');
 	expect(page.context().pages()).toHaveLength(1);
 });
+
+// Summary labels follow saved origin metadata, including while editing.
+for (const scenario of [
+	{ name: 'AI', source: 'ai', expectedLabels: 1 },
+	{ name: 'manual', source: 'manual', expectedLabels: 0 },
+	{ name: 'unknown', source: null, expectedLabels: 0 },
+	{ name: 'missing', source: undefined, expectedLabels: 0 },
+]) {
+	test(`${scenario.name} summary origin displays truthfully while editing`, async ({
+		page,
+	}) => {
+		await mockVideoPlayer(page);
+		const state = await captionRoutes(page);
+
+		Object.assign(state.sermon, {
+			summary: 'A saved summary about grace.',
+			summarySource: scenario.source,
+		});
+
+		await page.goto('/sermons/1');
+
+		// Scope the check to summaries, excluding unrelated AI tag labels.
+		const summary = page.locator('.SermonDetail-summary');
+		const label = summary.getByText('AI Generated', { exact: true });
+
+		await expect(summary).toContainText('A saved summary about grace.');
+		await expect(label).toHaveCount(scenario.expectedLabels);
+
+		await summary
+			.getByRole('button', { name: 'Edit Summary Manually', exact: true })
+			.click();
+
+		const editor = summary.getByRole('textbox');
+		await expect(editor).toHaveValue('A saved summary about grace.');
+
+		// Unsaved typing must not change the saved origin label.
+		await editor.fill('An unsaved summary edit.');
+		await expect(label).toHaveCount(scenario.expectedLabels);
+
+		// A reload restores the saved content and its original label.
+		await page.reload();
+
+		await expect(summary).toContainText('A saved summary about grace.');
+		await expect(summary).not.toContainText('An unsaved summary edit.');
+		await expect(label).toHaveCount(scenario.expectedLabels);
+	});
+}
+
+test('an empty summary does not display an AI origin label', async ({
+	page,
+}) => {
+	await mockVideoPlayer(page);
+	const state = await captionRoutes(page);
+
+	Object.assign(state.sermon, {
+		summary: '',
+		summarySource: 'ai',
+	});
+
+	await page.goto('/sermons/1');
+
+	const summary = page.locator('.SermonDetail-summary');
+
+	await expect(summary).toContainText('No summary yet.');
+	await expect(summary.getByText('AI Generated', { exact: true })).toHaveCount(
+		0,
+	);
+});
