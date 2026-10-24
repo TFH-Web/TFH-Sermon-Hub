@@ -46,7 +46,7 @@ in {
     "setup:db:up" = {
       inherit cwd;
       # Existing tables can still need migrations; up.py is safe to run again.
-      exec = "./up.py";
+      exec = "./up.py || true";
     };
     "setup:db:populate" = {
       inherit cwd;
@@ -55,7 +55,7 @@ in {
         "devenv:processes:backend"
         "test:backend"
       ];
-      exec = "./populate.py";
+      exec = "./populate.py || true";
       status = ''
         (( $(sqlite3 instance/testing.db ".mode split" "SELECT COUNT(*) FROM sermon") == 6 ))
       '';
