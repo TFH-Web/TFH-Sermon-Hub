@@ -17,8 +17,8 @@ from tsh.database import db
 from tsh.models import Series, Sermon, Speaker, SyncRun, SyncRunState, UploadStatus, utcnow
 from tsh.pipeline import start_processing
 from tsh.queue import JOB_TIMEOUT, enqueue
-from tsh.youtube_links import VIDEO_ID, parse_video_id  # noqa: F401
 from tsh.youtube_titles import ParsedTitle, parse_title, series_named_in
+
 
 # Every description is this boilerplate plus a few links, so everything from here on is dropped.
 BOILERPLATE_START = "broadcasted live from"
