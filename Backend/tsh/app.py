@@ -25,6 +25,9 @@ def create_app(
     if kwargs:
         app.config.update(kwargs)
 
+    from tsh.auth import init_auth
+    init_auth(app)
+
     # The one place REDIS_URL is read. Config wins over the environment, so tests can force inline jobs.
     app.config.setdefault("REDIS_URL", os.environ.get("REDIS_URL", ""))
 
@@ -84,6 +87,8 @@ def create_app(
     app.cli.add_command(import_youtube_command)
     from tsh.caption_backfill import backfill_captions_command
     app.cli.add_command(backfill_captions_command)
+    from tsh.pipeline import reembed_command
+    app.cli.add_command(reembed_command)
 
     return app
 

@@ -38,7 +38,7 @@ export default function SermonImportItem({ sermon }: { sermon: Sermon }) {
 			<div className="ImportItem-action">
 				<StatusBadge status={sermon.status} />
 				{/* The reprocess endpoint is Admin only, as with "Refresh captions" on the sermon page. */}
-				{failed && user.role === 'Admin' && <RetryButton sermon={sermon} />}
+				{failed && user?.role === 'Admin' && <RetryButton sermon={sermon} />}
 			</div>
 		</div>
 	);

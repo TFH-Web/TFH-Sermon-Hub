@@ -9,6 +9,7 @@ from tsh.models import (
     SermonChunkEmbedding,
     SermonSummarySource,
     Speaker,
+    SyncRunState,
     Tag,
     TagSource,
     UploadStatus,
@@ -206,3 +207,25 @@ class SermonChunkEmbeddingSchema(CamelCaseSchema):
 
 sermon_chunk_embedding_schema = SermonChunkEmbeddingSchema()
 sermon_chunk_embeddings_schema = SermonChunkEmbeddingSchema(many=True)
+
+
+class SyncRunSchema(CamelCaseSchema):
+    id = id_field()
+    date_from = fields.Date(allow_none=True)
+    date_to = fields.Date(allow_none=True)
+    state = fields.Enum(SyncRunState, by_value=True)
+    created_at = fields.DateTime()
+    started_at = fields.DateTime(allow_none=True)
+    finished_at = fields.DateTime(allow_none=True)
+    series_created = fields.Integer(allow_none=True)
+    sermons_created = fields.Integer(allow_none=True)
+    sermons_updated = fields.Integer(allow_none=True)
+    sermons_unchanged = fields.Integer(allow_none=True)
+    # Kept in ImportReport's snake_case keys, the shape the Import page already reads from a sync.
+    report = fields.Dict(allow_none=True)
+    error = fields.String(allow_none=True)
+
+
+sync_run_schema = SyncRunSchema()
+# A list of runs leaves out each report, whose skipped lists can run to hundreds of entries; the counts are enough there.
+sync_runs_schema = SyncRunSchema(many=True, exclude=("report",))

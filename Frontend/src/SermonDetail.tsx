@@ -16,6 +16,7 @@ import SermonTag from '$/components/SermonTag';
 import SermonTranscript from '$/components/SermonTranscript';
 import Tag from '$/components/Tag.tsx';
 import { useToast } from '$/components/ToastContext.tsx';
+import { useIsAdmin } from '$/lib/auth';
 import { formatCalendarDate } from '$/lib/date';
 import { parseSourceTimestamp } from '$/lib/sourceTimestamp';
 import { buildYouTubeWatchUrl, resolveYouTubeVideoId } from '$/lib/youtube';
@@ -57,6 +58,7 @@ function SermonDetailContent({
 }: {
 	sourceTimestamp: number | null;
 }) {
+	const isAdmin = useIsAdmin();
 	const { showToast } = useToast(); // let's up pop up a little message at the corner of the screen
 
 	const { id } = useParams(); // reads the number of the web address, so /sermons/5 gives us 5
@@ -116,11 +118,11 @@ function SermonDetailContent({
 		if (isRegenerating) return;
 		setIsRegenerating(true);
 		try {
-			await axios.patch(`/api/sermons/${id}`, Object.fromEntries(formData.entries()));
-			showToast(
-				'Updating summary. It may take a moment to appear.',
-				'info',
+			await axios.patch(
+				`/api/sermons/${id}`,
+				Object.fromEntries(formData.entries()),
 			);
+			showToast('Updating summary. It may take a moment to appear.', 'info');
 			await query.refetch();
 		} catch (error) {
 			// The server sends a readable message for the cases people can act on, like the job queue being down.
@@ -372,12 +374,14 @@ function SermonDetailContent({
 								)}
 								<Button
 									variant="secondary"
+									disabled={!isAdmin}
 									onClick={() => setEditSermonOpen(true)}
 								>
 									Edit
 								</Button>
 								<Button
 									variant="danger"
+									disabled={!isAdmin}
 									onClick={() => setDeleteSermonOpen(true)}
 								>
 									Delete
@@ -403,7 +407,7 @@ function SermonDetailContent({
 								variant="ghost"
 								className="SermonDetail-regenerate-btn"
 								onClick={regenerateSummary}
-								disabled={isRegenerating}
+								disabled={!isAdmin || isRegenerating}
 							>
 								{isRegenerating ? 'Regenerating...' : 'Regenerate with AI'}
 							</Button>
@@ -457,9 +461,8 @@ function SermonDetailContent({
 								<Button
 									variant="secondary"
 									className="SermonDetail-summary-btn"
-									onClick={() => {
-										setIsEditingSummary(false);
-									}}
+									disabled={!isAdmin}
+									onClick={() => setIsEditingSummary(false)}
 								>
 									Cancel
 								</Button>
@@ -468,9 +471,8 @@ function SermonDetailContent({
 							<Button
 								variant="secondary"
 								className="SermonDetail-summary-btn"
-								onClick={() => {
-									setIsEditingSummary(true);
-								}}
+								disabled={!isAdmin}
+								onClick={() => setIsEditingSummary(true)}
 							>
 								Edit Summary Manually
 							</Button>

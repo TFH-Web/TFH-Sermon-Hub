@@ -12,11 +12,13 @@ import Tag from '$/components/Tag';
 import { useToast } from '$/components/ToastContext';
 import AddTagModal from '$/modals/AddTagModal';
 import './TagsAndMetadata.css';
+import { useIsAdmin } from '$/lib/auth';
 import { type CountedTag, PaginatedTags } from '$/types/tag';
 
 const PAGE_SIZE = 5;
 
 export default function TagsAndMetadata() {
+	const isAdmin = useIsAdmin();
 	const { showToast } = useToast();
 	const [page, setPage] = useState<number>(1);
 
@@ -86,6 +88,7 @@ export default function TagsAndMetadata() {
 					className="Header-addTag u-button"
 					type="button"
 					onClick={() => setAddTagOpen(true)}
+					disabled={!isAdmin}
 				>
 					+ Add Tag
 				</button>
@@ -129,6 +132,7 @@ export default function TagsAndMetadata() {
 											type="button"
 											className="Users-actionEdit u-button"
 											onClick={() => openEdit(tag)}
+											disabled={!isAdmin}
 										>
 											Edit
 										</button>
@@ -137,6 +141,7 @@ export default function TagsAndMetadata() {
 											type="button"
 											className="Users-actionRemove u-button"
 											onClick={() => openDelete(tag)}
+											disabled={!isAdmin}
 										>
 											Delete
 										</button>
