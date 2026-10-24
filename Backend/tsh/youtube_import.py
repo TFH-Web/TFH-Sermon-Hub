@@ -17,6 +17,7 @@ from tsh.database import db
 from tsh.models import Series, Sermon, Speaker, SyncRun, SyncRunState, UploadStatus, utcnow
 from tsh.pipeline import start_processing
 from tsh.queue import JOB_TIMEOUT, enqueue
+from tsh.youtube_links import VIDEO_ID, parse_video_id  # noqa: F401
 from tsh.youtube_titles import ParsedTitle, parse_title, series_named_in
 
 # Every description is this boilerplate plus a few links, so everything from here on is dropped.
@@ -24,18 +25,11 @@ BOILERPLATE_START = "broadcasted live from"
 DURATION_RE = re.compile(r"^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$")
 # YouTube's own titles for playlist entries whose video is gone or hidden.
 HIDDEN_TITLES = {"Private video", "Deleted video"}
-VIDEO_ID = r"[A-Za-z0-9_-]{11}"
 # A running sync past this age has outlived RQ's timeout, so its worker is gone. The margin covers a slow start.
 STALE_SYNC_AFTER = timedelta(seconds=JOB_TIMEOUT) + timedelta(minutes=5)
 # A queued sync shares the "sermons" queue and can wait behind many 15 minute sermon jobs after a big
 # import, so it is only treated as lost (for example Redis was flushed) after much longer.
 STALE_QUEUED_SYNC_AFTER = timedelta(hours=24)
-# youtube.com/watch?v=ID, youtu.be/ID and youtube.com/shorts/ID, with or without www., m. and extra params.
-VIDEO_URL_PATTERNS = [
-    re.compile(rf"^https?://(?:www\.|m\.)?youtube\.com/watch\?(?:.*&)?v=({VIDEO_ID})(?:[&#].*)?$"),
-    re.compile(rf"^https?://youtu\.be/({VIDEO_ID})(?:[?#].*)?$"),
-    re.compile(rf"^https?://(?:www\.|m\.)?youtube\.com/shorts/({VIDEO_ID})(?:[?#/].*)?$"),
-]
 
 
 class VideoImportError(Exception):
@@ -259,15 +253,6 @@ def run_sync(run_id: int) -> None:
     run.sermons_unchanged = report.sermons_unchanged
     run.finished_at = utcnow()
     db.session.commit()
-
-
-def parse_video_id(url: str) -> str | None:
-    """Return the video id from a youtube.com/watch?v=, youtu.be/ or youtube.com/shorts/ URL, or None if it is not one."""
-    for pattern in VIDEO_URL_PATTERNS:
-        match = pattern.match(url.strip())
-        if match:
-            return match.group(1)
-    return None
 
 
 def import_video(video_id: str) -> tuple[Sermon, bool]:

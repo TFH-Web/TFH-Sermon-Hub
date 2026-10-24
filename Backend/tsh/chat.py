@@ -8,6 +8,7 @@ from marshmallow import Schema, ValidationError, fields, validate, validates_sch
 
 from tsh import llm, retrieval
 from tsh.retrieval import RetrievedChunk
+from tsh.youtube_links import source_url
 
 # Request limits. They keep one request's prompt, and so its cost and latency, bounded.
 MAX_REQUEST_BYTES = 32 * 1024
@@ -254,7 +255,7 @@ def source_for(number: int, chunk: RetrievedChunk) -> dict:
         "youtube_video_id": chunk.youtube_video_id,
         "start_sec": chunk.start_sec,
         "end_sec": chunk.end_sec,
-        "url": f"https://www.youtube.com/watch?v={chunk.youtube_video_id}&t={int(chunk.start_sec)}s",
+        "url": source_url(chunk.youtube_video_id, chunk.start_sec),
     }
 
 

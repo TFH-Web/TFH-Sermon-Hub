@@ -29,6 +29,7 @@ from tsh.pagination import paginate
 from tsh.pipeline import regenerate_summary, start_processing
 from tsh.queue import enqueue
 from tsh.youtube_import import VideoImportError, active_sync_run, import_video, parse_video_id, start_sync
+from tsh.youtube_links import InvalidVideoLink, resolve_video
 from tsh.schemas import (
     counted_speakers_schema,
     counted_tags_schema,
@@ -239,7 +240,26 @@ def get_sermons():
 
     return pagination
 
-                                                                                # Post Sermon
+
+def invalid_video_response(error: InvalidVideoLink):
+    """The 400 sent when a sermon's video link or id is not a safe YouTube video."""
+    return jsonify({"error": "Invalid video link", "message": str(error)}), 400
+
+
+def video_in_use(video_id: str, sermon_id: int | None = None):
+    """The 409 to send if another sermon already has this YouTube video id, else None."""
+    query = db.select(Sermon.id).where(Sermon.youtube_video_id == video_id)
+    if sermon_id is not None:
+        query = query.where(Sermon.id != sermon_id)
+    if db.session.scalar(query) is None:
+        return None
+    message = "Another sermon already uses this YouTube video"
+    return jsonify({"error": "Video already used", "message": message}), 409
+
+
+# Post Sermon
+
+
 @api.post("/sermons")
 @require_role("Admin")
 def create_sermon():
@@ -248,6 +268,16 @@ def create_sermon():
 
     if not isinstance(payload, dict):
         return jsonify({"message": "Validation failed", "errors": {"_schema": ["A JSON object is required"]}}), 422
+
+    # One strict link rule for create, edit and import. Checked before anything else, so a bad link saves nothing.
+    video = None
+    if "videoLink" in payload or "youtubeVideoId" in payload:
+        try:
+            video = resolve_video(payload.get("videoLink"), payload.get("youtubeVideoId"))
+        except InvalidVideoLink as e:
+            return invalid_video_response(e)
+        if (taken := video_in_use(video[1])) is not None:
+            return taken
 
     # Require references to existing records
     errors = {}
@@ -312,6 +342,9 @@ def create_sermon():
     normalized.pop("tags", None)
 
     normalized["status"] = "draft"
+    if video:
+        # The saved link is always the canonical one built from the id, never the text that was sent.
+        normalized["videoLink"], normalized["youtubeVideoId"] = video
 
     try:
         sermon = sermon_schema.load(normalized)
@@ -348,6 +381,16 @@ def update_sermon(id: int):
     # Ensure the request contains a JSON object
     if not isinstance(payload, dict):
         return jsonify({"message": "Validation failed","errors": {"_schema": ["A JSON object is required"]},}), 422
+
+    # Same link rule as create. Checked before any field is changed, so a bad link leaves the sermon as it was.
+    video = None
+    if "videoLink" in payload or "youtubeVideoId" in payload:
+        try:
+            video = resolve_video(payload.get("videoLink"), payload.get("youtubeVideoId"))
+        except InvalidVideoLink as e:
+            return invalid_video_response(e)
+        if (taken := video_in_use(video[1], sermon.id)) is not None:
+            return taken
 
     errors = {}
 
@@ -413,7 +456,7 @@ def update_sermon(id: int):
     # Remove relationship fields before validating regular sermon fields
     # Marshmallow validates dates, status, and other schema-defined fields.
     scalar_data = dict(payload)
-    for key in ("speaker", "speakers", "series", "tags", "id"):
+    for key in ("speaker", "speakers", "series", "tags", "id", "videoLink", "youtubeVideoId"):
         scalar_data.pop(key, None)
 
     try:
@@ -434,6 +477,9 @@ def update_sermon(id: int):
     sermon.speaker = speaker
     sermon.series = series
     sermon.tags = tags
+
+    if video:
+        sermon.video_link, sermon.youtube_video_id = video
 
     try:
         db.session.commit()
