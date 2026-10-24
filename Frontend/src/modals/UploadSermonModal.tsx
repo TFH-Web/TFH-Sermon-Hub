@@ -1,7 +1,6 @@
-// Import one sermon from a YouTube link and show what the import filled in.
+// Import one sermon from a YouTube link and show what was imported.
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import clsx from 'clsx';
 import { type FormEvent, useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './UploadSermonModal.css';
@@ -20,18 +19,7 @@ interface UploadSermonModalProps {
 	onClose: () => void;
 }
 
-const BLANK = { title: '', speaker: '', series: '', date: '', description: '' };
-type Details = typeof BLANK;
-
-const SPEAKERS = ['Dave Patterson', 'Guest Speaker'];
-const SERIES = ['Live Your Best Life', 'Hope Rising', 'Together', 'Fearless'];
-
-// An imported speaker or series is usually not one of the listed names, so add it for the select to show.
-function withSelected(names: string[], selected: string): string[] {
-	return !selected || names.includes(selected) ? names : [...names, selected];
-}
-
-/** Validate a pasted YouTube link, send it to the import endpoint and fill the form from the imported sermon. */
+/** Validate a pasted YouTube link, send it to the import endpoint and show the imported sermon as a read-only preview. */
 export default function UploadSermonModal({
 	isOpen,
 	onClose,
@@ -43,31 +31,17 @@ export default function UploadSermonModal({
 	const formId = useId();
 	const [url, setUrl] = useState('');
 	const [error, setError] = useState('');
-	const [details, setDetails] = useState<Details>(BLANK);
 	const [imported, setImported] = useState<Sermon | null>(null);
-	// Closing does not cancel a running import, so its callbacks read this to know if the modal is still showing.
-	const openRef = useRef(isOpen);
+	// Closing does not cancel a running import. This counts how many times the dialog has been closed, and each
+	// import remembers the count it started at, so one that ends after a close does not fill in a dialog opened since.
+	const closedCount = useRef(0);
 	useEffect(() => {
-		openRef.current = isOpen;
+		if (!isOpen) closedCount.current += 1;
 	}, [isOpen]);
 
-	// TODO: there is no update endpoint for sermons yet (e.g. PATCH /api/sermons/<id>), so edits made after
-	// an import could not be saved. Until it exists the fields are locked once the import has filled them in.
-	const locked = imported !== null;
-	// The import endpoint only takes the link, so anything typed before importing is not sent
-	// and is replaced here by the details from the video.
-	const shown: Details = imported
-		? {
-				title: imported.title,
-				speaker: getFullName(imported.speaker),
-				series: imported.series?.title ?? '',
-				date: imported.date.toISOString().slice(0, 10),
-				description: imported.description,
-			}
-		: details;
-
 	const importVideo = useMutation({
-		mutationFn: async (link: string) => {
+		mutationFn: async ({ link }: { link: string; closedAt: number }) => {
+			// The import endpoint only takes the link.
 			const response = await axios.post('/api/import/youtube/video', {
 				url: link,
 			});
@@ -77,7 +51,7 @@ export default function UploadSermonModal({
 				created: response.status === 201,
 			};
 		},
-		onSuccess: ({ sermon, created }) => {
+		onSuccess: ({ sermon, created }, { closedAt }) => {
 			if (!created) {
 				showToast(`"${sermon.title}" was already imported.`, 'info');
 			} else if (sermon.status === 'Failed') {
@@ -95,14 +69,14 @@ export default function UploadSermonModal({
 			}
 
 			invalidateSermonData(queryClient);
-			if (openRef.current) setImported(sermon);
+			if (closedAt === closedCount.current) setImported(sermon);
 		},
-		onError: failure => {
+		onError: (failure, { closedAt }) => {
 			const message =
 				axios.isAxiosError(failure) && failure.response?.status === 403
 					? 'Only admins can import sermons.'
 					: apiErrorMessage(failure, 'Could not import the video. Try again.');
-			if (openRef.current) {
+			if (closedAt === closedCount.current) {
 				setError(message);
 			} else {
 				showToast(message, 'error');
@@ -110,29 +84,29 @@ export default function UploadSermonModal({
 		},
 	});
 
-	function edit(field: keyof Details, value: string) {
-		setDetails(previous => ({ ...previous, [field]: value }));
-	}
-
 	function handleClose() {
 		setUrl('');
 		setError('');
-		setDetails(BLANK);
 		setImported(null);
+		// The import carries on, but a reopened dialog should not show it as still running.
+		importVideo.reset();
 		onClose();
 	}
 
 	function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		// Enter in the field submits too, so a disabled button alone does not stop a second request.
-		if (importVideo.isPending || locked) return;
+		if (importVideo.isPending || imported) return;
 
 		const message = youtubeLinkError(url);
 		if (message) {
 			setError(message);
 			return;
 		}
-		importVideo.mutate(normalizeYouTubeUrl(url));
+		importVideo.mutate({
+			link: normalizeYouTubeUrl(url),
+			closedAt: closedCount.current,
+		});
 	}
 
 	return (
@@ -188,7 +162,7 @@ export default function UploadSermonModal({
 						aria-invalid={!!error}
 						placeholder="https://www.youtube.com/watch?v=..."
 						value={url}
-						disabled={importVideo.isPending || locked}
+						disabled={importVideo.isPending || imported !== null}
 						onChange={e => {
 							setUrl(e.target.value);
 							if (error) setError('');
@@ -197,76 +171,67 @@ export default function UploadSermonModal({
 				</FormField>
 			</form>
 
-			<hr
-				style={{
-					border: 'none',
-					borderTop: '1px solid var(--cl-outline)',
-					margin: '20px 0',
-				}}
-			/>
-
-			<div
-				className={clsx(
-					'UploadModal-details',
-					locked && 'UploadModal-details--locked',
-				)}
-			>
-				<FormRow>
-					<FormField label="Sermon Title">
-						<input
-							type="text"
-							placeholder="Enter sermon title"
-							value={shown.title}
-							readOnly={locked}
-							onChange={e => edit('title', e.target.value)}
-						/>
-					</FormField>
-					<FormField label="Speaker">
-						<select
-							value={shown.speaker}
-							disabled={locked}
-							onChange={e => edit('speaker', e.target.value)}
-						>
-							<option value="">Select speaker</option>
-							{withSelected(SPEAKERS, shown.speaker).map(name => (
-								<option key={name}>{name}</option>
-							))}
-						</select>
-					</FormField>
-				</FormRow>
-
-				<FormRow>
-					<FormField label="Series">
-						<select
-							value={shown.series}
-							disabled={locked}
-							onChange={e => edit('series', e.target.value)}
-						>
-							<option value="">{locked ? 'No series' : 'Select series'}</option>
-							{withSelected(SERIES, shown.series).map(title => (
-								<option key={title}>{title}</option>
-							))}
-						</select>
-					</FormField>
-					<FormField label="Date">
-						<input
-							type="date"
-							value={shown.date}
-							readOnly={locked}
-							onChange={e => edit('date', e.target.value)}
-						/>
-					</FormField>
-				</FormRow>
-
-				<FormField label="Description">
-					<textarea
-						placeholder="Enter a short description"
-						value={shown.description}
-						readOnly={locked}
-						onChange={e => edit('description', e.target.value)}
+			{/* What the import filled in, for the admin to check. Changes are made on the sermon's own page. */}
+			{imported && (
+				<>
+					<hr
+						style={{
+							border: 'none',
+							borderTop: '1px solid var(--cl-outline)',
+							margin: '20px 0',
+						}}
 					/>
-				</FormField>
-			</div>
+
+					<div className="UploadModal-preview">
+						<FormRow>
+							<FormField label="Sermon Title">
+								<input
+									type="text"
+									aria-label="Sermon title"
+									value={imported.title}
+									readOnly
+								/>
+							</FormField>
+							<FormField label="Speaker">
+								<input
+									type="text"
+									aria-label="Speaker"
+									value={getFullName(imported.speaker)}
+									readOnly
+								/>
+							</FormField>
+						</FormRow>
+
+						<FormRow>
+							<FormField label="Series">
+								<input
+									type="text"
+									aria-label="Series"
+									value={imported.series?.title ?? 'No series'}
+									readOnly
+								/>
+							</FormField>
+							<FormField label="Date">
+								{/* A sermon's date has no time and is read as midnight UTC, so take the day from the UTC string. */}
+								<input
+									type="date"
+									aria-label="Date"
+									value={imported.date.toISOString().slice(0, 10)}
+									readOnly
+								/>
+							</FormField>
+						</FormRow>
+
+						<FormField label="Description">
+							<textarea
+								aria-label="Description"
+								value={imported.description}
+								readOnly
+							/>
+						</FormField>
+					</div>
+				</>
+			)}
 
 			<div className="UploadModal-checkboxes">
 				<label className="UploadModal-checkbox">

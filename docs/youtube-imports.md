@@ -49,10 +49,10 @@ Three kinds of link are accepted, with or without `https://`:
 - `youtu.be/...`
 - `youtube.com/shorts/...`
 
-Anything else is rejected under the field before a request is sent. After the
-import, the modal fills in Sermon Title, Speaker, Series, Date and Description
-from the video. Those fields are read-only for now: there is no endpoint to
-update a sermon, so edits could not be saved.
+Anything else is rejected under the field before a request is sent. Only the link
+is sent. After the import, the modal shows Sermon Title, Speaker, Series, Date and
+Description from the video as a read-only preview of what was saved, and Open
+sermon goes to the sermon's own page.
 
 The import is refused, with the reason shown under the link, when the video is
 private, deleted or missing, is still streaming, or is longer than

@@ -208,7 +208,7 @@ test('importing shows progress, then fills in the sermon details', async ({
 	await expect(page.locator('.Toast-message')).toContainText(
 		'Imported "Imported from YouTube". Processing started.',
 	);
-	const title = dialog.getByPlaceholder('Enter sermon title');
+	const title = dialog.getByLabel('Sermon title');
 	await expect(title).toHaveValue('Imported from YouTube');
 	await expect(title).not.toBeEditable();
 	await expect(
