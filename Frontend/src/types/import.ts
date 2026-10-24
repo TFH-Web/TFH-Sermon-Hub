@@ -46,6 +46,9 @@ export const SyncResult = z.discriminatedUnion('queued', [
 ]);
 export type SyncResult = z.infer<typeof SyncResult>;
 
+// The 409, 502 and 503 error bodies of POST /api/import/youtube also name the run they are about, next to their message.
+export const SyncStartFailure = z.object({ runId: z.number() });
+
 // A run only moves forward: queued, running, then succeeded or failed.
 export const SyncRunState = z.enum(['queued', 'running', 'succeeded', 'failed']);
 export type SyncRunState = z.infer<typeof SyncRunState>;
@@ -72,13 +75,12 @@ export const SyncRun = z.object({
 });
 export type SyncRun = z.infer<typeof SyncRun>;
 
-// A "Sync from YouTube" run that has ended, for the pop-up that reports it. A run the server saved can be read
-// back by id, but the pop-up still takes the response it was opened from, or why the request failed.
-export interface BulkImport {
-	// The dates that were sent, as YYYY-MM-DD. Empty when that end was left open.
+// The dates a sync was asked for, as YYYY-MM-DD. Empty when that end was left open.
+export interface SyncRange {
 	from: string;
 	to: string;
-	// One of these is set: the response, or why the request failed.
-	result?: SyncResult;
-	error?: string;
 }
+
+// What the "YouTube bulk import" pop-up opens on: a run the server saved, which it reads back by id, or,
+// when the request failed before a run was saved (a bad date, not an admin), why it failed.
+export type BulkImport = { runId: number } | (SyncRange & { error: string });

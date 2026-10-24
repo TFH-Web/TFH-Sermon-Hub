@@ -19,8 +19,14 @@ const COUNTS = [
 	['sermonsUnchanged', 'unchanged'],
 ] as const;
 
+interface SyncRunHistoryProps {
+	runs: SyncRunsResult;
+	// Open a sync's report, or its error, in the pop-up. Clicking a row's title calls it.
+	onOpen: (run: SyncRun) => void;
+}
+
 /** A card listing the finished syncs, with its own loading, error and empty states. Takes the result of useSyncRuns so the page and the card share one poll. */
-export default function SyncRunHistory({ runs }: { runs: SyncRunsResult }) {
+export default function SyncRunHistory({ runs, onOpen }: SyncRunHistoryProps) {
 	const { query, checkNow } = runs;
 	const finished = query.data?.filter(run => !isActiveRun(run)) ?? [];
 
@@ -35,7 +41,9 @@ export default function SyncRunHistory({ runs }: { runs: SyncRunsResult }) {
 				) : finished.length === 0 ? (
 					<p className="SyncRunHistory-empty">No finished syncs yet</p>
 				) : (
-					finished.map(run => <SyncRunItem key={run.id} run={run} />)
+					finished.map(run => (
+						<SyncRunItem key={run.id} run={run} onOpen={onOpen} />
+					))
 				)}
 			</div>
 		</Card>
@@ -43,7 +51,13 @@ export default function SyncRunHistory({ runs }: { runs: SyncRunsResult }) {
 }
 
 /** One finished sync in the list. It uses ImportItem's styles, so it looks like the sermon rows beside it. */
-function SyncRunItem({ run }: { run: SyncRun }) {
+function SyncRunItem({
+	run,
+	onOpen,
+}: {
+	run: SyncRun;
+	onOpen: (run: SyncRun) => void;
+}) {
 	const failed = run.state === 'failed';
 	const details = [`Submitted ${formatTimestamp(run.createdAt)}`];
 	if (run.state === 'succeeded') {
@@ -57,7 +71,14 @@ function SyncRunItem({ run }: { run: SyncRun }) {
 	return (
 		<div className={clsx('ImportItem', failed && 'ImportItem--failed')}>
 			<h4 className="ImportItem-title">
-				{syncTitle(formatDateRange(run.dateFrom ?? '', run.dateTo ?? ''))}
+				{/* A button, not a link: it opens the sync's report in a pop-up, as the sermon rows' titles open the sermon. */}
+				<button
+					type="button"
+					className="SyncRunHistory-title"
+					onClick={() => onOpen(run)}
+				>
+					{syncTitle(formatDateRange(run.dateFrom ?? '', run.dateTo ?? ''))}
+				</button>
 			</h4>
 			<p className="ImportItem-subtitle">{details.join(' • ')}</p>
 			{failed && (

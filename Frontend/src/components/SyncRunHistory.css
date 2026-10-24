@@ -1,3 +1,18 @@
+/* The title is a button that opens the sync's report. Make it look like the sermon rows' title links. */
+.SyncRunHistory-title {
+	padding: 0;
+	font: inherit;
+	color: inherit;
+	text-align: start;
+	cursor: pointer;
+	background: none;
+	border: 0;
+}
+
+.SyncRunHistory-title:hover {
+	text-decoration: underline;
+}
+
 .SyncRunHistory-empty {
 	padding: 24px 0;
 	font-size: 13px;

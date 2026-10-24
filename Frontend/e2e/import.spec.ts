@@ -27,6 +27,25 @@ function sermon(
 	return { ...sermons[0], id, title: `Import ${id}`, status, processingError };
 }
 
+/** A finished sync run, as GET /api/import/youtube/runs/<id> sends it, for the range the sync was asked for. */
+function savedRun(id: number, range: { from?: string; to?: string }) {
+	return {
+		id,
+		dateFrom: range.from ?? null,
+		dateTo: range.to ?? null,
+		state: 'succeeded',
+		createdAt: '2026-10-20T06:49:24.744828',
+		startedAt: '2026-10-20T06:49:24.746437',
+		finishedAt: '2026-10-20T06:49:24.746941',
+		seriesCreated: REPORT.series_created,
+		sermonsCreated: REPORT.sermons_created,
+		sermonsUpdated: REPORT.sermons_updated,
+		sermonsUnchanged: REPORT.sermons_unchanged,
+		report: REPORT,
+		error: null,
+	};
+}
+
 /** Serve the import endpoints from a list of sermons the test can change, and record what the page posts. */
 async function importRoutes(
 	page: Page,
@@ -34,6 +53,8 @@ async function importRoutes(
 ) {
 	const state = {
 		sermons: initial,
+		// The sync runs the server has saved, oldest first. POST /api/import/youtube adds one.
+		runs: [] as ReturnType<typeof savedRun>[],
 		posts: [] as { path: string; body: unknown }[],
 		// Makes GET /api/sermons fail, as if the server were down.
 		broken: false,
@@ -61,12 +82,24 @@ async function importRoutes(
 			);
 		}
 
-		// The Import page reads the saved sync runs on every visit. None have run yet.
+		// The Import page reads the saved sync runs on every visit. The list leaves out each report.
 		if (
 			request.method() === 'GET' &&
 			url.pathname === '/api/import/youtube/runs'
 		) {
-			return route.fulfill({ json: [] });
+			return route.fulfill({
+				json: state.runs.map(run => ({ ...run, report: undefined })).reverse(),
+			});
+		}
+		const runPath = url.pathname.match(/^\/api\/import\/youtube\/runs\/(\d+)$/);
+		if (request.method() === 'GET' && runPath) {
+			const run = state.runs.find(r => r.id === Number(runPath[1]));
+			return run
+				? route.fulfill({ json: run })
+				: route.fulfill({
+						status: 404,
+						json: { error: 'Sync run not found', message: 'Sync run not found' },
+					});
 		}
 
 		if (request.method() !== 'POST') return route.abort();
@@ -82,8 +115,16 @@ async function importRoutes(
 			return route.fulfill({ status: 201, json: imported });
 		}
 		if (url.pathname === '/api/import/youtube') {
+			// As without a job queue: the sync has already finished by the time this answers.
+			const run = savedRun(state.runs.length + 1, request.postDataJSON() ?? {});
+			state.runs.push(run);
 			return route.fulfill({
-				json: { queued: false, report: REPORT, runId: 1, state: 'succeeded' },
+				json: {
+					queued: false,
+					report: REPORT,
+					runId: run.id,
+					state: 'succeeded',
+				},
 			});
 		}
 		const reprocess = url.pathname.match(/^\/api\/sermons\/(\d+)\/reprocess$/);

@@ -15,6 +15,21 @@
 	margin: 0;
 }
 
+/* Shown while the sync is going, with a Check status button once polling has stopped. */
+.BulkImportModal-waiting {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	justify-content: space-between;
+	margin: 16px 0 0;
+	font-size: 13px;
+	color: var(--cl-on-surface-muted);
+}
+
+.BulkImportModal-waiting p {
+	margin: 0;
+}
+
 .BulkImportModal-error {
 	margin: 16px 0 0;
 	font-size: 13px;

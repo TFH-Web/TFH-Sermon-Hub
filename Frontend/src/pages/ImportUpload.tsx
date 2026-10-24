@@ -29,7 +29,12 @@ import { formatDateRange } from '$/lib/date';
 import { isActiveRun } from '$/lib/syncRuns';
 import BulkImportModal from '$/modals/BulkImportModal';
 import UploadSermonModal from '$/modals/UploadSermonModal';
-import { type BulkImport, SyncResult } from '$/types/import';
+import {
+	type BulkImport,
+	type SyncRange,
+	SyncResult,
+	SyncStartFailure,
+} from '$/types/import';
 import type { Status } from '$/types/sermon';
 
 const tabs = ['Upload New', 'Bulk Import', 'Import History', 'Failed Imports'];
@@ -52,8 +57,10 @@ export default function ImportUpload() {
 	const [dateFrom, setDateFrom] = useState('');
 	const [dateTo, setDateTo] = useState('');
 	const [dateError, setDateError] = useState('');
-	// The sync that just ended, shown in a pop-up until it is closed.
-	const [finishedRun, setFinishedRun] = useState<BulkImport | null>(null);
+	// The sync whose report or error is showing in the pop-up, until it is closed.
+	const [openRun, setOpenRun] = useState<BulkImport | null>(null);
+	// The sync this page has seen going, so its end is reported once. See the effect below.
+	const watchedRunId = useRef<number | null>(null);
 	// A sync can outlast this page, so its callbacks read this to know if the page is still there to show the outcome.
 	const mountedRef = useRef(true);
 	useEffect(() => {
@@ -75,7 +82,7 @@ export default function ImportUpload() {
 	}, [processing, queryClient]);
 
 	const sync = useMutation({
-		mutationFn: async (range: Pick<BulkImport, 'from' | 'to'>) => {
+		mutationFn: async (range: SyncRange) => {
 			// Only the dates that were filled in are sent. With neither, the whole channel is synced.
 			const response = await axios.post('/api/import/youtube', {
 				from: range.from || undefined,
@@ -83,7 +90,9 @@ export default function ImportUpload() {
 			});
 			return SyncResult.parse(response.data);
 		},
-		onSuccess: async (result, range) => {
+		onSuccess: async result => {
+			// A sync that finished inside the request is reported here, not by the effect below.
+			if (!result.queued) watchedRunId.current = null;
 			// Every outcome saved a run. Waiting for the list keeps the button locked until a queued run shows as active.
 			await queryClient.invalidateQueries({ queryKey: [SYNC_RUNS_KEY] });
 			if (result.queued) {
@@ -93,7 +102,7 @@ export default function ImportUpload() {
 			}
 			invalidateSermonData(queryClient);
 			if (mountedRef.current) {
-				setFinishedRun({ ...range, result });
+				setOpenRun({ runId: result.runId });
 			} else {
 				// The page is gone, so there is nowhere to pop the result up. Say it in a toast instead.
 				const { report } = result;
@@ -115,10 +124,17 @@ export default function ImportUpload() {
 				return;
 			}
 			const error = syncErrorMessage(failure);
-			if (mountedRef.current) {
-				setFinishedRun({ ...range, error });
-			} else {
+			// A sync that failed after the server saved it names its run. The pop-up reads that run, which says why it failed.
+			const saved = SyncStartFailure.safeParse(
+				axios.isAxiosError(failure) ? failure.response?.data : undefined,
+			);
+			if (saved.success) watchedRunId.current = null;
+			if (!mountedRef.current) {
 				showToast(error, 'error');
+			} else if (saved.success) {
+				setOpenRun({ runId: saved.data.runId });
+			} else {
+				setOpenRun({ ...range, error });
 			}
 		},
 	});
@@ -134,6 +150,25 @@ export default function ImportUpload() {
 	} else if (activeRun) {
 		syncLabel = 'Sync queued…';
 	}
+
+	// A sync this page has seen going is reported once, when it ends: its report or error pops up, and the lists it
+	// changed are refetched. One that was already over when the page loaded is not, since it is in Sync History.
+	useEffect(() => {
+		const list = runs.query.data;
+		if (!list) return;
+		const going = list.find(isActiveRun);
+		if (going) {
+			watchedRunId.current = going.id;
+			return;
+		}
+		const watched = watchedRunId.current;
+		if (watched === null) return;
+		watchedRunId.current = null;
+		if (list.some(run => run.id === watched)) {
+			invalidateSermonData(queryClient);
+			setOpenRun({ runId: watched });
+		}
+	}, [runs.query.data, queryClient]);
 
 	// A sync that is going is an active import, so it leads the Active Imports list.
 	let activeSync: ReactNode = null;
@@ -303,7 +338,10 @@ export default function ImportUpload() {
 
 			{activeTab === 'Import History' && (
 				<div className="ImportUpload-grid">
-					<SyncRunHistory runs={runs} />
+					<SyncRunHistory
+						runs={runs}
+						onOpen={run => setOpenRun({ runId: run.id })}
+					/>
 					<ImportSermonList
 						title="Import History"
 						status="Published"
@@ -327,11 +365,11 @@ export default function ImportUpload() {
 				isOpen={uploadOpen}
 				onClose={() => setUploadOpen(false)}
 			/>
-			{finishedRun && (
+			{openRun && (
 				<BulkImportModal
-					run={finishedRun}
+					run={openRun}
 					isOpen
-					onClose={() => setFinishedRun(null)}
+					onClose={() => setOpenRun(null)}
 				/>
 			)}
 		</MainLayout>
