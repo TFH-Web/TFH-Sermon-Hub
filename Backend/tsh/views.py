@@ -1,3 +1,4 @@
+from sys import stderr
 from datetime import date
 
 from flask import Blueprint, current_app, g, jsonify, request
@@ -405,13 +406,23 @@ def update_sermon(id: int):
                     else:
                         tags.append(tag)
 
+    summary = sermon.summary
+    if "summary" in payload:
+        summary_data = payload["summary"]
+
+        if not isinstance(summary_data, str):
+            errors["summary"] = ["Summary must be a string."]
+        else:
+            summary = summary_data
+
+
     if errors:
         return jsonify({"message": "Validation failed","errors": errors,}), 422
 
     # Remove relationship fields before validating regular sermon fields
     # Marshmallow validates dates, status, and other schema-defined fields.
     scalar_data = dict(payload)
-    for key in ("speaker", "speakers", "series", "tags", "id"):
+    for key in ("speaker", "speakers", "series", "tags", "id", "summary"):
         scalar_data.pop(key, None)
 
     try:
@@ -432,6 +443,7 @@ def update_sermon(id: int):
     sermon.speaker = speaker
     sermon.series = series
     sermon.tags = tags
+    sermon.summary = summary
 
     try:
         db.session.commit()
