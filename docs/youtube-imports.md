@@ -81,6 +81,11 @@ and sermons were created, updated or left unchanged, and a list of anything
 skipped or needing attention, such as private videos, videos over the length
 limit, and titles with no recognisable speaker.
 
+If captions cannot be downloaded when the sync ends (quota used up, sign-in
+expired, or captions turned off), the report says so in `caption_pause` and counts the
+sermons left waiting in `caption_deferred`. See
+[YouTube sync runs](youtube-sync-runs.md).
+
 Syncing again is safe. Videos already imported are matched by their YouTube id,
 and only their length, date and link are updated. Titles, descriptions, speakers,
 tags, transcripts and summaries edited by an admin are left alone.
