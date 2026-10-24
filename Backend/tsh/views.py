@@ -240,7 +240,7 @@ def get_sermons():
 
     return pagination
 
-                                                                                
+
 def invalid_video_response(error: InvalidVideoLink):
     """The 400 sent when a sermon's video link or id is not a safe YouTube video."""
     return jsonify({"error": "Invalid video link", "message": str(error)}), 400
@@ -254,10 +254,10 @@ def video_in_use(video_id: str, sermon_id: int | None = None):
     if db.session.scalar(query) is None:
         return None
     message = "Another sermon already uses this YouTube video"
-    return jsonify({"error": "Video already used", "message": message}), 409                                                                         
-                                                                                
-                                                                                
-                                                                                # Post Sermon
+    return jsonify({"error": "Video already used", "message": message}), 409
+
+
+# Post Sermon
 
 
 @api.post("/sermons")
