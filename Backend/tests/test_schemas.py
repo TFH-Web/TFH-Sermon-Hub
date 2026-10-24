@@ -2,7 +2,7 @@ from datetime import date, datetime
 import pytest
 from marshmallow import ValidationError
 
-from tsh.models import Series, Speaker, Tag, TagSource, UploadStatus, Sermon
+from tsh.models import Series, Speaker, Tag, TagSource, UploadStatus, Sermon, SermonSummarySource
 from tsh.schemas import (
     camelcase,
     series_schema,
@@ -261,6 +261,50 @@ def test_sermon_schema_load():
     with pytest.raises(ValidationError) as exc_info:
         sermon_schema.load(data)
     assert "processedAt" in exc_info.value.messages
+
+
+def sermon_data(**overrides):
+    return {
+        "id": 1,
+        "title": "Bold Faith",
+        "videoLink": "https://youtu.be/test",
+        "duration": 2500,
+        "date": "2026-01-19",
+        "description": "A sermon about faith",
+        "tags": [],
+        "speaker": {
+            "id": 1,
+            "firstName": "Dave",
+            "lastName": "Patterson",
+            "role": "Lead Speaker",
+        },
+        "series": None,
+        "status": "Published",
+        "summary": "Test summary",
+        **overrides,
+    }
+
+
+@pytest.mark.parametrize(
+    ("value", "source"),
+    [
+        ("ai", SermonSummarySource.AI),
+        ("manual", SermonSummarySource.MANUAL),
+        (None, None),
+    ],
+)
+def test_sermon_schema_summary_source(value, source):
+    """The summary origin loads from, and dumps back to, "ai", "manual" or null."""
+    sermon = sermon_schema.load(sermon_data(summarySource=value))
+    assert sermon.summary_source == source
+    assert sermon_schema.dump(sermon)["summarySource"] == value
+
+
+@pytest.mark.parametrize("value", ["human", "AI", ""])
+def test_sermon_schema_rejects_unknown_summary_source(value):
+    with pytest.raises(ValidationError) as exc_info:
+        sermon_schema.load(sermon_data(summarySource=value))
+    assert "summarySource" in exc_info.value.messages
 
 
 def test_sermon_schema_load_null_series():
