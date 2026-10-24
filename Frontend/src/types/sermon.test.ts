@@ -42,10 +42,14 @@ describe('Sermon schema', () => {
 		expect(parsed.summarySource).toBe(summarySource);
 	});
 
-	it.each(['human', 'AI', ''])('rejects the summarySource %j', summarySource => {
-		expect(
-			Sermon.safeParse({ ...validSermon, summarySource }).success,
-		).toBe(false);
+	it.each([
+		'human',
+		'AI',
+		'',
+	])('rejects the summarySource %j', summarySource => {
+		expect(Sermon.safeParse({ ...validSermon, summarySource }).success).toBe(
+			false,
+		);
 	});
 
 	it.each(ZONES)('reads a date-only string as the same day in %s', zone => {

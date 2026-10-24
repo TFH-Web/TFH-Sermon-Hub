@@ -2,11 +2,7 @@
 import { cleanup, render } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { makeSermon } from '$/test/makeSermon';
-import {
-	restoreTimeZoneAfterEach,
-	setTimeZone,
-	ZONES,
-} from '$/test/timeZones';
+import { restoreTimeZoneAfterEach, setTimeZone, ZONES } from '$/test/timeZones';
 import RecentSermonsTable from './RecentSermonsTable';
 
 restoreTimeZoneAfterEach();

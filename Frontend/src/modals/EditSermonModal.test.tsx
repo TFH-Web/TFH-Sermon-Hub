@@ -2,11 +2,7 @@
 import { cleanup, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeSermon } from '$/test/makeSermon';
-import {
-	restoreTimeZoneAfterEach,
-	setTimeZone,
-	ZONES,
-} from '$/test/timeZones';
+import { restoreTimeZoneAfterEach, setTimeZone, ZONES } from '$/test/timeZones';
 import EditSermonModal from './EditSermonModal';
 
 vi.mock('$/components/ToastContext', () => ({
@@ -28,9 +24,8 @@ describe('EditSermonModal', () => {
 		);
 
 		// FormField labels are not linked to their inputs, so the field is found by its type.
-		const date = container.querySelector<HTMLInputElement>(
-			'input[type="date"]',
-		);
+		const date =
+			container.querySelector<HTMLInputElement>('input[type="date"]');
 		expect(date?.value).toBe('2026-03-01');
 	});
 });

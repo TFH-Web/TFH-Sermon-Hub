@@ -2,11 +2,7 @@
 import { cleanup, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeSermon } from '$/test/makeSermon';
-import {
-	restoreTimeZoneAfterEach,
-	setTimeZone,
-	ZONES,
-} from '$/test/timeZones';
+import { restoreTimeZoneAfterEach, setTimeZone, ZONES } from '$/test/timeZones';
 import SermonCard from './SermonCard';
 
 // The status icon is not under test, and the real one renders asynchronously.
