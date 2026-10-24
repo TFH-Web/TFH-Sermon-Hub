@@ -1,12 +1,21 @@
 from collections.abc import Sequence
 
 from flask import Flask
+from pytest import MonkeyPatch
 from sqlalchemy.sql import text
 
 from tests.test_chunking import words
 from tsh import pipeline
 from tsh.database import db
-from tsh.models import Series, Sermon, SermonChunk, Speaker, Tag, sermon_tag_m2m
+from tsh.models import (
+    Series,
+    Sermon,
+    SermonChunk,
+    SermonChunkEmbedding,
+    Speaker,
+    Tag,
+    sermon_tag_m2m,
+)
 
 
 def first_sermon() -> Sermon | None:
@@ -42,11 +51,13 @@ def series_for(id: int) -> Series:
     )
 
 
-def embedding_count_for(id: int) -> int:
-    t = text(
-        "SELECT COUNT(*) FROM sermon_chunk_embedding WHERE sermon_chunk_id IN (SELECT id FROM sermon_chunk WHERE sermon_id=:id)"
-    )
-    return db.session.scalar(t, {'id': id})
+def embeddings_for(id: int) -> Sequence[SermonChunkEmbedding]:
+    return db.session.scalars(
+        db.select(SermonChunkEmbedding)
+        .join(SermonChunk, SermonChunk.id == SermonChunkEmbedding.sermon_chunk_id)
+        .where(SermonChunk.sermon_id == id)
+        .order_by(SermonChunk.start.asc())
+    ).all()
 
 
 def test_sermon_deletion_removes_tag_associations_and_orphan_records(app: Flask):
@@ -55,7 +66,7 @@ def test_sermon_deletion_removes_tag_associations_and_orphan_records(app: Flask)
 
     sermon.transcript_segments = [
         {"start": 0.0, "end": 6.0, "text": words(6)},
-        {"start": 1.0, "end": 2.0, "text": "overlapping"},
+        {"start": 6.0, "end": 12.0, "text": words(7)},
     ]
     db.session.commit()
     pipeline.embed_chunks(sermon)
@@ -67,7 +78,7 @@ def test_sermon_deletion_removes_tag_associations_and_orphan_records(app: Flask)
     assert len(tag_associations_for(id)) > 0
     assert speaker_for(id) != None
     assert series_for(id) != None
-    assert embedding_count_for(id) > 0
+    assert len(embeddings_for(id)) > 0
 
     db.session.delete(sermon)
     db.session.commit()
@@ -76,4 +87,41 @@ def test_sermon_deletion_removes_tag_associations_and_orphan_records(app: Flask)
     assert len(tag_associations_for(id)) == 0
     assert speaker_for(id) == None
     assert series_for(id) == None
-    assert embedding_count_for(id) == 0
+    assert len(embeddings_for(id)) == 0
+
+
+def test_sermon_transcript_edits_update_chunks(app: Flask, monkeypatch: MonkeyPatch):
+    monkeypatch.setattr("tsh.embeddings.CHUNK_SIZE_MAX", 2)
+    monkeypatch.setattr("tsh.embeddings.CHUNK_OVERLAP_PERCENT_MIN", 0)
+
+    sermon = first_sermon()
+    assert sermon != None
+
+    sermon.transcript_segments = [
+        {"start": 0.0, "end": 6.0, "text": "a b"},
+        {"start": 6.0, "end": 12.0, "text": "c d e"},
+        {"start": 12.0, "end": 18.0, "text": "f g h"},
+    ]
+    db.session.commit()
+    pipeline.embed_chunks(sermon)
+    db.session.expire_all()
+
+    id = sermon.id
+
+    e1 = [e.sermon_chunk.id for e in embeddings_for(id)]
+
+    sermon.transcript_segments = [
+        {"start": 0.0, "end": 6.0, "text": "b b"},
+        {"start": 6.0, "end": 12.0, "text": "c d g"},
+        {"start": 12.0, "end": 18.0, "text": "h f e"},
+    ]
+    db.session.commit()
+    pipeline.embed_chunks(sermon)
+    db.session.expire_all()
+
+    e2 = [e.sermon_chunk.id for e in embeddings_for(id)]
+
+    assert len(e1) == len(e2) == 5
+    for i, v in enumerate([False, True, False, False, False]):
+        assert (e1[i] == e2[i]) == v
+    assert e1[4] == e2[2]
