@@ -28,8 +28,8 @@ from tsh.models import (
 from tsh.pagination import paginate
 from tsh.pipeline import regenerate_summary, start_processing
 from tsh.queue import enqueue
-from tsh.youtube_import import VideoImportError, active_sync_run, import_video, parse_video_id, start_sync
-from tsh.youtube_links import InvalidVideoLink, resolve_video
+from tsh.youtube_import import VideoImportError, active_sync_run, import_video, start_sync
+from tsh.youtube_links import InvalidVideoLink, parse_video_id, resolve_video
 from tsh.schemas import (
     counted_speakers_schema,
     counted_tags_schema,
