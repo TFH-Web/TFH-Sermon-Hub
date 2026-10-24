@@ -6,10 +6,12 @@ from tsh.models import (
     Series,
     Sermon,
     SermonChunk,
+    SermonChunkEmbedding,
+    SermonSummarySource,
     Speaker,
     Tag,
     TagSource,
-    UploadStatus, SermonChunkEmbedding,
+    UploadStatus,
 )
 
 
@@ -130,8 +132,10 @@ class TranscriptSegmentSchema(CamelCaseSchema):
     end = fields.Float()
     text = fields.String()
 
+
 transcript_segment_schema = TranscriptSegmentSchema()
 transcript_segments_schema = TranscriptSegmentSchema(many=True)
+
 
 class SermonSchema(CamelCaseSchema):
     id = id_field()
@@ -143,6 +147,7 @@ class SermonSchema(CamelCaseSchema):
     tags = fields.Nested(TagSchema(many=True))
     transcript = fields.String(allow_none=True)
     summary = fields.String(allow_none=True)
+    summary_source = fields.Enum(SermonSummarySource, by_value=True, allow_none=True,) # Older summaries may have unknown origin.
     speaker = fields.Nested(SpeakerSchema, required=True)
     series = fields.Nested(SeriesSchema, allow_none=True)
     status = fields.Enum(UploadStatus, required=True, by_value=True)
@@ -169,9 +174,7 @@ class SermonSchema(CamelCaseSchema):
 
 
 sermon_schema = SermonSchema()
-sermons_schema = SermonSchema(
-    many=True, exclude=("transcript", "transcript_segments")
-)
+sermons_schema = SermonSchema(many=True, exclude=("transcript", "transcript_segments"))
 
 
 class SermonChunkSchema(CamelCaseSchema):

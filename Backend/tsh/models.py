@@ -113,6 +113,11 @@ class UploadStatus(Enum):
     FAILED = "Failed"
 
 
+class SermonSummarySource(Enum):
+    AI = "ai"
+    MANUAL = "manual"
+
+
 class Sermon(db.Model):  # ty: ignore[unsupported-base]
     id: Mapped[intpk]
     # YouTube video titles can be up to 100 chars, with room to spare
@@ -127,6 +132,11 @@ class Sermon(db.Model):  # ty: ignore[unsupported-base]
     )
     transcript: Mapped[str | None]
     summary: Mapped[str | None]
+    # Existing sermons and callers may not know the summary's origin.
+    summary_source: Mapped[SermonSummarySource | None] = mapped_column(
+        default=None,
+        kw_only=True,
+    )
     speaker_id: Mapped[int] = mapped_column(
         ForeignKey(Speaker.id, onupdate="CASCADE", ondelete="RESTRICT")
     )

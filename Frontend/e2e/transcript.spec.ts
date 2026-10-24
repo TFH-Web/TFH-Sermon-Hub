@@ -752,3 +752,98 @@ test('an empty summary does not display an AI origin label', async ({
 		0,
 	);
 });
+
+test('cancelling a summary edit preserves saved content and origin', async ({
+	page,
+}) => {
+	await mockVideoPlayer(page);
+	const state = await captionRoutes(page);
+
+	Object.assign(state.sermon, {
+		summary: 'Previously saved AI summary.',
+		summarySource: 'ai',
+	});
+
+	let saveRequests = 0;
+
+	page.on('request', request => {
+		if (
+			new URL(request.url()).pathname === '/api/sermons/1' &&
+			request.method() === 'PATCH'
+		) {
+			saveRequests += 1;
+		}
+	});
+
+	await page.goto('/sermons/1');
+
+	const summary = page.locator('.SermonDetail-summary');
+	const label = summary.getByText('AI Generated', { exact: true });
+
+	await expect(label).toBeVisible();
+
+	await summary
+		.getByRole('button', { name: 'Edit Summary Manually', exact: true })
+		.click();
+
+	await summary.getByRole('textbox').fill('An edit that should be discarded.');
+	await summary.getByRole('button', { name: 'Cancel', exact: true }).click();
+
+	// Cancel must not send a save request or change the saved origin.
+	await expect(summary.getByRole('textbox')).toHaveCount(0);
+	await expect(summary).toContainText('Previously saved AI summary.');
+	await expect(summary).not.toContainText('An edit that should be discarded.');
+	await expect(label).toBeVisible();
+	expect(saveRequests).toBe(0);
+});
+
+test('a failed summary save preserves saved content and origin', async ({
+	page,
+}) => {
+	await mockVideoPlayer(page);
+	const state = await captionRoutes(page);
+
+	Object.assign(state.sermon, {
+		summary: 'Previously saved AI summary.',
+		summarySource: 'ai',
+	});
+
+	// Reject only the save; existing mocked GET requests still work.
+	await page.route('**/api/sermons/1', async route => {
+		if (route.request().method() !== 'PATCH') {
+			await route.fallback();
+			return;
+		}
+
+		await route.fulfill({
+			status: 500,
+			json: { error: 'Test summary save failure' },
+		});
+	});
+
+	await page.goto('/sermons/1');
+
+	const summary = page.locator('.SermonDetail-summary');
+	const label = summary.getByText('AI Generated', { exact: true });
+
+	await summary
+		.getByRole('button', { name: 'Edit Summary Manually', exact: true })
+		.click();
+
+	await summary.getByRole('textbox').fill('An edit that cannot be saved.');
+	await summary.getByRole('button', { name: 'Save', exact: true }).click();
+
+	await expect(
+		page.getByText('Test summary save failure', { exact: true }),
+	).toBeVisible();
+
+	// Failed saves must not replace the saved summary or its label.
+	await expect(summary).toContainText('Previously saved AI summary.');
+	await expect(label).toBeVisible();
+
+	await page.reload();
+
+	await expect(summary).toContainText('Previously saved AI summary.');
+	await expect(summary).not.toContainText('An edit that cannot be saved.');
+	await expect(label).toBeVisible();
+});

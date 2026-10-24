@@ -59,8 +59,6 @@ function SermonDetailContent({
 }) {
 	const { showToast } = useToast(); // let's up pop up a little message at the corner of the screen
 
-	const [_summary, setSummary] = useState<string | null>(null); // Starts as nothing. It only holds text once the user types their own summary.
-
 	const { id } = useParams(); // reads the number of the web address, so /sermons/5 gives us 5
 	const [isEditingSummary, setIsEditingSummary] = useState(false); // Remembers if the summary edit box is open
 	const [editSermonOpen, setEditSermonOpen] = useState(false); //	Remembers if the Edit popup is open
@@ -108,6 +106,27 @@ function SermonDetailContent({
 			const message =
 				(axios.isAxiosError(error) && error.response?.data?.error) ||
 				'Could not regenerate the summary';
+			showToast(message, 'error');
+		} finally {
+			setIsRegenerating(false);
+		}
+	};
+
+	const updateSummary = async (formData: FormData) => {
+		if (isRegenerating) return;
+		setIsRegenerating(true);
+		try {
+			await axios.patch(`/api/sermons/${id}`, Object.fromEntries(formData.entries()));
+			showToast(
+				'Updating summary. It may take a moment to appear.',
+				'info',
+			);
+			await query.refetch();
+		} catch (error) {
+			// The server sends a readable message for the cases people can act on, like the job queue being down.
+			const message =
+				(axios.isAxiosError(error) && error.response?.data?.error) ||
+				'Could not update the summary';
 			showToast(message, 'error');
 		} finally {
 			setIsRegenerating(false);
@@ -391,8 +410,27 @@ function SermonDetailContent({
 						</div>
 					</div>
 					<div className="SermonDetail-summary-container">
-						{/* Same idea as the transcript. Say there is no summary rather than showing an empty panel. */}
-						{summaryParagraphs.length > 0 ? (
+						{isEditingSummary ? (
+							<form
+								id="SermonDetail-summary-form"
+								method="post"
+								onSubmit={async e => {
+									e.preventDefault();
+
+									setIsEditingSummary(false);
+
+									const formData = new FormData(e.target);
+									updateSummary(formData);
+								}}
+							>
+								<textarea
+									name="summary"
+									rows={10}
+									className="SermonDetail-summary-editing"
+									defaultValue={summaryParagraphs.join('\n\n')}
+								/>
+							</form>
+						) : summaryParagraphs.length > 0 ? (
 							summaryParagraphs.map(paragraph => (
 								<p key={paragraph} className="SermonDetail-summary-paragraph">
 									{paragraph}
@@ -403,28 +441,36 @@ function SermonDetailContent({
 								No summary yet. Generate one with AI.
 							</p>
 						)}
+						{/* Same idea as the transcript. Say there is no summary rather than showing an empty panel. */}
 					</div>
 					<div className="SermonDetail-summary-edit-container">
 						{isEditingSummary ? (
-							<div className="SermonDetail-summary-editing">
+							<div>
+								<Button
+									variant="primary"
+									className="SermonDetail-summary-btn"
+									type="submit"
+									form="SermonDetail-summary-form"
+								>
+									Save
+								</Button>
 								<Button
 									variant="secondary"
 									className="SermonDetail-summary-btn"
-									onClick={() => setIsEditingSummary(false)}
+									onClick={() => {
+										setIsEditingSummary(false);
+									}}
 								>
-									Edit Summary Manually
+									Cancel
 								</Button>
-								<textarea
-									className="SermonDetail-summary-textarea"
-									value={_summary ?? sermon.summary ?? ''}
-									onChange={e => setSummary(e.target.value)}
-								/>
 							</div>
 						) : (
 							<Button
 								variant="secondary"
 								className="SermonDetail-summary-btn"
-								onClick={() => setIsEditingSummary(true)}
+								onClick={() => {
+									setIsEditingSummary(true);
+								}}
 							>
 								Edit Summary Manually
 							</Button>
