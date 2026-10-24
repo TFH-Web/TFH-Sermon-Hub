@@ -1,18 +1,16 @@
-from sys import stderr
+# API routes for series, speakers, and sermons
 from datetime import date
+from sys import stderr
 
 from flask import Blueprint, current_app, g, jsonify, request
+from marshmallow import ValidationError
 from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy import false, func
-from sqlalchemy.orm import defer, with_expression
-from tsh.auth import require_role
-
-# API routes for series, speakers, and sermons
-from datetime import date
-from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import defer, with_expression
 
+from tsh.auth import require_role
 from tsh.database import db
 from tsh.models import (
     Series,
@@ -20,13 +18,11 @@ from tsh.models import (
     Speaker,
     Tag,
     UploadStatus,
-    sermon_tag_m2m,
+    sermon_tag_m2m, SermonSummarySource,
 )
 from tsh.pagination import paginate
 from tsh.pipeline import regenerate_summary, start_processing
 from tsh.queue import enqueue
-from tsh.youtube import YouTubeError
-from tsh.youtube_import import VideoImportError, import_channel, import_video, parse_video_id
 from tsh.schemas import (
     counted_speakers_schema,
     counted_tags_schema,
@@ -35,7 +31,13 @@ from tsh.schemas import (
     sermon_schema,
     sermons_schema,
     speaker_schema,
-    tags_schema,
+)
+from tsh.youtube import YouTubeError
+from tsh.youtube_import import (
+    VideoImportError,
+    import_channel,
+    import_video,
+    parse_video_id,
 )
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -51,6 +53,7 @@ def read_page_args() -> tuple[int, int]:
     per_page = request.args.get("per_page", default=DEFAULT_PER_PAGE, type=int)
     per_page = min(max(per_page, 1), MAX_PER_PAGE)
     return page, per_page
+
 
 # TODO: use paginate()
 @api.route("/series")
@@ -73,7 +76,6 @@ def get_all_series():
         )
         .outerjoin(Sermon, Sermon.series_id == Series.id)
         .group_by(Series.id)
-
         # Most recently preached first, empty series at the end.
         # Series.id break ties, so the order never shifts between page requests.
         .order_by(last_sermon_date.desc().nulls_last(), Series.id)
@@ -135,12 +137,14 @@ def get_speakers():
     )
 
     sort_param = request.args.get("sort", "Default").strip().lower()
-    if sort_param == 'a-z':
+    if sort_param == "a-z":
         query = query.order_by(Speaker.first_name.asc(), Speaker.id.asc())
-    elif sort_param == 'z-a':
+    elif sort_param == "z-a":
         query = query.order_by(Speaker.first_name.desc(), Speaker.id.desc())
 
-    pagination = paginate(query, request, counted_speakers_schema, "speakers", max_page_size=30)
+    pagination = paginate(
+        query, request, counted_speakers_schema, "speakers", max_page_size=30
+    )
     if pagination is None:
         speakers = db.session.execute(query).scalars()
         return counted_speakers_schema.dump(speakers)
@@ -238,7 +242,9 @@ def get_sermons():
 
     return pagination
 
-                                                                                # Post Sermon
+    # Post Sermon
+
+
 @api.post("/sermons")
 @require_role("Internal User", "Admin")
 def create_sermon():
@@ -246,24 +252,40 @@ def create_sermon():
     payload = request.get_json(silent=True)
 
     if not isinstance(payload, dict):
-        return jsonify({"message": "Validation failed", "errors": {"_schema": ["A JSON object is required"]}}), 422
+        return jsonify(
+            {
+                "message": "Validation failed",
+                "errors": {"_schema": ["A JSON object is required"]},
+            }
+        ), 422
 
     # Require references to existing records
     errors = {}
     speakers_data = payload.get("speaker", payload.get("speakers"))
     series_data = payload.get("series")
     tag_data = payload.get("tags", [])
-                                                                                # Speaker
-    if not isinstance(speakers_data, dict) or not isinstance(speakers_data.get("id"), int) or isinstance(speakers_data.get("id"), bool):
+    # Speaker
+    if (
+        not isinstance(speakers_data, dict)
+        or not isinstance(speakers_data.get("id"), int)
+        or isinstance(speakers_data.get("id"), bool)
+    ):
         errors["speakers"] = ["A valid speaker ID is required"]
-                                                                                # Series
-    if series_data is not None and (not isinstance(series_data, dict) or not isinstance(series_data.get("id"), int) or isinstance(series_data.get("id"), bool)):
+        # Series
+    if series_data is not None and (
+        not isinstance(series_data, dict)
+        or not isinstance(series_data.get("id"), int)
+        or isinstance(series_data.get("id"), bool)
+    ):
         errors["series"] = ["A valid series ID is required"]
-                                                                                # Tags
+        # Tags
     if not isinstance(tag_data, list):
         errors["tags"] = ["Tags must be a list."]
 
-    elif any(not isinstance(tag, dict) or not isinstance(tag.get("name"), str) for tag in tag_data):
+    elif any(
+        not isinstance(tag, dict) or not isinstance(tag.get("name"), str)
+        for tag in tag_data
+    ):
         errors["tags"] = ["Each tag must contain the name of an existing tag."]
 
     if errors:
@@ -272,16 +294,16 @@ def create_sermon():
     # Resolve relationships without creating new speakers, series, or tags
     speaker = db.session.get(Speaker, speakers_data["id"])
 
-                                                                                # Speaker
+    # Speaker
     if speaker is None:
         errors["speakers"] = ["Speaker not found"]
-                                                                                # Series
+        # Series
     series = None
     if series_data is not None:
         series = db.session.get(Series, series_data["id"])
         if series is None:
             errors["series"] = ["Series not found"]
-                                                                                # Tags
+            # Tags
     tags = []
     tag_names = [tag["name"].strip() for tag in tag_data]
 
@@ -293,7 +315,9 @@ def create_sermon():
 
     else:
         for tag_name in tag_names:
-            tag = db.session.execute(db.select(Tag).filter_by(name=tag_name)).scalar_one_or_none()
+            tag = db.session.execute(
+                db.select(Tag).filter_by(name=tag_name)
+            ).scalar_one_or_none()
             if tag is None:
                 errors.setdefault("tags", []).append(f'Tag "{tag_name}" not found')
             else:
@@ -331,7 +355,9 @@ def create_sermon():
         return jsonify({"message": "Failed to save sermon"}), 500
     return sermon_schema.dump(sermon), 201
 
-                                                                                # PATCH Sermon
+    # PATCH Sermon
+
+
 @api.patch("/sermons/<int:id>")
 @require_role("Admin")
 def update_sermon(id: int):
@@ -346,7 +372,12 @@ def update_sermon(id: int):
 
     # Ensure the request contains a JSON object
     if not isinstance(payload, dict):
-        return jsonify({"message": "Validation failed","errors": {"_schema": ["A JSON object is required"]},}), 422
+        return jsonify(
+            {
+                "message": "Validation failed",
+                "errors": {"_schema": ["A JSON object is required"]},
+            }
+        ), 422
 
     errors = {}
 
@@ -359,7 +390,7 @@ def update_sermon(id: int):
             errors["speaker"] = ["A valid speaker ID is required"]
         else:
             speaker_id = speaker_data.get("id")
-            if (not isinstance(speaker_id, int)or isinstance(speaker_id, bool)):
+            if not isinstance(speaker_id, int) or isinstance(speaker_id, bool):
                 errors["speaker"] = ["A valid speaker ID is required"]
             else:
                 speaker = db.session.get(Speaker, speaker_id)
@@ -373,7 +404,11 @@ def update_sermon(id: int):
 
         if series_data is None:
             series = None
-        elif (not isinstance(series_data, dict)or not isinstance(series_data.get("id"), int)or isinstance(series_data.get("id"), bool)):
+        elif (
+            not isinstance(series_data, dict)
+            or not isinstance(series_data.get("id"), int)
+            or isinstance(series_data.get("id"), bool)
+        ):
             errors["series"] = ["A valid series ID is required, or null"]
         else:
             series = db.session.get(Series, series_data["id"])
@@ -387,7 +422,10 @@ def update_sermon(id: int):
 
         if not isinstance(tag_data, list):
             errors["tags"] = ["Tags must be a list."]
-        elif any(not isinstance(tag, dict)or not isinstance(tag.get("name"), str)for tag in tag_data):
+        elif any(
+            not isinstance(tag, dict) or not isinstance(tag.get("name"), str)
+            for tag in tag_data
+        ):
             errors["tags"] = ["Each tag must contain the name of an existing tag."]
         else:
             tag_names = [tag["name"].strip() for tag in tag_data]
@@ -399,7 +437,9 @@ def update_sermon(id: int):
             else:
                 tags = []
                 for name in tag_names:
-                    tag = db.session.execute(db.select(Tag).filter_by(name=name)).scalar_one_or_none()
+                    tag = db.session.execute(
+                        db.select(Tag).filter_by(name=name)
+                    ).scalar_one_or_none()
 
                     if tag is None:
                         errors.setdefault("tags", []).append(f'Tag "{name}" not found')
@@ -407,22 +447,29 @@ def update_sermon(id: int):
                         tags.append(tag)
 
     summary = sermon.summary
+    summary_source = sermon.summary_source
     if "summary" in payload:
         summary_data = payload["summary"]
 
         if not isinstance(summary_data, str):
             errors["summary"] = ["Summary must be a string."]
         else:
-            summary = summary_data
-
+            summary = summary_data.strip()
+            if summary_source != SermonSummarySource.AI and len(summary) > 0:
+                summary_source = SermonSummarySource.MANUAL
 
     if errors:
-        return jsonify({"message": "Validation failed","errors": errors,}), 422
+        return jsonify(
+            {
+                "message": "Validation failed",
+                "errors": errors,
+            }
+        ), 422
 
     # Remove relationship fields before validating regular sermon fields
     # Marshmallow validates dates, status, and other schema-defined fields.
     scalar_data = dict(payload)
-    for key in ("speaker", "speakers", "series", "tags", "id", "summary"):
+    for key in ("speaker", "speakers", "series", "tags", "id", "summary", "summary_source"):
         scalar_data.pop(key, None)
 
     try:
@@ -434,16 +481,19 @@ def update_sermon(id: int):
                     setattr(sermon, key, getattr(updates, key))
 
     except ValidationError as err:
-        return jsonify({
-            "message": "Validation failed",
-            "errors": err.messages,
-        }), 422
+        return jsonify(
+            {
+                "message": "Validation failed",
+                "errors": err.messages,
+            }
+        ), 422
 
     # Apply the resolved relationships.
     sermon.speaker = speaker
     sermon.series = series
     sermon.tags = tags
     sermon.summary = summary
+    sermon.summary_source = summary_source
 
     try:
         db.session.commit()
@@ -453,7 +503,9 @@ def update_sermon(id: int):
         return jsonify({"message": "Failed to update sermon"}), 500
 
     return sermon_schema.dump(sermon), 200
-                                                                                # DELETE Sermon
+    # DELETE Sermon
+
+
 @api.delete("/sermons/<int:id>")
 @require_role("Admin")
 def delete_sermon(id: int):
@@ -473,6 +525,7 @@ def delete_sermon(id: int):
 
     return "", 204
 
+
 @api.route("/sermons/<int:id>")
 @require_role("Internal User", "Admin")
 def get_sermon(id: int):
@@ -487,7 +540,10 @@ def get_sermon_transcript(id: int):
     """Return saved transcript text and cue times; 401/403 without access, 404 for a missing sermon."""
     sermon = db.get_or_404(Sermon, id, description=f"Sermon with id {id} not found")
     # Keep the cue list out of library responses, which already load many sermons at once.
-    return {"transcript": sermon.transcript, "segments": sermon.transcript_segments or []}
+    return {
+        "transcript": sermon.transcript,
+        "segments": sermon.transcript_segments or [],
+    }
 
 
 @api.post("/sermons/<int:id>/reprocess")
@@ -606,7 +662,7 @@ def import_youtube_video():
     url = body.get("url") if isinstance(body, dict) else None
     video_id = parse_video_id(url) if isinstance(url, str) else None
     if video_id is None:
-        message = "Send a YouTube video URL as {\"url\": \"...\"}, e.g. https://www.youtube.com/watch?v=..."
+        message = 'Send a YouTube video URL as {"url": "..."}, e.g. https://www.youtube.com/watch?v=...'
         return jsonify({"error": message, "message": message}), 400
 
     try:
@@ -623,9 +679,7 @@ def get_tags():
         db.select(Tag)
         .outerjoin(sermon_tag_m2m)
         .group_by(Tag.name)
-        .options(
-            with_expression(Tag.count, func.count(sermon_tag_m2m.c.sermon_id))
-        )
+        .options(with_expression(Tag.count, func.count(sermon_tag_m2m.c.sermon_id)))
         .order_by(Tag.name.asc())
     )
 
@@ -728,5 +782,3 @@ def search():
     filtered.sort(key=lambda item: item["ai_score"], reverse=True)
 
     return filtered
-
-

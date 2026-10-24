@@ -9,7 +9,7 @@ from sqlalchemy.dialects.sqlite import insert
 
 from tsh import captions, embeddings
 from tsh.database import db
-from tsh.models import Sermon, SermonChunk, SermonChunkEmbedding, UploadStatus
+from tsh.models import Sermon, SermonChunk, SermonChunkEmbedding, UploadStatus, SermonSummarySource
 from tsh.queue import enqueue
 from tsh.transcripts import transcript_text
 from tsh.summarize import summarize_transcript
@@ -102,8 +102,10 @@ def summarize_sermon(sermon: Sermon) -> None:
     """
     if not sermon.transcript:
         return
-    sermon.summary = summarize_transcript(sermon.transcript)
-    save_ai_tags(sermon, suggest_tags(sermon.summary))
+    summary = summarize_transcript(sermon.transcript)
+    sermon.summary = summary
+    sermon.summary_source = SermonSummarySource.AI
+    save_ai_tags(sermon, suggest_tags(summary))
 
 
 
