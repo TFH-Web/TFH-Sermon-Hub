@@ -33,6 +33,9 @@ def fetch_transcript(sermon: Sermon) -> None:
 
     The pipeline commits both together. Chunking receives the persisted segments on the sermon.
     """
+    # Captions off: keep what is saved. process_sermon already held back sermons with nothing saved
+    if not captions.captions_enabled():
+        return
     # The importer also queues this pipeline, so importing its URL parser here avoids a cycle.
     from tsh.youtube_import import parse_video_id
 
@@ -292,6 +295,14 @@ def process_sermon(sermon_id: int) -> None:
     sermon.status = UploadStatus.PROCESSING
     sermon.processing_error = None
     db.session.commit()
+
+    # Captions off and nothing saved: there is no transcript to build on, so hold it as a draft.
+    # A sermon that already has a transcript carries on, so saved captions are never thrown away.
+    if not captions.captions_enabled() and not (sermon.transcript or "").strip():
+        sermon.status = UploadStatus.DRAFT
+        sermon.processing_error = "fetch_transcript: " + captions.DISABLED_MESSAGE
+        db.session.commit()
+        return
 
     # Steps are looked up when this runs, not at import, so tests can monkeypatch them.
     required_steps = (
