@@ -6,7 +6,9 @@ from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy import false, func
 from sqlalchemy.orm import defer, with_expression
 from tsh import chat as chat_service
+from tsh import search as search_service
 from tsh.auth import require_role
+from tsh.embeddings import EmbeddingError
 
 # API routes for series, speakers, and sermons
 from marshmallow import ValidationError
@@ -692,75 +694,21 @@ def whoami():
 @api.get("/search")
 @require_role("Internal User", "Admin")
 def search():
-    query = request.args.get("q", "").strip().lower()
-    content_type = request.args.get("type", "all").strip().lower()
-    speaker = request.args.get("speaker", "any").strip()
-    date = request.args.get("date", "any").strip()
-
-    results = [
-        {
-            "id": 1,
-            "title": "Faith Over Fear",
-            "type": "sermon",
-            "speaker": "Dave",
-            "date": "2024",
-            "summary": "A sermon about trusting God when fear and anxiety feel overwhelming.",
-            "ai_score": 0.97,
-        },
-        {
-            "id": 2,
-            "title": "Overcoming Anxiety Transcript",
-            "type": "transcript",
-            "speaker": "Dave",
-            "date": "2024",
-            "summary": "Transcript discussing anxiety, prayer, and peace.",
-            "ai_score": 0.93,
-        },
-        {
-            "id": 3,
-            "title": "Grace Notes",
-            "type": "note",
-            "speaker": "Michael",
-            "date": "2023",
-            "summary": "Staff notes focused on grace, healing, and hope.",
-            "ai_score": 0.88,
-        },
-        {
-            "id": 4,
-            "title": "Hope in Hard Times",
-            "type": "sermon",
-            "speaker": "Tim",
-            "date": "2022",
-            "summary": "A sermon on hope, resilience, and endurance through hardship.",
-            "ai_score": 0.84,
-        },
-    ]
-
-    filtered = results
-
-    if query:
-        filtered = [
-            item
-            for item in filtered
-            if query in item["title"].lower() or query in item["summary"].lower()
-        ]
-
-    if content_type != "all":
-        filtered = [item for item in filtered if item["type"] == content_type]
-
-    if speaker.lower() != "any":
-        filtered = [
-            item for item in filtered if item["speaker"].lower() == speaker.lower()
-        ]
-
-    if date.lower() != "any":
-        filtered = [item for item in filtered if item["date"] == date]
-
-    filtered.sort(key=lambda item: item["ai_score"], reverse=True)
-
-    return filtered
-
-
+    """Search real Published sermons; see docs/search.md for scores and source fields."""
+    try:
+        return jsonify(search_service.search_sermons(request.args))
+    except search_service.SearchInputError as error:
+        message = str(error)
+        return jsonify({"error": message, "message": message}), 400
+    except EmbeddingError as error:
+        # Compatibility errors are actionable configuration errors, not empty matches.
+        return jsonify({"error": "embedding_incompatible", "message": str(error)}), 503
+    except Exception as error:
+        # Providers raise several unrelated exception types. Do not leak their raw
+        # response bodies/credentials to clients or misreport an outage as no results.
+        current_app.logger.warning("Sermon search failed (%s)", type(error).__name__)
+        message = "Sermon search is unavailable right now. Please try again later."
+        return jsonify({"error": "search_unavailable", "message": message}), 503
 
 
 @api.post("/chat")
