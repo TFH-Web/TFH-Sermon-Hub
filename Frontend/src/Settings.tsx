@@ -72,8 +72,6 @@ export default function Settings() {
 		region: '',
 		status: status,
 		ssl: ssl,
-		storageUsedGB: 0,
-		storageTotalGB: 0,
 	});
 
 	// Authentication Tab
@@ -687,22 +685,9 @@ export default function Settings() {
 								</Tag>
 							</div>
 							<div className="Settings-storageSection">
-								<p className="Settings-storageText">
-									{hostingInfo.storageUsedGB} GB / {hostingInfo.storageTotalGB}{' '}
-									GB
-								</p>
-								<progress
-									max={hostingInfo.storageTotalGB}
-									value={hostingInfo.storageUsedGB}
-								/>
+								<p className="Settings-storageText">Unavailable</p>
 								<p className="Settings-storageLabel">
-									{hostingInfo.storageUsedGB} GB of {hostingInfo.storageTotalGB}{' '}
-									GB used (
-									{Math.round(
-										(hostingInfo.storageUsedGB / hostingInfo.storageTotalGB) *
-											100,
-									)}
-									%)
+									Storage usage is not available in this app.
 								</p>
 							</div>
 						</div>

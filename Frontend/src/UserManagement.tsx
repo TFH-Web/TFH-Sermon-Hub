@@ -87,7 +87,9 @@ export default function UserManagement() {
 								</tr>
 							))
 						) : (
-							<p>No Users Found</p>
+							<tr>
+								<td colSpan={4}>No Users Found</td>
+							</tr>
 						)}
 					</tbody>
 				</table>
