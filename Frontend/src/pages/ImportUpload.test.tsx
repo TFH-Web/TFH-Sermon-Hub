@@ -278,6 +278,59 @@ it('polls a queued run to its end, then opens its report and refetches the lists
 	);
 });
 
+it.each([
+	'Upload New',
+	'Bulk Import',
+])('offers status recovery on %s after active-run polling fails', async tab => {
+	vi.useFakeTimers({ shouldAdvanceTime: true });
+	runs = [queuedRun(4)];
+	renderPage();
+	await screen.findByText(TITLE);
+	if (tab === 'Bulk Import') await openTab(tab);
+
+	runsListFails = true;
+	await act(async () => {
+		await vi.advanceTimersByTimeAsync(POLL_INTERVAL * 2);
+	});
+	const check = await screen.findByRole('button', { name: 'Check status' });
+	expect(screen.getByText('Queued')).toBeTruthy();
+	if (tab === 'Bulk Import') {
+		expect(
+			(
+				screen.getByRole('button', {
+					name: 'Sync queued…',
+				}) as HTMLButtonElement
+			).disabled,
+		).toBe(true);
+	}
+
+	const stoppedAt = count('get /api/import/youtube/runs');
+	await act(async () => {
+		await vi.advanceTimersByTimeAsync(POLL_INTERVAL * 2);
+	});
+	expect(count('get /api/import/youtube/runs')).toBe(stoppedAt);
+
+	// Recover on the same tab without starting a second import or waiting for the ten-minute timeout.
+	runsListFails = false;
+	await act(async () => {
+		fireEvent.click(check);
+	});
+	await waitFor(() =>
+		expect(screen.queryByRole('button', { name: 'Check status' })).toBeNull(),
+	);
+	expect(count('get /api/import/youtube/runs')).toBeGreaterThan(stoppedAt);
+	expect(syncBodies).toHaveLength(0);
+
+	// A successful status check also resumes automatic polling through completion.
+	runs = [succeededRun(4)];
+	await act(async () => {
+		await vi.advanceTimersByTimeAsync(POLL_INTERVAL);
+	});
+	const dialog = await screen.findByRole('dialog');
+	await waitFor(() => expect(dialog.textContent).toContain('Sermons created'));
+	expect(screen.queryByText('Queued')).toBeNull();
+});
+
 it('stops polling after the window, and Check status looks again', async () => {
 	vi.useFakeTimers({ shouldAdvanceTime: true });
 	runs = [queuedRun(4)];

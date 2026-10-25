@@ -16,7 +16,7 @@ export const POLL_WINDOW = 10 * 60 * 1000;
 
 /**
  * A query that refetches every few seconds while `isActive` says what it fetched is still changing, for up to POLL_WINDOW.
- * `polling` is false once that has passed with it still active, and `checkNow` refetches and starts the window again.
+ * `polling` is false after a failed fetch or an expired window, so the page can offer `checkNow` to resume checking.
  */
 function usePolledQuery<T>(
 	queryKey: QueryKey,
@@ -54,7 +54,7 @@ function usePolledQuery<T>(
 
 	return {
 		query,
-		polling: active && !expired,
+		polling: active && !expired && !query.isError,
 		checkNow() {
 			setRestarts(count => count + 1);
 			query.refetch();
