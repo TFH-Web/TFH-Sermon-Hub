@@ -63,14 +63,18 @@ export default function Settings() {
 		storageTotalGB: 100,
 	};
 */
-	const hostingInfo = {
+
+	const [status, _setStatus] = useState('');
+	const [ssl, _setSsl] = useState('');
+
+	const [hostingInfo, _setHostingInfo] = useState({
 		provider: '',
 		region: '',
-		status: '' as const,
-		ssl: '' as const,
+		status: status,
+		ssl: ssl,
 		storageUsedGB: 0,
 		storageTotalGB: 0,
-	};
+	});
 
 	// Authentication Tab
 	// This is a TODO: replace with real tenantId, ClientId, redirectUri, and SSO status from backend when ready
