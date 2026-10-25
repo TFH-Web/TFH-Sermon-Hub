@@ -9,8 +9,10 @@
 		"info"
 		"tags";
 	grid-template-rows: subgrid;
+	grid-template-columns: minmax(0, 1fr);
 	grid-row: span 4;
 	gap: 0;
+	min-width: 0;
 	padding: 0;
 	padding-block-end: 1.5rem;
 	color: inherit;
@@ -86,7 +88,18 @@
 
 .SermonCard-tags {
 	display: flex;
+	flex-wrap: wrap;
 	grid-area: tags;
 	gap: 8px;
+	align-items: flex-start;
+	min-width: 0;
 	margin: 0;
+}
+
+/* Keep long tag names inside the card without hiding their origin. */
+.SermonCard-tags > .Tag {
+	flex: 0 1 auto;
+	max-width: 100%;
+	overflow-wrap: anywhere;
+	white-space: normal;
 }
