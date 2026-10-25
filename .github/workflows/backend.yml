@@ -51,7 +51,17 @@ jobs:
         env:
           TENANT_ID: "ci-only-dummy-tenant-id"
           CLIENT_ID: "ci-only-dummy-client-id"
-        run: poetry run pytest
+        run: poetry run pytest --cov=tsh
+
+      - name: Create coverage report
+        run: coverage html
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
+        with:
+          name: pytest-coverage
+          path: htmlcov/
 
       - name: Audit locked backend dependencies
         if: ${{ !cancelled() }}
