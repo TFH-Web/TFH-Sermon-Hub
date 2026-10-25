@@ -101,6 +101,8 @@ async function importRoutes(
 		runs: [] as Run[],
 		// Makes the next POST /api/import/youtube fail as if the job queue were down.
 		failNextSync: false,
+		// The id of a sermon the next video import answers with, as a video that was imported before.
+		duplicateOf: null as number | null,
 		posts: [] as { path: string; body: unknown }[],
 		// Makes GET /api/sermons fail, as if the server were down.
 		broken: false,
@@ -153,6 +155,9 @@ async function importRoutes(
 		await state.hold;
 
 		if (url.pathname === '/api/import/youtube/video') {
+			const existing = state.sermons.find(s => s.id === state.duplicateOf);
+			// 200 with the sermon that was already there, where a new one gets 201.
+			if (existing) return route.fulfill({ status: 200, json: existing });
 			const imported = {
 				...sermon(state.sermons.length + 1, 'Processing'),
 				title: 'Imported from YouTube',
@@ -273,9 +278,52 @@ test('importing shows progress, then fills in the sermon details', async ({
 	const title = dialog.getByLabel('Sermon title');
 	await expect(title).toHaveValue('Imported from YouTube');
 	await expect(title).not.toBeEditable();
+	// The rest of what the import saved, shown read-only. The mock sermon is the first of the shared fixtures.
+	await expect(dialog.getByLabel('Speaker')).toHaveValue('Dave Patterson');
+	await expect(dialog.getByLabel('Series')).toHaveValue('Grace Series');
+	await expect(dialog.getByLabel('Date')).toHaveValue('2026-02-10');
+	await expect(dialog.getByLabel('Description')).toHaveValue(
+		'A message about grace.',
+	);
+	await expect(dialog.getByLabel('Description')).not.toBeEditable();
 	await expect(
 		dialog.getByRole('button', { name: 'Open sermon' }),
 	).toBeVisible();
+});
+
+test('a duplicate import says so, and Open sermon still opens the sermon', async ({
+	page,
+}) => {
+	const state = await importRoutes(page, [sermon(1, 'Published')]);
+	state.duplicateOf = 1;
+	await page.goto('/upload');
+	await page.locator('.Header-upload').click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('YouTube link').fill('https://youtu.be/F_OiCiZ3Y3Y');
+	await dialog.getByRole('button', { name: 'Import & Process' }).click();
+
+	await expect(page.locator('.Toast-message')).toContainText(
+		'"Import 1" was already imported.',
+	);
+	await expect(dialog.getByLabel('Sermon title')).toHaveValue('Import 1');
+
+	await dialog.getByRole('button', { name: 'Open sermon' }).click();
+	await expect(page).toHaveURL('/sermons/1');
+});
+
+test('neither the Import page nor the upload dialog offers processing checkboxes', async ({
+	page,
+}) => {
+	await importRoutes(page);
+	await page.goto('/upload');
+	// Wait for the page, so an absent checkbox means it is gone and not that it has not shown yet.
+	await expect(page.getByText('Upload or import content')).toBeVisible();
+	await expect(page.getByRole('checkbox')).toHaveCount(0);
+
+	await page.locator('.Header-upload').click();
+	const dialog = page.getByRole('dialog');
+	await expect(dialog.getByLabel('YouTube link')).toBeVisible();
+	await expect(dialog.getByRole('checkbox')).toHaveCount(0);
 });
 
 test('Sync from YouTube sends the date range and pops up the result', async ({
