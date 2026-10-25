@@ -1,10 +1,7 @@
 import { useState } from 'react';
 import './Notifications.css';
-import Button from '$/components/Button';
 import { Card, CardHeader } from '$/components/Card';
 import MainLayout from '$/components/MainLayout';
-import { useToast } from '$/components/ToastContext';
-
 
 type Notification = {
 	id: number;
@@ -13,14 +10,11 @@ type Notification = {
 	description: string;
 	recipient: string;
 	time: number;
-}
-
+};
 
 export default function Notifications() {
-
 	//TO DO: query the notifications directed towards the user
-	const notifications : Notification[] = [
-	];
+	const [notifications, _setNotifications] = useState<Notification[]>([]);
 
 	return (
 		<MainLayout title="Notifications">
@@ -34,7 +28,7 @@ export default function Notifications() {
 
 			<div className="Notifications-grid">
 				{/* Left column */}
-				<div>	
+				<div>
 					<Card>
 						<CardHeader title="Recent Notifications Sent" />
 						<div className="Card-body">

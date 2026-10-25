@@ -24,7 +24,7 @@ export default function Settings() {
 
 	// General Tab State
 	// This is a TODO: replace with real data when ready
-/*
+	/*
 	const [orgName, setOrgName] = useState("The Father's House");
 	const [portalName, setPortalName] = useState('TFH Sermon Hub');
 	const [adminEmail, setAdminEmail] = useState('admin@tfh.org');
@@ -32,29 +32,28 @@ export default function Settings() {
 	const [dateFormat, setDateFormat] = useState('MDY');
 	const [language, setLanguage] = useState('en-US');
 */
-	const [orgName, setOrgName] = useState("");
+	const [orgName, setOrgName] = useState('');
 	const [portalName, setPortalName] = useState('');
 	const [adminEmail, setAdminEmail] = useState('');
 	const [timezone, setTimezone] = useState('');
 	const [dateFormat, setDateFormat] = useState('');
 	const [language, setLanguage] = useState('');
 
-
 	// Backup Tab
 	// This is a TODO: replace with real backup data from backend when ready
-/*
+	/*
 	const [automatedBackups, setAutomatedBackups] = useState(true);
 	const [backupTime, setBackupTime] = useState('03:00');
 	const [retentionDays, setRetentionDays] = useState('30');
 	const [lastBackup] = useState('Today at 3:00 AM - Sucessful');
 */
-	const [automatedBackups, setAutomatedBackups] = useState(false);
+	const [_automatedBackups, _setAutomatedBackups] = useState(false);
 	const [backupTime, setBackupTime] = useState('');
 	const [retentionDays, setRetentionDays] = useState('');
 	const [lastBackup] = useState('');
 
 	// This is a TODO: replace with useQuery(()=> fetchHostingInfo()) when backend is ready
-/*
+	/*
 	const hostingInfo = {
 		provider: 'DigitalOcean',
 		region: 'SFO3 (SanFrancisco)',
@@ -73,23 +72,22 @@ export default function Settings() {
 		storageTotalGB: 0,
 	};
 
-
 	// Authentication Tab
 	// This is a TODO: replace with real tenantId, ClientId, redirectUri, and SSO status from backend when ready
-/*
+	/*
 	const [tenantId, setTenantId] = useState('tfh-org-tenant-abc123');
 	const [clientId, setClientId] = useState('1234abcd-56ef-78gh-90ij-klmnopqrstuv');
 	const [redirectUri, setRedirectUri] = useState('https://sermonhub.tfh.org/auth/callback');
 	const ssoStatus = 'Connected & Active';
 */
-	
+
 	const [tenantId, setTenantId] = useState('');
 	const [clientId, setClientId] = useState('');
 	const [redirectUri, setRedirectUri] = useState('');
-	const [ssoStatus, setSsoStatus] = useState('');
+	const [ssoStatus, _setSsoStatus] = useState('');
 
 	// This is a TODO: replace with real sessionTimeout, idleTimeout, requireReauthm and logoutOnPasswordChange from backend when ready
-/*
+	/*
 	const [sessionTimeout, setSessionTimeout] = useState('8 hours');
 	const [idleTimeout, setIdleTimeout] = useState('30 minutes');
 	const [requireReauth, setRequireReauth] = useState(true);
@@ -98,9 +96,8 @@ export default function Settings() {
 
 	const [sessionTimeout, setSessionTimeout] = useState('');
 	const [idleTimeout, setIdleTimeout] = useState('');
-	const [requireReauth, setRequireReauth] = useState(true);
-	const [logoutOnPasswordChange, setLogoutOnPasswordChange] = useState(true);
-
+	const [_requireReauth, _setRequireReauth] = useState(true);
+	const [_logoutOnPasswordChange, _setLogoutOnPasswordChange] = useState(true);
 
 	// This is a TODO: replace with real security details from backend when ready
 	// Security Tab
@@ -131,7 +128,7 @@ export default function Settings() {
 	// AI Configuration Tab
 
 	// This is a TODO: replace with real AI configuration data and way of changing data for use with other models when ready
-/*
+	/*
 	const [aiProvider, setAiProvider] = useState('Local LLM (Development)');
 	const [apiKey, setApiKey] = useState('1234abcd-56ef-78gh-90ij-klmnopqrstuv');
 	const [aiModel, setAiModel] = useState('claude-opus-4 (Best quality)');
@@ -148,9 +145,10 @@ export default function Settings() {
 	const [aiModel, setAiModel] = useState('');
 	const [processingMode, setProcessingMode] = useState('');
 	const [transcriptLanguage, setTranscriptLanguage] = useState('');
-	const [autoGenerateTranscripts, setAutoGenerateTranscripts] = useState(true);
-	const [autoGenerateSummaries, setAutoGenerateSummaries] = useState(true);
-	const [autoGenerateTags, setAutoGenerateTags] = useState(true);
+	const [_autoGenerateTranscripts, _setAutoGenerateTranscripts] =
+		useState(true);
+	const [_autoGenerateSummaries, _setAutoGenerateSummaries] = useState(true);
+	const [_autoGenerateTags, _setAutoGenerateTags] = useState(true);
 
 	return (
 		<MainLayout title="Settings">
@@ -190,7 +188,11 @@ export default function Settings() {
 								/>
 							</FormField>
 							<FormField label="SSO Status">
-								<Tag variant={ssoStatus === 'Connected & Active' ? 'green' : 'red'}>{ssoStatus}</Tag>
+								<Tag
+									variant={ssoStatus === 'Connected & Active' ? 'green' : 'red'}
+								>
+									{ssoStatus}
+								</Tag>
 							</FormField>
 							<Button
 								variant="secondary"
@@ -225,7 +227,6 @@ export default function Settings() {
 									onChange={e => setSessionTimeout(e.target.value)}
 									readOnly
 								/>
-
 							</FormField>
 							<FormField label="Idle Timeout">
 								{/*
@@ -246,7 +247,7 @@ export default function Settings() {
 									readOnly
 								/>
 							</FormField>
-							
+
 							{/*
 							<div className="Settings-checkboxGroup">
 								<label className="Settings-checkbox">
@@ -667,11 +668,19 @@ export default function Settings() {
 							</div>
 							<div className="Settings-infoRow">
 								<span className="Settings-infoLabel">Status</span>
-								<Tag variant={hostingInfo.status === 'healthy' ? 'green' : 'red'}>{hostingInfo.status}</Tag>
+								<Tag
+									variant={hostingInfo.status === 'healthy' ? 'green' : 'red'}
+								>
+									{hostingInfo.status}
+								</Tag>
 							</div>
 							<div className="Settings-infoRow">
 								<span className="Settings-infoLabel">SSL</span>
-								<Tag variant={hostingInfo.ssl === 'HTTPS Active' ? 'green' : 'red'}>{hostingInfo.ssl}</Tag>
+								<Tag
+									variant={hostingInfo.ssl === 'HTTPS Active' ? 'green' : 'red'}
+								>
+									{hostingInfo.ssl}
+								</Tag>
 							</div>
 							<div className="Settings-storageSection">
 								<p className="Settings-storageText">
@@ -697,16 +706,16 @@ export default function Settings() {
 					<Card>
 						<CardHeader title="Backup Schedule" />
 						<div className="Card-body">
+							{/*
 							<label className="Settings-checkbox">
-								{/*
 								<input
 									type="checkbox"
 									checked={automatedBackups}	
 									onChange={e => setAutomatedBackups(e.target.checked)}
 								/>
 								Automated daily backups
-								*/}
 							</label>
+								*/}
 							<FormField label="Backup Time (server local)">
 								<input
 									type="time"
