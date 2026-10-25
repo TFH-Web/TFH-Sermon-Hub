@@ -1,4 +1,5 @@
-import { devices, expect, test } from '@playwright/test';
+import { devices, expect } from '@playwright/test';
+import { test } from './fixtures';
 import { setupRoutes } from './setup';
 
 test.beforeEach(async ({ page }) => {

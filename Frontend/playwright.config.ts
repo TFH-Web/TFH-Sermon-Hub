@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const devServerURL = 'http://localhost:5173';
+const devServerBackendURL = 'http://localhost:5000/api/health';
 
 /**
  * Read environment variables from file.
@@ -74,6 +75,7 @@ export default defineConfig({
 
 	/* Run your local dev server before starting the tests */
 	webServer: {
+		name: 'Frontend',
 		command: 'npm run dev',
 		url: devServerURL,
 		reuseExistingServer: !process.env.CI,

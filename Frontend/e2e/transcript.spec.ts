@@ -1,6 +1,7 @@
 // Tests for saved captions, pipeline refresh feedback and queued completion in the website.
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { sermons } from './data';
+import { test } from './fixtures';
 
 async function captionRoutes(page: Page) {
 	const state = {

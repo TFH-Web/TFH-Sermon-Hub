@@ -1,6 +1,7 @@
 // Tests for importing from YouTube: the upload modal, the bulk sync, and the Import page's lists.
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { sermons } from './data';
+import { test } from './fixtures';
 import { paginated } from './pagination';
 
 // What a finished sync reports: POST /api/import/youtube without a job queue.
