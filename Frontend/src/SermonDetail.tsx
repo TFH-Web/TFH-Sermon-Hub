@@ -38,7 +38,8 @@ export default function SermonDetail() {
 	const isAdmin = useIsAdmin();
 	const { showToast } = useToast(); // let's up pop up a little message at the corner of the screen
 
-	const [_summary, setSummary] = useState<string | null>(null); // Starts as nothing. It only holds text once the user types their own summary.
+	const [summaryDraft, setSummaryDraft] = useState<{sermonId: string; text: string} | null>(null);	// Checks if there is a draft summary for the current sermon
+	const [editingSermonID, setEditingSermonID] = useState<string | null>(null);						// Tracks which sermon is currently being edited
 
 	const { id } = useParams(); // reads the number of the web address, so /sermons/5 gives us 5
 	const [isEditingSummary, setIsEditingSummary] = useState(false); // Remembers if the summary edit box is open
@@ -68,6 +69,9 @@ export default function SermonDetail() {
 		refetchInterval: query =>
 			query.state.data?.status === 'Processing' ? 2000 : false,
 	});
+
+	// Resets the draft when switching sermons
+
 
 	// Ask the server for a new AI summary, then reload the sermon so the card shows it.
 	// With the job queue on, the new summary only appears once the worker finishes, so the toast says it may take a moment.
@@ -146,6 +150,14 @@ export default function SermonDetail() {
 	const sermon = query.data;
 	// We got the data of all the sermons
 	const sermons = sermonsQuery.data ?? [];
+
+	// Determine the current summary based on the draft or the sermon's original summary
+	const currentSermonID = String(sermon.id);
+
+	const currentSummary =
+    summaryDraft?.sermonId === currentSermonID ? summaryDraft.text : sermon.summary ?? '';
+
+	const isEditing = isEditingSummary && editingSermonID === currentSermonID;
 
 	// The server sends one long block of text. Cut it into separate paragraphs so the page can show them one under the other.
 	// If the sermon has no summary saved, we end up with nothing to show.
@@ -358,33 +370,69 @@ export default function SermonDetail() {
 						)}
 					</div>
 					<div className="SermonDetail-summary-edit-container">
-						{isEditingSummary ? (
-							<div className="SermonDetail-summary-editing">
+					{isEditing ? (
+						<div className="SermonDetail-summary-editing">
+							<textarea
+								className="SermonDetail-summary-textarea"
+								value={currentSummary}
+								disabled={!isAdmin}
+								onChange={e => {
+									setSummaryDraft({
+										sermonId: currentSermonID,
+										text: e.target.value,
+									});
+								}}
+							/>
+
+							<div className="SermonDetail-summary-actions">
 								<Button
+									type="button"
+									variant="secondary"
+									className="SermonDetail-summary-btn"
+									onClick={() => {
+										setSummaryDraft(null);
+										setEditingSermonID(null);
+										setIsEditingSummary(false);
+									}}
+								>
+									Cancel
+								</Button>
+
+								<Button
+									type="button"
 									variant="secondary"
 									className="SermonDetail-summary-btn"
 									disabled={!isAdmin}
-									onClick={() => setIsEditingSummary(false)}
+									onClick={() => {
+										setSummaryDraft({
+											sermonId: currentSermonID,
+											text: sermon.summary ?? '',
+										});
+									}}
 								>
-									Edit Summary Manually
+									Reset
 								</Button>
-								<textarea
-									className="SermonDetail-summary-textarea"
-									value={_summary ?? sermon.summary ?? ''}
-									onChange={e => setSummary(e.target.value)}
-								/>
 							</div>
-						) : (
-							<Button
-								variant="secondary"
-								className="SermonDetail-summary-btn"
-								disabled={!isAdmin}
-								onClick={() => setIsEditingSummary(true)}
-							>
-								Edit Summary Manually
-							</Button>
-						)}
-					</div>
+						</div>
+					) : (
+						<Button
+							type="button"
+							variant="secondary"
+							className="SermonDetail-summary-btn"
+							disabled={!isAdmin}
+							onClick={() => {
+								setSummaryDraft({
+									sermonId: currentSermonID,
+									text: sermon.summary ?? '',
+								});
+								setEditingSermonID(currentSermonID);
+								setIsEditingSummary(true);
+							}}
+						>
+							Edit Summary Manually
+						</Button>
+					)}
+				</div>
 				</Card>
 
 				{/* Metadata Section */}
