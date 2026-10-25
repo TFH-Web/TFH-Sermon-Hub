@@ -43,6 +43,7 @@ export default function SermonDetail() {
 		text: string;
 	} | null>(null); // Checks if there is a draft summary for the current sermon
 	const [editingSermonID, setEditingSermonID] = useState<string | null>(null); // Tracks which sermon is currently being edited
+	const [isSavingSummary, setIsSavingSummary] = useState(false); // Tracks if the summary is currently being saved
 
 	const { id } = useParams(); // reads the number of the web address, so /sermons/5 gives us 5
 	const [isEditingSummary, setIsEditingSummary] = useState(false); // Remembers if the summary edit box is open
@@ -95,6 +96,40 @@ export default function SermonDetail() {
 			showToast(message, 'error');
 		} finally {
 			setIsRegenerating(false);
+		}
+	};
+
+	const saveSummary = async () => {
+		if (!isAdmin || isSavingSummary) return;
+
+		if (summaryDraft?.sermonId !== currentSermonID) {
+			showToast('No summary draft to save.', 'error');
+			return;
+		}
+
+		setIsSavingSummary(true);
+
+		try {
+			await axios.put(`/api/sermons/${currentSermonID}/summary`, {
+				summary: summaryDraft.text,
+			});
+
+			// Refresh the sermon data so the saved summary is displayed.
+			await query.refetch();
+
+			setSummaryDraft(null);
+			setEditingSermonID(null);
+			setIsEditingSummary(false);
+
+			showToast('Summary saved successfully.', 'success');
+		} catch (error) {
+			const message =
+				(axios.isAxiosError(error) && error.response?.data?.error) ||
+				'Could not save summary';
+
+			showToast(message, 'error');
+		} finally {
+			setIsSavingSummary(false);
 		}
 	};
 
@@ -415,6 +450,15 @@ export default function SermonDetail() {
 										}}
 									>
 										Reset
+									</Button>
+									<Button
+										type="button"
+										variant="primary"
+										className="SermonDetail-summary-btn"
+										disabled={!isAdmin || isSavingSummary}
+										onClick={saveSummary}
+									>
+										{isSavingSummary ? 'Saving...' : 'Save'}
 									</Button>
 								</div>
 							</div>
