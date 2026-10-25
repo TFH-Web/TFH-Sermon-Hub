@@ -18,6 +18,9 @@ vi.mock('@azure/msal-react', () => ({
 	}),
 }));
 vi.mock('./authConfig', () => ({ apiScopes: ['api://test/access_as_user'] }));
+// Decorative icons must not leave async rendering work after jsdom teardown.
+// Keep the real ErrorBox and its error/retry behavior under test.
+vi.mock('@iconify-icon/react', () => ({ Icon: () => null }));
 
 beforeEach(() => {
 	useAuth.setState({
