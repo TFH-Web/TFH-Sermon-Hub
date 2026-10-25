@@ -113,7 +113,13 @@ function reply(
 	status: number,
 	data: unknown,
 ): AxiosResponse {
-	const response = { data, status, statusText: String(status), headers: {}, config };
+	const response = {
+		data,
+		status,
+		statusText: String(status),
+		headers: {},
+		config,
+	};
 	if (status < 400) return response;
 	throw new AxiosError(
 		`Request failed with status code ${status}`,
@@ -216,9 +222,9 @@ it('restores a queued run on load and locks the sync form', async () => {
 		name: 'Sync queued…',
 	}) as HTMLButtonElement;
 	expect(sync.disabled).toBe(true);
-	expect((screen.getByLabelText('From date') as HTMLInputElement).disabled).toBe(
-		true,
-	);
+	expect(
+		(screen.getByLabelText('From date') as HTMLInputElement).disabled,
+	).toBe(true);
 	expect((screen.getByLabelText('To date') as HTMLInputElement).disabled).toBe(
 		true,
 	);
@@ -319,7 +325,8 @@ it('shows an error box in Sync History, and Retry loads the runs', async () => {
 });
 
 it('follows the sync already going when another is refused (409)', async () => {
-	const message = 'A YouTube sync is already running. Wait for run 7 to finish.';
+	const message =
+		'A YouTube sync is already running. Wait for run 7 to finish.';
 	syncReply = config => {
 		// Someone else's sync was running all along.
 		runs = [runningRun(7)];

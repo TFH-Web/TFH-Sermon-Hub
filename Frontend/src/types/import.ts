@@ -50,7 +50,12 @@ export type SyncResult = z.infer<typeof SyncResult>;
 export const SyncStartFailure = z.object({ runId: z.number() });
 
 // A run only moves forward: queued, running, then succeeded or failed.
-export const SyncRunState = z.enum(['queued', 'running', 'succeeded', 'failed']);
+export const SyncRunState = z.enum([
+	'queued',
+	'running',
+	'succeeded',
+	'failed',
+]);
 export type SyncRunState = z.infer<typeof SyncRunState>;
 
 // One saved sync, from GET /api/import/youtube/runs and /runs/<id>. Its fields are camelCase, but the report keeps

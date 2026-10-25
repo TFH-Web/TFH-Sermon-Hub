@@ -175,7 +175,10 @@ export default function ImportUpload() {
 	if (activeRun) {
 		activeSync = (
 			<ActiveSyncItem
-				range={formatDateRange(activeRun.dateFrom ?? '', activeRun.dateTo ?? '')}
+				range={formatDateRange(
+					activeRun.dateFrom ?? '',
+					activeRun.dateTo ?? '',
+				)}
 				state={activeRun.state === 'queued' ? 'queued' : 'running'}
 				since={
 					activeRun.state === 'queued'
@@ -408,9 +411,7 @@ function ImportSermonList({
 						}
 					/>
 				) : query.data.total === 0 ? (
-					leading === null && (
-						<p className="ImportUpload-empty">{emptyText}</p>
-					)
+					leading === null && <p className="ImportUpload-empty">{emptyText}</p>
 				) : (
 					<>
 						{query.data.items.map(sermon => (

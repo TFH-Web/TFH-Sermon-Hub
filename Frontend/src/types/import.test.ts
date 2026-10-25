@@ -116,7 +116,9 @@ describe('SyncRun schema', () => {
 	});
 
 	it('parses the list of runs', () => {
-		expect(SyncRun.array().parse([queuedRun, { ...queuedRun, id: 3 }])).toHaveLength(2);
+		expect(
+			SyncRun.array().parse([queuedRun, { ...queuedRun, id: 3 }]),
+		).toHaveLength(2);
 	});
 
 	it('rejects a state it does not know', () => {
@@ -147,7 +149,10 @@ describe('SyncStartFailure schema', () => {
 
 	it('rejects an error body that names no run', () => {
 		expect(() =>
-			SyncStartFailure.parse({ error: 'Not an admin', message: 'Not an admin' }),
+			SyncStartFailure.parse({
+				error: 'Not an admin',
+				message: 'Not an admin',
+			}),
 		).toThrow();
 	});
 });

@@ -146,7 +146,10 @@ async function importRoutes(
 				? route.fulfill({ json: run })
 				: route.fulfill({
 						status: 404,
-						json: { error: 'Sync run not found', message: 'Sync run not found' },
+						json: {
+							error: 'Sync run not found',
+							message: 'Sync run not found',
+						},
 					});
 		}
 

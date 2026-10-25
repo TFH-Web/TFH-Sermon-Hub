@@ -48,7 +48,13 @@ function reply(
 	status: number,
 	data: unknown,
 ): AxiosResponse {
-	const response = { data, status, statusText: String(status), headers: {}, config };
+	const response = {
+		data,
+		status,
+		statusText: String(status),
+		headers: {},
+		config,
+	};
 	if (status < 400) return response;
 	throw new AxiosError(
 		`Request failed with status code ${status}`,
@@ -122,7 +128,9 @@ function linkField() {
 
 async function importLink(link = LINK) {
 	if (link) await userEvent.type(linkField(), link);
-	await userEvent.click(screen.getByRole('button', { name: 'Import & Process' }));
+	await userEvent.click(
+		screen.getByRole('button', { name: 'Import & Process' }),
+	);
 }
 
 /** The × in the header. The footer has a Close of its own once there is a preview, so a name alone would match both. */
@@ -131,9 +139,7 @@ async function closeDialog() {
 }
 
 function previewField(label: string) {
-	return screen.getByLabelText(label) as
-		| HTMLInputElement
-		| HTMLTextAreaElement;
+	return screen.getByLabelText(label) as HTMLInputElement | HTMLTextAreaElement;
 }
 
 it('shows only the link field before importing', () => {
@@ -177,7 +183,13 @@ it('shows a new import as a read-only preview, and Open sermon goes to the sermo
 	expect(previewField('Series').value).toBe('Together');
 	expect(previewField('Date').value).toBe('2026-09-14');
 	expect(previewField('Description').value).toBe('A message about hope.');
-	for (const label of ['Sermon title', 'Speaker', 'Series', 'Date', 'Description']) {
+	for (const label of [
+		'Sermon title',
+		'Speaker',
+		'Series',
+		'Date',
+		'Description',
+	]) {
 		expect(previewField(label).readOnly).toBe(true);
 	}
 	// The link is done with, so it cannot be sent again.
@@ -350,7 +362,9 @@ it('does not fill in a reopened dialog when an import ends after it was closed',
 
 	// The first import ends. The admin is still told, but what it imported is not put in front of them.
 	release();
-	await waitFor(() => expect(showToast).toHaveBeenCalledWith(IMPORTED_TOAST, 'success'));
+	await waitFor(() =>
+		expect(showToast).toHaveBeenCalledWith(IMPORTED_TOAST, 'success'),
+	);
 	await act(async () => {});
 	expect(screen.queryByLabelText('Sermon title')).toBeNull();
 	expect(linkField().value).toBe('');
