@@ -1,3 +1,5 @@
+import re
+
 import pytest  # noqa: F401
 from flask.testing import FlaskClient
 from syrupy.data import Snapshot
@@ -317,6 +319,17 @@ def test_sermons_sorting(client: FlaskClient):
     assert [s["id"] for s in res_rel.json["items"]] == [
         s["id"] for s in res_newest.json["items"]
     ]
+
+
+def test_sermon_dates_are_calendar_dates(client: FlaskClient):
+    """Sermon dates go out as plain YYYY-MM-DD, with no time or zone for a browser to shift."""
+    detail = client.get("/api/sermons/1")
+    assert detail.json["date"] == "2026-02-23"
+
+    listed = client.get("/api/sermons").json
+    paged = client.get("/api/sermons?page=1&pageSize=10").json["items"]
+    for sermon in [detail.json, *listed, *paged]:
+        assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", sermon["date"])
 
 
 def test_sermons_sorting_date_tie_breaker(app, client: FlaskClient):

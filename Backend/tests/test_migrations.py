@@ -134,6 +134,8 @@ def assert_preserved(app):
         assert sermon.title == "Test sermon"
         assert sermon.transcript == "Transcript"
         assert sermon.summary == "Summary"
+        # The summary predates origin tracking, so no origin is invented for it.
+        assert sermon.summary_source is None
         assert sermon.speaker.last_name == "Speaker"
         assert sermon.series.title == "Test series"
         assert [tag.name for tag in sermon.tags] == ["faith"]
