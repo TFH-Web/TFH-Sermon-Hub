@@ -24,7 +24,7 @@ export default function DeleteTagModal({
 
 	const deleteTag = useMutation({
 		mutationFn: async (name: string) => {
-			await axios.delete(`/api/tags/${encodeURIComponent(name)}`);
+			await axios.delete('/api/tags', { params: { name } });
 		},
 		onSuccess: async () => {
 			await invalidateTagData(queryClient);

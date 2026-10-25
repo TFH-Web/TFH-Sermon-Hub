@@ -17,9 +17,10 @@ async function goToLastPage(page: Page) {
 	const feedback = page.getByText(/^Page \d+ of \d+$/);
 
 	for (;;) {
-		const [current, total] = [
-			...(await feedback.textContent())!.matchAll(/\d+/g),
-		].map(Number);
+		const pageText = await feedback.textContent();
+		if (pageText === null)
+			throw new Error('Tag pagination feedback is missing');
+		const [current, total] = [...pageText.matchAll(/\d+/g)].map(Number);
 		if (current >= total) return;
 		await next.click();
 		await expect(feedback).toHaveText(`Page ${current + 1} of ${total}`);
@@ -161,3 +162,37 @@ test('a brand-new tag does not show as a sermon filter option until a sermon use
 		0,
 	);
 });
+
+for (const name of ['/faith//grace/', '..']) {
+	test(`slash and dot names stay manageable: ${name}`, async ({ page }) => {
+		await addTag(page, name);
+		await goToLastPage(page);
+		const renamed = `${name}/renewed`;
+		const renameRequest = page.waitForRequest(
+			request => request.method() === 'PATCH',
+		);
+		await renameTag(page, name, renamed);
+		const renameURL = new URL((await renameRequest).url());
+		expect(renameURL.pathname).toBe('/api/tags');
+		expect(renameURL.searchParams.get('name')).toBe(name);
+
+		const row = page
+			.getByRole('rowheader', { name: renamed, exact: true })
+			.locator('..');
+		await row.getByRole('button', { name: 'Delete' }).click();
+		const deleteRequest = page.waitForRequest(
+			request => request.method() === 'DELETE',
+		);
+		await page
+			.getByRole('dialog')
+			.getByRole('button', { name: 'Delete', exact: true })
+			.click();
+		await waitForModalToClose(page);
+		const deleteURL = new URL((await deleteRequest).url());
+		expect(deleteURL.pathname).toBe('/api/tags');
+		expect(deleteURL.searchParams.get('name')).toBe(renamed);
+		await expect(
+			page.getByRole('rowheader', { name: renamed, exact: true }),
+		).toHaveCount(0);
+	});
+}

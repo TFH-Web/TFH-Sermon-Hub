@@ -38,9 +38,12 @@ export default function EditTagModal({
 	const renameTag = useMutation({
 		mutationFn: async (newName: string) => {
 			if (!tag) return;
-			await axios.patch(`/api/tags/${encodeURIComponent(tag.name)}`, {
-				newName,
-			});
+			// A query identifier preserves slashes and dot-only names without path normalization.
+			await axios.patch(
+				'/api/tags',
+				{ newName },
+				{ params: { name: tag.name } },
+			);
 		},
 		onSuccess: async () => {
 			await invalidateTagData(queryClient);

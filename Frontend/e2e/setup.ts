@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Page, Route } from '@playwright/test';
 import { seriess, sermons, speakers, tags } from './data';
 import { paginated } from './pagination';
 
@@ -30,13 +30,8 @@ export async function setupRoutes(page: Page) {
 export async function setupTagMutationRoutes(page: Page) {
 	let mutableTags = tags.map(tag => ({ ...tag }));
 
-	// A separate route for /api/tags/<name>: the single "*" in "**/api/*" below cannot match
-	// the extra path segment, so renames and deletes need their own registration.
-	await page.route('**/api/tags/*', async route => {
+	async function mutateTag(route: Route, name: string | null) {
 		const request = route.request();
-		const name = decodeURIComponent(
-			new URL(request.url()).pathname.split('/').pop() ?? '',
-		);
 		const tag = mutableTags.find(t => t.name === name);
 
 		if (request.method() === 'PATCH') {
@@ -56,11 +51,26 @@ export async function setupTagMutationRoutes(page: Page) {
 		}
 
 		return route.fallback();
+	}
+
+	// Keep the legacy path contract while query identifiers support slash/dot names.
+	await page.route('**/api/tags/*', async route => {
+		const name = decodeURIComponent(
+			new URL(route.request().url()).pathname.slice('/api/tags/'.length),
+		);
+		return mutateTag(route, name);
 	});
 
 	await page.route('**/api/*', async route => {
 		const request = route.request();
 		const url = new URL(request.url());
+
+		if (
+			url.pathname === '/api/tags' &&
+			['PATCH', 'DELETE'].includes(request.method())
+		) {
+			return mutateTag(route, url.searchParams.get('name'));
+		}
 
 		if (url.pathname === '/api/tags' && request.method() === 'POST') {
 			const { name } = request.postDataJSON();

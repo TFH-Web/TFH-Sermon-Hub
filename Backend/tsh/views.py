@@ -39,7 +39,6 @@ from tsh.schemas import (
     sermons_schema,
     speaker_schema,
     tag_schema,
-    tags_schema,
 )
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -715,10 +714,15 @@ def create_tag():
     return tag_schema.dump(tag), 201
 
                                                                                 # PATCH Tag
+@api.patch("/tags")
 @api.patch("/tags/<name>")
 @require_role("Admin")
-def rename_tag(name: str):
-    """Rename an existing tag. Associated sermons keep the tag via the cascading FK on Tag.name."""
+def rename_tag(name: str | None = None):
+    """Rename a tag, accepting query identifiers that cannot safely be URL path segments."""
+    if name is None:
+        name = request.args.get("name")
+    if not isinstance(name, str) or not name.strip():
+        return jsonify({"message": "Validation failed", "errors": {"name": ["Tag name is required"]}}), 422
     tag = db.session.execute(db.select(Tag).filter_by(name=name)).scalar_one_or_none()
     if tag is None:
         return jsonify({"message": f'Tag "{name}" not found'}), 404
@@ -748,10 +752,15 @@ def rename_tag(name: str):
     return tag_schema.dump(tag), 200
 
                                                                                 # DELETE Tag
+@api.delete("/tags")
 @api.delete("/tags/<name>")
 @require_role("Admin")
-def delete_tag(name: str):
+def delete_tag(name: str | None = None):
     """Delete a tag. Its sermon associations are removed by the cascading FK on Tag.name."""
+    if name is None:
+        name = request.args.get("name")
+    if not isinstance(name, str) or not name.strip():
+        return jsonify({"message": "Validation failed", "errors": {"name": ["Tag name is required"]}}), 422
     tag = db.session.execute(db.select(Tag).filter_by(name=name)).scalar_one_or_none()
     if tag is None:
         return jsonify({"message": f'Tag "{name}" not found'}), 404
