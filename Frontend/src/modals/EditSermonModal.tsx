@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import './EditSermonModal.css';
 import axios from 'axios';
@@ -6,6 +7,7 @@ import FileUploadButton from '$/components/FileUploadButton';
 import { FormField, FormRow } from '$/components/FormField';
 import Modal from '$/components/Modal';
 import { useToast } from '$/components/ToastContext';
+import { invalidateSermonData } from '$/hooks/useImportSermons';
 import { apiErrorMessage } from '$/lib/api';
 import type { Sermon } from '$/types/sermon';
 import { getFullName } from '$/types/speaker';
@@ -22,6 +24,7 @@ export default function EditSermonModal({
 	sermon,
 }: EditSermonModalProps) {
 	const { showToast } = useToast();
+	const queryClient = useQueryClient();
 	const [title, setTitle] = useState('');
 	const [titleError, setTitleError] = useState('');
 	const [speaker, setSpeaker] = useState('');
@@ -79,6 +82,13 @@ export default function EditSermonModal({
 					.map(name => ({ name })),
 			};
 			await axios.patch(`/api/sermons/${sermon.id}`, payload);
+			await Promise.all([
+				invalidateSermonData(queryClient),
+				queryClient.invalidateQueries({
+					queryKey: ['sermon', String(sermon.id)],
+					exact: true,
+				}),
+			]);
 
 			onClose();
 			showToast('Sermon updated successfully', 'success');
