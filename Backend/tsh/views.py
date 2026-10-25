@@ -351,6 +351,15 @@ def update_sermon(id: int):
 
     errors = {}
 
+    title = sermon.title
+    if "title" in payload:
+        title_data = payload["title"]
+
+        if not isinstance(title_data, str):
+            errors["title"] = ["A valid title is required"]
+        else:
+            title = title_data
+
     # Resolve speaker if client supplied
     speaker = sermon.speaker
     if "speaker" in payload or "speakers" in payload:
@@ -413,7 +422,7 @@ def update_sermon(id: int):
     # Remove relationship fields before validating regular sermon fields
     # Marshmallow validates dates, status, and other schema-defined fields.
     scalar_data = dict(payload)
-    for key in ("speaker", "speakers", "series", "tags", "id"):
+    for key in ("speaker", "speakers", "series", "tags", "id", "title"):
         scalar_data.pop(key, None)
 
     try:
@@ -431,6 +440,7 @@ def update_sermon(id: int):
         }), 422
 
     # Apply the resolved relationships.
+    sermon.title = title
     sermon.speaker = speaker
     sermon.series = series
     sermon.tags = tags
