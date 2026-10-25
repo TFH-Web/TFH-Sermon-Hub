@@ -131,10 +131,9 @@ it('shows the empty-state prompts on a general chat, and clicking one fills the 
 	expect(input.value).toBe('What has Dave said about forgiveness?');
 });
 
-it('shows "Searching sermons…" while a request is pending', () => {
-	// The message list only renders once there is a message, and a sermon chat starts with a greeting.
-	chatRequest.isPending = true;
+it('shows "Searching sermons…" while a request is pending', async () => {
 	renderAt(sermonPath);
+	await ask('What is grace?');
 
 	expect(screen.getByText('Searching sermons…')).toBeTruthy();
 });
@@ -228,12 +227,13 @@ it('starting a new question clears the previous error', async () => {
 });
 
 it('ignores Enter while a request is pending', async () => {
-	chatRequest.isPending = true;
 	renderAt('/ai-chat');
 
 	await ask('What is grace?');
+	await ask('A second question');
 
-	expect(mutate).not.toHaveBeenCalled();
+	expect(mutate).toHaveBeenCalledOnce();
+	expect(screen.queryByText('A second question')).toBeNull();
 });
 
 it('sends earlier turns as history but never the greeting', async () => {

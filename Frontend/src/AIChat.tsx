@@ -38,10 +38,14 @@ export default function AIChat() {
 
 	// Each selected sermon keeps its own conversation, separate from the general one.
 	const scopeKey = sermonId ?? 'general';
-	const { messages, setMessages } = useChatConversation(scopeKey);
+	const {
+		messages,
+		setMessages,
+		request: requestState,
+		beginRequest,
+		completeRequest,
+	} = useChatConversation(scopeKey);
 	const [input, setInput] = useState('');
-	const [lastRequest, setLastRequest] = useState<ChatRequest | null>(null);
-	const [chatError, setChatError] = useState<string | null>(null);
 	const chatRequest = useChatRequest();
 	const msgsRef = useRef<HTMLDivElement>(null);
 
@@ -61,9 +65,6 @@ export default function AIChat() {
 				},
 			]);
 		}
-		// The retry state belongs to one attempt in one scope, so it never carries over to another.
-		setChatError(null);
-		setLastRequest(null);
 	}, [sermonId]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: messages and the pending state are the scroll triggers
@@ -71,35 +72,24 @@ export default function AIChat() {
 		if (msgsRef.current) {
 			msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
 		}
-	}, [messages, chatRequest.isPending]);
+	}, [messages, requestState.pending]);
 
-	function onAnswer(answer: ChatAnswer) {
-		// An answer ends any failed attempt, so a Retry that works must not leave the old error showing.
-		setChatError(null);
-		setMessages(prev => [
-			...prev,
-			{
-				id: nextId(),
-				role: 'ai',
-				text: answer.answer,
-				aiGenerated: answer.ai_generated,
-				sources: answer.sources,
-			},
-		]);
-	}
-
-	function onFailure(error: unknown) {
-		setChatError(
-			apiErrorMessage(error, 'Could not get an answer. Please try again.'),
-		);
+	function callbacks(id: number) {
+		return {
+			onSuccess: (answer: ChatAnswer) => completeRequest(id, { answer }),
+			onError: (error: unknown) =>
+				completeRequest(id, {
+					error: apiErrorMessage(
+						error,
+						'Could not get an answer. Please try again.',
+					),
+				}),
+		};
 	}
 
 	function send(text?: string) {
 		const msg = (text ?? input).trim();
-		if (!msg || chatRequest.isPending) return;
-		setInput('');
-		setChatError(null);
-		setMessages(prev => [...prev, { id: nextId(), role: 'user', text: msg }]);
+		if (!msg || requestState.pending) return;
 
 		const parsedSermonId = sermonId ? Number(sermonId) : null;
 		const request: ChatRequest = {
@@ -110,16 +100,18 @@ export default function AIChat() {
 					: null,
 			history: buildHistory(messages),
 		};
-		setLastRequest(request);
-		chatRequest.mutate(request, { onSuccess: onAnswer, onError: onFailure });
+		const id = beginRequest(request);
+		if (id === null) return;
+		setInput('');
+		setMessages(prev => [...prev, { id: nextId(), role: 'user', text: msg }]);
+		chatRequest.mutate(request, callbacks(id));
 	}
 
 	function retry() {
-		if (!lastRequest || chatRequest.isPending) return;
-		chatRequest.mutate(lastRequest, {
-			onSuccess: onAnswer,
-			onError: onFailure,
-		});
+		if (!requestState.lastRequest || requestState.pending) return;
+		const id = beginRequest(requestState.lastRequest);
+		if (id !== null)
+			chatRequest.mutate(requestState.lastRequest, callbacks(id));
 	}
 
 	function askAboutSermon(source: ChatSource) {
@@ -214,7 +206,7 @@ export default function AIChat() {
 								</div>
 							</div>
 						))}
-						{chatRequest.isPending && (
+						{requestState.pending && (
 							<div className="AIChat-msg">
 								<div className="AIChat-avatar AIChat-avatar--ai">
 									<Icon icon="lucide:message-circle" width={14} height={14} />
@@ -224,8 +216,8 @@ export default function AIChat() {
 								</div>
 							</div>
 						)}
-						{chatError && !chatRequest.isPending && (
-							<ErrorBox message={chatError} onRetry={retry} />
+						{requestState.error && !requestState.pending && (
+							<ErrorBox message={requestState.error} onRetry={retry} />
 						)}
 					</div>
 				)}

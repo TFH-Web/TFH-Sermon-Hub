@@ -177,3 +177,43 @@ it('keeps the conversation across a transient re-verification', () => {
 	act(() => useAuth.setState({ status: 'ready' }));
 	expect(result.current.messages).toEqual([userMessage(1, 'still here')]);
 });
+
+it('rejects old scoped setters after an account change', () => {
+	const { result } = renderGeneral();
+	const oldSetMessages = result.current.setMessages;
+	act(() => useAuth.setState({ account: accountB }));
+	act(() => oldSetMessages([userMessage(1, 'old account data')]));
+	expect(result.current.messages).toEqual([]);
+});
+
+it('does not let an older attempt finish or clear a newer same-scope request', () => {
+	const { result } = renderGeneral();
+	const request = { message: 'A question', sermonId: null, history: [] };
+	let first: number | null = null;
+	act(() => {
+		first = result.current.beginRequest(request);
+	});
+	const completeFirst = result.current.completeRequest;
+	act(() => {
+		completeFirst(first as number, { error: 'Try again' });
+	});
+	let second: number | null = null;
+	act(() => {
+		second = result.current.beginRequest(request);
+	});
+	act(() =>
+		completeFirst(first as number, {
+			answer: {
+				answer: 'An obsolete answer',
+				ai_generated: true,
+				supported: false,
+				sources: [],
+			},
+		}),
+	);
+	expect(second).not.toBe(first);
+	expect(result.current.request.id).toBe(second);
+	expect(result.current.request.pending).toBe(true);
+	expect(result.current.request.error).toBeNull();
+	expect(result.current.messages).toEqual([]);
+});
