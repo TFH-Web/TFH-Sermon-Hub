@@ -2,6 +2,7 @@ import pytest  # noqa: F401
 from flask.testing import FlaskClient
 from syrupy.data import Snapshot
 
+from tsh.models import Sermon
 from tsh.schemas import (
     counted_speaker_schema,
     counted_speakers_schema,
@@ -27,9 +28,7 @@ def all_series(client: FlaskClient) -> dict[str, dict]:
 
 
 def test_series_pagination(client: FlaskClient):
-    pages = [
-        client.get(f"/api/series?page={n}&per_page=2").json for n in (1, 2, 3)
-    ]
+    pages = [client.get(f"/api/series?page={n}&per_page=2").json for n in (1, 2, 3)]
 
     assert [p["total"] for p in pages] == [5, 5, 5]
     assert [len(p["items"]) for p in pages] == [2, 2, 1]
@@ -98,7 +97,9 @@ def test_sermons(client, snapshot):
     for sermon in sermons:
         res = client.get(f"/api/sermons/{sermon.id}")
         res_sermon: Sermon = sermon_schema.loads(res.data)
-        assert sermons_schema.dump(res_sermon, many=False) == sermons_schema.dump(sermon, many=False)
+        assert sermons_schema.dump(res_sermon, many=False) == sermons_schema.dump(
+            sermon, many=False
+        )
 
 
 @pytest.mark.parametrize("suffix", ["", "?page=1&per_page=100"])
@@ -118,7 +119,9 @@ def test_sermon_lists_omit_caption_text_but_detail_retains_it(client, suffix):
     assert response.status_code == 200
     items = response.json["items"] if suffix else response.json
     assert items
-    assert all("transcript" not in item and "transcriptSegments" not in item for item in items)
+    assert all(
+        "transcript" not in item and "transcriptSegments" not in item for item in items
+    )
     assert transcript not in response.get_data(as_text=True)
     assert client.get("/api/sermons/1").json["transcript"] == transcript
     assert client.get("/api/sermons/1/transcript").json["transcript"] == transcript
@@ -450,6 +453,7 @@ def test_sermons_pagination_invalid_inputs(client: FlaskClient):
         assert res.is_json
         assert "error" in res.json
 
+
 def test_sermon_has_processing_fields(client):
     # New sermons come back with the pipeline fields, empty until the worker runs
     res = client.get("/api/sermons/1")
@@ -459,3 +463,28 @@ def test_sermon_has_processing_fields(client):
         assert data[key] is None
 
 
+def test_sermon_edit_and_delete(client: FlaskClient):
+    sermon_id = 1
+    new_speaker_id = 2
+
+    res = client.get(f"/api/sermons/{sermon_id}")
+    sermon: Sermon = sermon_schema.loads(res.data)
+
+    payload = {"speaker": {"id": 2}}
+
+    res = client.patch(f"/api/sermons/{sermon_id}", json=payload)
+    assert res.status_code == 200
+
+    res = client.get(f"/api/sermons/{sermon_id}")
+    new_sermon: Sermon = sermon_schema.loads(res.data)
+    assert new_sermon.speaker.id == new_speaker_id
+
+    sermon.speaker = new_sermon.speaker
+    sermon.speaker_id = new_speaker_id
+    assert sermon == new_sermon
+
+    res = client.delete(f"/api/sermons/{sermon_id}")
+    assert res.status_code == 204
+
+    res = client.get(f"/api/sermons/{sermon_id}")
+    assert res.status_code == 404
