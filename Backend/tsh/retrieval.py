@@ -1,12 +1,14 @@
-# Finds the sermon chunks closest in meaning to a question, for AI chat.
-# Stands in for the shared TFH-462 search service until it lands; keep the signature so
-# switching over is a one-line change in chat.py.
+"""Shared hybrid chunk retrieval for sermon search and grounded AI chat."""
+
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import date
+from math import isfinite
 
-from sqlalchemy import func, type_coerce
+from sqlalchemy import and_, case, func, or_, type_coerce
+from sqlalchemy.orm import load_only
 
 from tsh import embeddings
 from tsh.database import db
@@ -15,15 +17,14 @@ from tsh.models import (
     Sermon,
     SermonChunk,
     SermonChunkEmbedding,
+    Speaker,
     UploadStatus,
 )
+from tsh.search_ranking import MAX_DISTANCE, KeywordQuery, blend_score, normalize_text
 from tsh.youtube_import import VIDEO_ID, parse_video_id
 
 # How many chunks a question can draw on before the context budget trims them.
 CANDIDATE_LIMIT = 8
-# Cosine distance runs from 0 (same direction) to 2 (opposite). Chunks further than this
-# from the question are not treated as evidence, so an unrelated question gets no sources.
-MAX_DISTANCE = 0.6
 
 
 @dataclass(frozen=True)
@@ -37,52 +38,152 @@ class RetrievedChunk:
     start_sec: float
     end_sec: float
     text: str
-    distance: float
+    distance: float | None
+    score: float = 0.0
+    lexical_score: float = 0.0
+
+
+def _speaker_filter(speaker: str | None) -> str:
+    value = normalize_text(speaker or "")
+    return "" if value in ("any", "all", "all speakers") else value
+
+
+def sermon_filters(
+    *,
+    sermon_id: int | None = None,
+    speaker: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+) -> tuple:
+    """Shared SQL eligibility; call speaker_matches too for Unicode name matching."""
+    conditions = [Sermon.status == UploadStatus.PUBLISHED]
+    if sermon_id is not None:
+        conditions.append(Sermon.id == sermon_id)
+    name = _speaker_filter(speaker)
+    if name.isdecimal():
+        conditions.append(Sermon.speaker_id == int(name))
+    if date_from is not None:
+        conditions.append(Sermon.date >= date_from)
+    if date_to is not None:
+        conditions.append(Sermon.date <= date_to)
+    return tuple(conditions)
+
+
+def speaker_matches(
+    speaker: str | None, speaker_id: int, first_name: str, last_name: str
+) -> bool:
+    """Match a speaker ID or full name, including Unicode casefold equivalence."""
+    value = _speaker_filter(speaker)
+    if not value:
+        return True
+    if value.isdecimal():
+        return speaker_id == int(value)
+    return value == normalize_text(f"{first_name} {last_name}")
 
 
 def retrieve_chunks(
-    query: str, sermon_id: int | None = None, limit: int = CANDIDATE_LIMIT
+    query: str,
+    sermon_id: int | None = None,
+    limit: int | None = CANDIDATE_LIMIT,
+    *,
+    speaker: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
 ) -> list[RetrievedChunk]:
-    """Return up to limit relevant chunks from PUBLISHED sermons, nearest first.
+    """Rank eligible chunks by semantic and keyword evidence, before optional limiting.
 
-    Only chunks embedded with the configured EMBEDDING_MODEL are eligible, so vectors from
-    two models are never compared. sermon_id restricts eligibility before the limit is
-    applied; a missing or unpublished sermon gives []. Chunks without a valid YouTube video
-    id are skipped before counting toward limit, since a citation must link to the video.
-    Nonpositive limits return [] without embedding. Raises EmbeddingError for a dimension
-    mismatch or a bad query vector, and whatever ollama raises if it is down.
+    limit=None returns all admitted chunks so search can group/count before paging.
+    Missing-model or unembedded chunks may supply lexical evidence only; chunks recorded
+    with another model are excluded. CASE guards cosine evaluation so legacy vectors
+    are never compared. Provider/schema/vector failures propagate instead of returning
+    a misleading empty result. Nonpositive limits return [] without embedding.
     """
-    if limit <= 0:
+    if limit is not None and limit <= 0:
         return []
     embeddings.check_schema_dimension()
-    vector = embeddings.embed_query(query)
-    distance = func.vec_distance_cosine(
-        SermonChunkEmbedding.embedding, type_coerce(vector, Float32Vector())
-    ).label("distance")
-    # Note: exact scan over every eligible vector, so filters apply before the limit;
-    # move to a vec0 KNN with metadata columns if the archive outgrows a full scan.
-    statement = (
-        db.select(SermonChunk, Sermon, distance)
-        .join(SermonChunkEmbedding, SermonChunkEmbedding.sermon_chunk_id == SermonChunk.id)
-        .join(Sermon, Sermon.id == SermonChunk.sermon_id)
-        .where(
-            Sermon.status == UploadStatus.PUBLISHED,
-            SermonChunk.embedding_model == embeddings.EMBEDDING_MODEL,
-            distance <= MAX_DISTANCE,
+    vector = embeddings.validate_vector(embeddings.embed_query(query))
+    if not any(vector):
+        raise embeddings.EmbeddingError(
+            "Query embedding must be nonzero for cosine search"
         )
-        .order_by(distance, SermonChunk.id)
+    keywords = KeywordQuery(query)
+    has_vector = and_(
+        SermonChunk.embedding_model == embeddings.EMBEDDING_MODEL,
+        SermonChunkEmbedding.sermon_chunk_id.is_not(None),
     )
-    if sermon_id is not None:
-        statement = statement.where(SermonChunk.sermon_id == sermon_id)
+    distance = case(
+        (
+            has_vector,
+            func.vec_distance_cosine(
+                SermonChunkEmbedding.embedding, type_coerce(vector, Float32Vector())
+            ),
+        ),
+        else_=None,
+    ).label("distance")
+    # Exact sqlite-vec scan over eligible rows, not a globally truncated nearest-neighbor
+    # page. Selecting only needed fields avoids loading captions, summaries or raw vectors.
+    statement = (
+        db.select(SermonChunk, Sermon, distance, Speaker.first_name, Speaker.last_name)
+        .join(Sermon, Sermon.id == SermonChunk.sermon_id)
+        .join(Speaker, Speaker.id == Sermon.speaker_id)
+        .outerjoin(
+            SermonChunkEmbedding, SermonChunkEmbedding.sermon_chunk_id == SermonChunk.id
+        )
+        .options(
+            load_only(
+                SermonChunk.id, SermonChunk.text, SermonChunk.start, SermonChunk.end
+            ),
+            load_only(
+                Sermon.id,
+                Sermon.title,
+                Sermon.youtube_video_id,
+                Sermon.video_link,
+                Sermon.speaker_id,
+            ),
+        )
+        .where(
+            *sermon_filters(
+                sermon_id=sermon_id,
+                speaker=speaker,
+                date_from=date_from,
+                date_to=date_to,
+            ),
+            SermonChunk.stale.is_(False),
+            or_(
+                SermonChunk.embedding_model == embeddings.EMBEDDING_MODEL,
+                SermonChunk.embedding_model.is_(None),
+            ),
+        )
+    )
 
     results = []
-    # Link eligibility uses Python's shared YouTube validation. Stream bounded batches
-    # until enough linkable chunks are found, rather than limiting invalid sources in
-    # SQL or materializing the whole archive in Python. Close the cursor on early exit.
+    # All eligibility and hybrid scores precede the limit; a lexical hit outside a
+    # semantic top-k must remain visible, and invalid sources cannot consume a slot.
     with db.session.execute(statement.execution_options(yield_per=32)) as rows:
-        for chunk, sermon, chunk_distance in rows:
+        for chunk, sermon, chunk_distance, first_name, last_name in rows:
+            if not speaker_matches(speaker, sermon.speaker_id, first_name, last_name):
+                continue
+            if not isinstance(sermon.title, str) or not sermon.title.strip():
+                continue
+            if not isinstance(chunk.text, str) or not chunk.text.strip():
+                continue
+            times = (chunk.start, chunk.end)
+            if not all(
+                isinstance(value, (int, float)) and isfinite(value) for value in times
+            ):
+                continue
+            if chunk.start < 0 or chunk.end < chunk.start:
+                continue
             video_id = video_id_for(sermon)
             if video_id is None:
+                continue
+            if chunk_distance is not None and not isfinite(chunk_distance):
+                chunk_distance = None
+            lexical_score = keywords.score(chunk.text)
+            if (
+                not (chunk_distance is not None and chunk_distance <= MAX_DISTANCE)
+                and lexical_score == 0
+            ):
                 continue
             results.append(
                 RetrievedChunk(
@@ -94,11 +195,12 @@ def retrieve_chunks(
                     end_sec=chunk.end,
                     text=chunk.text,
                     distance=chunk_distance,
+                    score=blend_score(chunk_distance, lexical_score),
+                    lexical_score=lexical_score,
                 )
             )
-            if len(results) >= limit:
-                break
-    return results
+    results.sort(key=lambda hit: (-hit.score, hit.chunk_id))
+    return results if limit is None else results[:limit]
 
 
 def video_id_for(sermon: Sermon) -> str | None:

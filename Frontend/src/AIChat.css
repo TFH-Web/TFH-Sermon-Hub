@@ -136,6 +136,12 @@
 	color: var(--cl-on-surface-muted);
 }
 
+.AIChat-ai-label {
+	margin: 6px 0 0;
+	font-size: 11px;
+	color: var(--cl-on-surface-muted);
+}
+
 .AIChat-refs {
 	display: flex;
 	flex-direction: column;
