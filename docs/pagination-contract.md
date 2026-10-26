@@ -38,6 +38,37 @@ Omit inactive filters. Filters combine with AND and apply in the database before
 
 Empty and out-of-range requests return HTTP 200 with empty items, accurate totals, and the requested page number. Validation errors contain `error` and `message` fields. Sermon item fields and the detail endpoint are unchanged.
 
+## Search
+
+`GET /api/search` uses the same opt-in `page` contract. With `page`, it returns
+`items`, `total`, `page`, `pageSize`, `totalPages` and aliases `results` (identical
+to `items`), `page_size` and `total_pages`. Without `page`, it returns the complete
+ranked matching array; supplying only `pageSize` does not turn on pagination.
+The default page size is 10, the maximum is 100, and `page_size` / `per_page` are
+accepted size aliases.
+
+```text
+GET /api/search?q=grace&type=all&speaker=any&date=any&page=1&pageSize=6
+```
+
+Search has real hybrid relevance ranking, unlike `/api/sermons?sort=Relevance`.
+Only PUBLISHED sermons participate. Speaker, date and type filters apply before
+sermons are grouped and counted; `total` counts distinct matching sermons, not
+chunks, and is not capped by chat's eight-chunk budget. Each result contains the
+best snippet and its nullable `chunk_id`, `start_sec` and `end_sec`. Metadata-only
+matches have no source time. Ranked result ties are deterministic.
+
+Empty/no-match searches return 200 with `total: 0`, `totalPages: 0` and empty
+items. An out-of-range page keeps the requested page and full filtered total,
+but has empty items. Invalid filters/paging return JSON 400 with `error` and
+`message`; embedding/retrieval failures return JSON 503, not a successful empty
+page. Missing/invalid authentication returns 401; disallowed roles return 403.
+
+See [real sermon search](search.md) for the complete filter syntax, inclusive
+date windows, result aliases, ranking, safe video links and frontend integration
+boundaries. This section changes search only; it does not migrate Dashboard or
+other legacy array consumers.
+
 ## Sermons page
 
 `Frontend/src/Sermons.tsx` requests nine sermons per page and renders the returned items without local filtering or sorting. Its cache key is:

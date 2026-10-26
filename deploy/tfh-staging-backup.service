@@ -1,0 +1,21 @@
+[Unit]
+Description=Consistent and verified TFH staging SQLite backup
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=tfh-staging
+Group=tfh-staging
+WorkingDirectory=/opt/tfh-staging/current
+Environment=PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+ExecStart=/opt/tfh-staging/current/Backend/.venv/bin/python /opt/tfh-staging/current/deploy/backup.py --database /var/lib/tfh-staging/sermonhub.sqlite3 --backup-dir /var/backups/tfh-staging --retain-days 14 --min-copies 14
+TimeoutStartSec=300
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+# SQLite may need its existing WAL shared-memory locks while backing up a live DB.
+ReadWritePaths=/var/lib/tfh-staging /var/backups/tfh-staging
+RestrictAddressFamilies=AF_UNIX

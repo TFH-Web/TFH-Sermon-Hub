@@ -1,5 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { formatDateRange } from './date';
+import { formatDateRange, parseUtcTimestamp } from './date';
+
+describe('parseUtcTimestamp', () => {
+	// The server sends UTC with no zone suffix, which a bare Date would read as local time.
+	it('reads a timestamp with no zone as UTC', () => {
+		expect(parseUtcTimestamp('2026-10-20T06:49:24.744828').toISOString()).toBe(
+			'2026-10-20T06:49:24.744Z',
+		);
+	});
+
+	it('keeps the zone a timestamp already has', () => {
+		expect(parseUtcTimestamp('2026-10-20T06:49:24Z').toISOString()).toBe(
+			'2026-10-20T06:49:24.000Z',
+		);
+		expect(parseUtcTimestamp('2026-10-20T06:49:24+02:00').toISOString()).toBe(
+			'2026-10-20T04:49:24.000Z',
+		);
+	});
+});
 
 describe('formatDateRange', () => {
 	it('shows both dates when both are given', () => {

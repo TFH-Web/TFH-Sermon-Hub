@@ -117,20 +117,28 @@ Each limit is a named constant, so it can be tuned in one place.
 | Message length | 1000 characters | `chat.MAX_MESSAGE_CHARS` |
 | History turns | 6 | `chat.MAX_HISTORY_TURNS` |
 | Each history turn | 1000 characters | `chat.MAX_HISTORY_CHARS` |
-| Candidate chunks | 8 | `retrieval.CANDIDATE_LIMIT` |
-| Relevance cutoff | cosine distance 0.6 | `retrieval.MAX_DISTANCE` |
+| Candidate chunks | 8 (chat only, not the HTTP search total) | `retrieval.CANDIDATE_LIMIT` |
+| Semantic admission cutoff | cosine distance 0.6; lexical matches can also qualify | `search_ranking.MAX_DISTANCE` |
 | Evidence text sent to the model | 6000 characters | `chat.CONTEXT_CHAR_BUDGET` |
 | Answer length | 600 tokens | `chat.MAX_OUTPUT_TOKENS` |
 
-Evidence is added nearest first until the next chunk would pass the context
-budget. If the nearest chunk alone is larger, it is cut to fit. The output cap is
-sent to both providers: `max_tokens` for Anthropic and `num_predict` for Ollama.
+Evidence is added in hybrid relevance order until the next chunk would pass the
+context budget. If the first chunk alone is larger, it is cut to fit. The output
+cap is sent to both providers: `max_tokens` for Anthropic and `num_predict` for Ollama.
 
 ## Grounding
 
-- Only chunks of PUBLISHED sermons, embedded with the configured
-  `EMBEDDING_MODEL`, can be evidence. `sermonId` is applied before the
-  candidate limit.
+- The shared [TFH-462 hybrid retrieval service](search.md#retrieval-scoring-and-grouping)
+  ranks actual PUBLISHED sermon chunks using sqlite-vec cosine distance plus
+  keyword matching. The query uses the same configured embedding model and
+  768-dimensional vector size as compatible stored chunk vectors.
+- Chunks recorded with a different model are excluded. Chunks without a recorded
+  model can qualify lexically, without comparing their vectors. Stale/blank
+  chunks, invalid times and invalid YouTube sources cannot become evidence.
+  `sermonId` is applied before chat's candidate limit.
+- Metadata-only search matches (title, summary, description, speaker, series or
+  tags) are never chat evidence. An HTTP search hit without a source time does
+  not establish support for an answer.
 - The model gets numbered evidence blocks and must answer only from them, with
   no outside Bible or general knowledge.
 - History and evidence are passed as quoted material that cannot change the
@@ -142,6 +150,8 @@ sent to both providers: `max_tokens` for Anthropic and `num_predict` for Ollama.
 ## Code
 
 - `Backend/tsh/chat.py`: request validation, prompt, citations
-- `Backend/tsh/retrieval.py`: `retrieve_chunks(query, sermon_id=None, limit=...)`.
-  This stands in for the shared TFH-462 search service and should switch to it
-  once that lands.
+- `Backend/tsh/retrieval.py`: shared
+  `retrieve_chunks(query, sermon_id=None, limit=...)`. Chat keeps its bounded
+  evidence list; HTTP search uses the complete eligible set before grouping and
+  pagination. Relevance order is shared, but metadata candidates belong only to
+  HTTP search. Chat's request/response and citation format are unchanged.

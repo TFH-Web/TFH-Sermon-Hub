@@ -53,12 +53,14 @@ export function useProcessingCount(): number {
 }
 
 /**
- * Refetch everything a new or reprocessed sermon can change: the import lists, the sermon lists, and series and speakers.
+ * Refetch everything a new, updated or reprocessed sermon can change: the import lists, the sermon lists and
+ * the sermon pages, and series and speakers.
  * The promise settles once the lists on screen have been refetched, for callers that want to wait for that.
  */
 export function invalidateSermonData(queryClient: QueryClient) {
 	const stale = [
 		IMPORT_SERMONS_KEY,
+		'sermon',
 		'sermons',
 		'paginated-sermons',
 		'series',
