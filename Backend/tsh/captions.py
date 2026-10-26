@@ -22,7 +22,6 @@ OAUTH_SETTINGS = (
 )
 
 
-
 # The reasons YouTube gives when the project's daily quota is used up. rateLimitExceeded is a short-term
 # limit that clears in seconds, so it does not open the breaker.
 DAILY_QUOTA_REASONS = {"quotaExceeded", "dailyLimitExceeded", "dailyLimitExceededUnreg"}
@@ -31,14 +30,18 @@ DAILY_QUOTA_REASONS = {"quotaExceeded", "dailyLimitExceeded", "dailyLimitExceede
 class CaptionError(RuntimeError):
     """An actionable caption failure that is safe to save in processing_error."""
 
+
 class CaptionQuotaError(CaptionError):
     """YouTube's daily quota is used up, so no caption request is made until it resets."""
+
 
 class CaptionAuthError(CaptionError):
     """The TFH channel's OAuth sign-in expired, was revoked, or could not be renewed."""
 
+
 class CaptionsDisabledError(CaptionError):
-    """The TFH channel's captions are disabled, so no caption request is made."""
+    """Caption downloads are turned off by CAPTIONS_ENABLED, so no caption request is made."""
+    
 
 DISABLED_MESSAGE = ("captions are turned off (CAPTIONS_ENABLED is false); turn them on and reprocess to get a transcript")
 
@@ -56,17 +59,37 @@ def parse_flag(value, name: str) -> bool:
 
 
 def captions_enabled() -> bool:
-    """True unless CAPTIONS_ENABLED turns caption downloads off. Read each time , so tests can change it."""
+    """True unless CAPTIONS_ENABLED turns caption downloads off. Read each time, so tests can change it."""
     return parse_flag(current_app.config.get("CAPTIONS_ENABLED", True), "CAPTIONS_ENABLED")
 
 
 def quota_message(resume) -> str:
-    """Say when captions resume. Starts with "Youtube quota exceeded" so it is easy to identify."""
+    """Say when captions resume. Starts with "YouTube quota exceeded" so it is easy to identify."""
     when = resume.astimezone(caption_quota.RESET_TIMEZONE).strftime("%Y-%m-%d %H:%M %Z")
     return f"YouTube quota exceeded; no caption requests are sent until {when}, then reprocess."
 
 
 AUTH_EXPIRED = "YouTube sign-in expired, refresh the token"
+
+# How a caption failure starts once the pipeline saves it in processing_error as "fetch_transcript: <message>".
+# Shared so backfill and the sync report recognise the same pauses.
+QUOTA_PREFIX = "fetch_transcript: YouTube quota exceeded"
+AUTH_PREFIX = "fetch_transcript: " + AUTH_EXPIRED
+DISABLED_PREFIX = "fetch_transcript: " + DISABLED_MESSAGE.split(";")[0]
+
+
+def pause_reason() -> str | None:
+    """Say why caption downloads are on hold right now, or None if they are not.
+
+    Reads the CAPTIONS_ENABLED flag and the saved quota breaker only, so it never calls YouTube.
+    An expired sign-in has no saved state: it is only known from a sermon's processing_error (AUTH_PREFIX).
+    """
+    if not captions_enabled():
+        return DISABLED_MESSAGE
+    resume = caption_quota.blocked_until()
+    if resume is not None:
+        return quota_message(resume)
+    return None
 
 
 def auth_message(category: str) -> str:
@@ -78,7 +101,6 @@ def auth_message(category: str) -> str:
     if category == "token refresh failed":
         steps = "check YOUTUBE_OAUTH_CLIENT_ID and YOUTUBE_OAUTH_CLIENT_SECRET, or " + steps
     return f"{AUTH_EXPIRED} ({category}); {steps}"
-
 
 
 def select_track(tracks: list[dict], language: str = "en") -> dict:

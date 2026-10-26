@@ -4,7 +4,7 @@ This documents the Pagination that is implemented for `/api/sermons`; Speakers, 
 
 ## API
 
-Pagination is opt-in: supplying `page` returns a paginated object. Without `page`, the endpoint returns the complete matching array, preserving Dashboard and Series consumers. Supplying only a page size does not enable pagination.
+Pagination is opt-in: supplying `page` returns a paginated object. Without `page`, the endpoint returns the complete matching array for legacy consumers such as Series. Supplying only a page size does not enable pagination.
 
 Example:
 
@@ -83,6 +83,16 @@ Filter choices load separately from `/api/speakers`, `/api/series`, and `/api/ta
 
 The page waits for filter choices before enabling controls. Failed filter requests show the shared ErrorBox with refresh instructions, rather than silently displaying empty choices. The app query provider obtains the toast callback inside a React component so failed requests do not trigger an invalid hook call.
 
+## Dashboard
+
+Dashboard reuses the existing endpoints rather than a separate stats service:
+
+- `/api/sermons?page=1&pageSize=5&sort=Newest` supplies the full-library `total` and five recent sermons in server date/ID order.
+- `/api/series?page=1&per_page=1` supplies the series `total`. This endpoint uses `per_page`, not `pageSize`.
+- `/api/speakers?page=1&pageSize=1` supplies the speaker `total`.
+
+The dashboard keys are `['sermons', 'dashboard', { page: 1, pageSize: 5, sort: 'Newest' }]`, `['series', 'count']`, and `['speakers', 'count']`; they cannot reuse legacy array responses. Existing import/processing invalidation and successful sermon edits/deletions invalidate these prefixes, so returning to Dashboard refetches current totals and recent items. Cards retain independent loading/error/retry states; an empty recent list displays "No sermons yet."
+
 ## Tags page
 
 `/api/tags` supports the same opt-in `page`/`pageSize` contract, sorted by tag name ascending; `tags` is the alias for `items`. `Frontend/src/TagsAndMetadata.tsx` requests ten tags per page under the `['paginated-tags', { page, pageSize }]` cache key and keeps the previous page visible while the next one loads. By default the endpoint returns every tag, including unused tags with a count of 0; `used=true` (or `1`) filters to tags with a count above 0 in the database, before counting or paging. The Sermons filters use the unpaginated `used=true` form under the `['tags', { used: true }]` cache key.
@@ -96,9 +106,10 @@ The component renders Previous, Next, and current-page feedback. It handles firs
 ## Verification
 
 - Backend tests cover filters, combined/no-match results, totals, pagination, validation, stable sorting, and legacy responses.
-- Vitest covers response validation and shared control rendering.
+- Vitest covers response validation, shared control rendering, dashboard totals/bounded requests/empty/error states, and cache refresh after successful sermon changes.
 - `Frontend/e2e/sermons.spec.ts` exercises the real page with mocked API responses: every filter/sort resets the page and persists in subsequent requests, each metadata failure displays an error and recovers on refresh, and Dashboard keeps its complete library count.
 - Browser fixtures test frontend wiring; database filtering is verified by backend tests.
+- `Frontend/e2e/dashboard.spec.ts` verifies full-library totals from bounded pages and server-ordered recent sermons.
 
 Run from the respective directories:
 
