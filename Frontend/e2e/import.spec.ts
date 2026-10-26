@@ -1,6 +1,6 @@
 // Tests for importing from YouTube: the upload modal, the bulk sync, and the Import page's lists.
 import { expect, type Page, test } from '@playwright/test';
-import { sermons } from './data';
+import { seriess, sermons, speakers } from './data';
 import { paginated } from './pagination';
 
 // What a finished sync reports: POST /api/import/youtube without a job queue.
@@ -104,6 +104,8 @@ async function importRoutes(
 		// The id of a sermon the next video import answers with, as a video that was imported before.
 		duplicateOf: null as number | null,
 		posts: [] as { path: string; body: unknown }[],
+		// The body of each PATCH /api/sermons/<id> the Edit popup sent.
+		patches: [] as unknown[],
 		// Makes GET /api/sermons fail, as if the server were down.
 		broken: false,
 		// Every POST waits for this before it answers, so a test can look at the page mid-request.
@@ -151,6 +153,50 @@ async function importRoutes(
 							message: 'Sync run not found',
 						},
 					});
+		}
+
+		// A sermon's own page, which Open sermon leads to: the sermon, its transcript, and what Edit saves to it.
+		const sermonPath = url.pathname.match(
+			/^\/api\/sermons\/(\d+)(\/transcript)?$/,
+		);
+		if (sermonPath) {
+			const target = state.sermons.find(s => s.id === Number(sermonPath[1]));
+			if (!target) {
+				return route.fulfill({
+					status: 404,
+					json: { error: 'Sermon not found', message: 'Sermon not found' },
+				});
+			}
+			if (request.method() === 'GET') {
+				return route.fulfill({
+					json: sermonPath[2] ? { transcript: null, segments: [] } : target,
+				});
+			}
+			if (request.method() === 'PATCH') {
+				const patch = request.postDataJSON();
+				state.patches.push(patch);
+				// What the server would keep: the scalars as sent, and the speaker and series found by their ids.
+				const saved = target as Record<string, unknown>;
+				for (const key of ['title', 'date', 'description']) {
+					if (key in patch) saved[key] = patch[key];
+				}
+				if (patch.speaker) {
+					saved.speaker = speakers.find(s => s.id === patch.speaker.id);
+				}
+				if ('series' in patch) {
+					saved.series = patch.series
+						? seriess.find(s => s.id === patch.series.id)
+						: null;
+				}
+				return route.fulfill({ json: target });
+			}
+		}
+		// What the Edit popup offers to choose from.
+		if (request.method() === 'GET' && url.pathname === '/api/speakers') {
+			return paginated(speakers, route, url.searchParams);
+		}
+		if (request.method() === 'GET' && url.pathname === '/api/series') {
+			return paginated(seriess, route, url.searchParams);
 		}
 
 		if (request.method() !== 'POST') return route.abort();
@@ -530,4 +576,81 @@ test('Sync History says when no sync has finished yet', async ({ page }) => {
 	await expect(
 		card(page, 'Sync History').getByText('No finished syncs yet'),
 	).toBeVisible();
+});
+
+/** From the sermon's own page: change title, speaker, series, date and description, save, reload, and find them kept. */
+async function editThenReload(
+	page: Page,
+	state: Awaited<ReturnType<typeof importRoutes>>,
+	id: number,
+) {
+	await expect(page).toHaveURL(`/sermons/${id}`);
+	await page.getByRole('button', { name: 'Edit', exact: true }).click();
+	const edit = page.getByRole('dialog');
+	await edit
+		.getByPlaceholder('Enter sermon title')
+		.fill('Renamed after import');
+	// The speakers and series are asked for once the popup is open, so the options can take a moment to arrive.
+	await edit.getByLabel('Speaker').selectOption({ label: 'Speaker No. 2' });
+	await edit.getByLabel('Series').selectOption({ label: 'Series 3' });
+	await edit.getByLabel('Date').fill('2026-05-03');
+	await edit.getByLabel('Description').fill('A corrected description.');
+	await edit.getByRole('button', { name: 'Save Changes' }).click();
+	await expect(page.getByText('Sermon updated successfully')).toBeVisible();
+	expect(state.patches).toEqual([
+		{
+			title: 'Renamed after import',
+			speaker: { id: 2 },
+			series: { id: 3 },
+			date: '2026-05-03',
+			description: 'A corrected description.',
+			tags: [{ name: 'grace' }],
+		},
+	]);
+
+	// A fresh load of the page is what the server kept, not what the popup remembers.
+	await page.reload();
+	await page.getByRole('button', { name: 'Edit', exact: true }).click();
+	const again = page.getByRole('dialog');
+	await expect(again.getByPlaceholder('Enter sermon title')).toHaveValue(
+		'Renamed after import',
+	);
+	await expect(again.getByLabel('Speaker')).toHaveValue('2');
+	await expect(again.getByLabel('Series')).toHaveValue('3');
+	await expect(again.getByLabel('Date')).toHaveValue('2026-05-03');
+	await expect(again.getByLabel('Description')).toHaveValue(
+		'A corrected description.',
+	);
+}
+
+test('after a new import, Open sermon then Edit saves the details, and they survive a reload', async ({
+	page,
+}) => {
+	const state = await importRoutes(page);
+	await page.goto('/upload');
+	await page.locator('.Header-upload').click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('YouTube link').fill('https://youtu.be/F_OiCiZ3Y3Y');
+	await dialog.getByRole('button', { name: 'Import & Process' }).click();
+	await dialog.getByRole('button', { name: 'Open sermon' }).click();
+
+	await editThenReload(page, state, 1);
+});
+
+test('after a duplicate import, Open sermon then Edit saves the details, and they survive a reload', async ({
+	page,
+}) => {
+	const state = await importRoutes(page, [sermon(1, 'Published')]);
+	state.duplicateOf = 1;
+	await page.goto('/upload');
+	await page.locator('.Header-upload').click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('YouTube link').fill('https://youtu.be/F_OiCiZ3Y3Y');
+	await dialog.getByRole('button', { name: 'Import & Process' }).click();
+	await expect(page.locator('.Toast-message')).toContainText(
+		'"Import 1" was already imported.',
+	);
+	await dialog.getByRole('button', { name: 'Open sermon' }).click();
+
+	await editThenReload(page, state, 1);
 });

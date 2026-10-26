@@ -5,6 +5,13 @@ Admin-only `PATCH /api/sermons/:id` accepts metadata (`title`, `date`, `duration
 and a validated `videoLink`/`youtubeVideoId`. Partial updates use the schema's
 validated internal field names. Omitted fields stay unchanged.
 
+On the sermon page, the Edit Sermon modal sends `title`, `speaker` and `series`
+(by id, `series` is `null` for none), `date`, `description` and `tags` with each
+save. The speakers and series it offers come from `GET /api/speakers` and
+`GET /api/series`. Title, speaker and description are required; a cleared date is
+left out so the saved date stays. The form also has Series Index, Video Link,
+Sermon Notes and Transcript fields, but they are not part of the save.
+
 Metadata and manual-summary edits preserve saved transcript cues, chunk IDs and
 embeddings. Alternate links for the same video only canonicalize the URL; they
 do not discard evidence or spend provider quota.
