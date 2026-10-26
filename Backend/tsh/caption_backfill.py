@@ -11,7 +11,7 @@ from tsh import pipeline
 from tsh.captions import AUTH_EXPIRED, OAUTH_SETTINGS, captions_enabled
 from tsh.database import db
 from tsh.models import Sermon, UploadStatus
-from tsh.youtube_import import VIDEO_ID, parse_video_id
+from tsh.youtube_links import VIDEO_ID, parse_video_id
 
 QUOTA_ERROR = "fetch_transcript: YouTube quota exceeded"
 AUTH_ERROR = "fetch_transcript: " + AUTH_EXPIRED

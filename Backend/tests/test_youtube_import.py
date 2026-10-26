@@ -13,7 +13,8 @@ from tsh import pipeline, youtube, youtube_import
 from tsh.database import db
 from tsh.models import Series, Sermon, Speaker, SyncRun, UploadStatus
 from tsh.queue import QUEUE_NAME
-from tsh.youtube_import import import_channel, parse_video_id
+from tsh.youtube_import import import_channel
+from tsh.youtube_links import parse_video_id
 
 BOILERPLATE = "Broadcasted live from The Father's House in Vacaville, CA.\nhttps://example.com"
 

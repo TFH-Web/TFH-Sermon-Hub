@@ -2,6 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useMemo, useState } from 'react';
+import { buildYouTubeSourceUrl, resolveYouTubeVideoId } from '$/lib/youtube';
 import { Sermon } from '$/types/sermon';
 import { Transcript } from '$/types/transcript';
 import { useUser } from '$/types/user';
@@ -14,12 +15,6 @@ function timestamp(seconds: number): string {
 	const whole = Math.floor(seconds);
 	const minutes = Math.floor(whole / 60);
 	return `${minutes}:${String(whole % 60).padStart(2, '0')}`;
-}
-
-function videoAt(link: string, seconds: number): string {
-	const url = new URL(link);
-	url.searchParams.set('t', String(Math.floor(seconds)));
-	return url.href;
 }
 
 function keyed<T>(values: T[], identify: (value: T) => string) {
@@ -53,6 +48,7 @@ export default function SermonTranscript({ sermon }: { sermon: Sermon }) {
 	const { showToast } = useToast();
 	const user = useUser();
 	const queryClient = useQueryClient();
+	const videoId = resolveYouTubeVideoId(sermon);
 	const [timed, setTimed] = useState(false);
 	const keywordPattern = useMemo(() => {
 		const keywords = [
@@ -207,19 +203,30 @@ export default function SermonTranscript({ sermon }: { sermon: Sermon }) {
 				tabIndex={0}
 			>
 				{timed && segments.length > 0 ? (
-					cues.map(({ value: segment, key }) => (
-						<div className="SermonDetail-transcript-cue" key={key}>
-							<a
-								href={videoAt(sermon.videoLink, segment.start)}
-								target="_blank"
-								rel="noreferrer"
-								aria-label={`Watch from ${timestamp(segment.start)}`}
-							>
-								{timestamp(segment.start)}
-							</a>
-							<p>{highlightKeywords(segment.text, keywordPattern)}</p>
-						</div>
-					))
+					cues.map(({ value: segment, key }) => {
+						const sourceUrl = videoId
+							? buildYouTubeSourceUrl(videoId, segment.start)
+							: null;
+						return (
+							<div className="SermonDetail-transcript-cue" key={key}>
+								{sourceUrl ? (
+									<a
+										href={sourceUrl}
+										target="_blank"
+										rel="noreferrer"
+										aria-label={`Watch from ${timestamp(segment.start)}`}
+									>
+										{timestamp(segment.start)}
+									</a>
+								) : (
+									<span title="Video unavailable">
+										{timestamp(segment.start)}
+									</span>
+								)}
+								<p>{highlightKeywords(segment.text, keywordPattern)}</p>
+							</div>
+						);
+					})
 				) : text ? (
 					paragraphs.map(({ value: paragraph, key }) => (
 						<p className="SermonDetail-transcript-paragraph" key={key}>

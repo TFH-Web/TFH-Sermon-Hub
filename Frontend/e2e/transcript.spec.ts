@@ -64,7 +64,7 @@ test('shows saved full text and timestamp links from the transcript API', async 
 	await page.getByRole('button', { name: 'Timestamps', exact: true }).click();
 	await expect(
 		panel.getByRole('link', { name: 'Watch from 0:01' }),
-	).toHaveAttribute('href', 'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y&t=1');
+	).toHaveAttribute('href', 'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y&t=1s');
 	await expect(panel.getByRole('link')).toHaveCount(2);
 	await page.getByRole('button', { name: 'Full text', exact: true }).click();
 	await expect(panel).toHaveText('Welcome to church. God is good.');
@@ -90,7 +90,7 @@ test('tag keywords stay highlighted in full text and timestamp views', async ({
 	await expect(panel.locator('mark')).toHaveText(['GOD', 'C++']);
 	await expect(panel.getByRole('link')).toHaveAttribute(
 		'href',
-		'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y&t=1',
+		'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y&t=1s',
 	);
 });
 
