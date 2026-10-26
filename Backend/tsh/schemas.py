@@ -167,6 +167,8 @@ class SermonSchema(CamelCaseSchema):
         if kwargs.get("partial"):
             return data
 
+        data.setdefault("id", None)
+        data.setdefault("tags", [])
         data.setdefault("transcript", None)
         data.setdefault("summary", None)
         data.setdefault("series", None)

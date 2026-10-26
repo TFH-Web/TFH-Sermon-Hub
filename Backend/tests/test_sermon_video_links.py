@@ -4,7 +4,7 @@ import pytest
 from flask.testing import FlaskClient
 
 from tsh.database import db
-from tsh.models import Sermon
+from tsh.models import Series, Sermon, Speaker
 
 ID = "JQSUGFQO5FU"
 OTHER_ID = "F_OiCiZ3Y3Y"
@@ -63,6 +63,44 @@ def assert_video_error(res):
     assert res.is_json
     assert res.json["error"]
     assert res.json["message"]
+
+
+@pytest.mark.parametrize("video", [
+    {"videoLink": f"http://youtu.be/{ID}?t=9s"},
+    {"youtubeVideoId": ID},
+    {"videoLink": f"https://www.youtube.com/shorts/{ID}", "youtubeVideoId": ID},
+])
+def test_create_saves_a_canonical_video_and_existing_relationships(app, client, video):
+    """Valid link/id forms create a Draft without cloning referenced records."""
+    before = sermon_count()
+    speakers_before = db.session.scalar(db.select(db.func.count()).select_from(Speaker))
+    series_before = db.session.scalar(db.select(db.func.count()).select_from(Series))
+    body = new_sermon_body(**video)
+    body.update(
+        id=1,
+        speaker={"id": 1, "firstName": "Untrusted client name"},
+        series={"id": 1, "title": "Untrusted client series"},
+        tags=[{"name": "faith"}],
+        status="Published",
+    )
+
+    response = client.post("/api/sermons", json=body)
+
+    assert response.status_code == 201, response.json
+    assert response.json["id"] != 1
+    assert response.json["videoLink"] == CANONICAL
+    assert response.json["youtubeVideoId"] == ID
+    assert response.json["status"] == "Draft"
+    db.session.expire_all()
+    created = db.session.get(Sermon, response.json["id"])
+    assert (created.video_link, created.youtube_video_id) == (CANONICAL, ID)
+    assert (created.speaker_id, created.series_id) == (1, 1)
+    assert created.speaker.first_name != "Untrusted client name"
+    assert created.series.title != "Untrusted client series"
+    assert {tag.name for tag in created.tags} == {"faith"}
+    assert sermon_count() == before + 1
+    assert db.session.scalar(db.select(db.func.count()).select_from(Speaker)) == speakers_before
+    assert db.session.scalar(db.select(db.func.count()).select_from(Series)) == series_before
 
 
 @pytest.mark.parametrize("video", BAD_VIDEOS)
