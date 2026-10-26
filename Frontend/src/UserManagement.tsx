@@ -1,14 +1,13 @@
-import { Icon } from '@iconify-icon/react';
 import { useState } from 'react';
 import MainLayout from '$/components/MainLayout';
 import AddUserModal from '$/modals/AddUserModal';
 import './UserManagement.css';
-import { testUsers } from '$/data/users';
 import {
-	canRemove,
+	// canRemove,
 	dateRelative,
 	getFullName,
 	getInitials,
+	type User,
 	userHue,
 	useUser,
 } from '$/types/user';
@@ -19,6 +18,9 @@ export default function UserManagement() {
 	// ProtectedRoute redirects to sign-in on session loss; render nothing until it does.
 	if (!currentUser) return null;
 
+	//TO DO: query the users in system
+	const users: User[] = [];
+
 	return (
 		<MainLayout title="User Management">
 			<header className="UserManagement-header">
@@ -26,15 +28,6 @@ export default function UserManagement() {
 					Authentication is managed through Microsoft Entra SSO. All users must
 					sign in with their organizational Microsoft account.
 				</p>
-
-				<button
-					type="button"
-					className="Header-addUser u-button"
-					onClick={() => setAddUserOpen(true)}
-				>
-					<Icon icon="lucide:plus" />
-					Add User
-				</button>
 			</header>
 
 			<div className="UserManagement-tableWrap">
@@ -45,46 +38,59 @@ export default function UserManagement() {
 							<th>Email</th>
 							<th>Role</th>
 							<th>Last Active</th>
-							<th>Actions</th>
+							{/*
+			  <th>Actions</th>
+			  */}
 						</tr>
 					</thead>
 					<tbody>
-						{testUsers.map(user => (
-							<tr key={user.id}>
-								<td className="Users-name">
-									<p
-										className="Users-initials"
-										style={{ '--h': userHue(user) } as React.CSSProperties}
-									>
-										{getInitials(user)}
-									</p>
-									<p className="Users-fullName">{getFullName(user)}</p>
-								</td>
-								<td className="Users-email">{user.email}</td>
-								<td className="Users-role">
-									<p className={`Users-roleChip is-${user.role.toLowerCase()}`}>
-										{user.role}
-									</p>
-								</td>
-								<td className="Users-lastActive">
-									<time dateTime={user.lastActive.toISOString()}>
-										{dateRelative(user)}
-									</time>
-								</td>
-								<td className="Users-actions">
-									<button type="button" className="Users-actionEdit u-button">
-										Edit
-									</button>
-									<button
-										type="button"
-										className="Users-actionRemove u-button"
-										hidden={!canRemove(currentUser, user)}
-									>
-										Remove
-									</button>
-								</td>
+						{users.length !== 0 ? (
+							users.map(user => (
+								<tr key={user.id}>
+									<td className="Users-name">
+										<p
+											className="Users-initials"
+											style={{ '--h': userHue(user) } as React.CSSProperties}
+										>
+											{getInitials(user)}
+										</p>
+										<p className="Users-fullName">{getFullName(user)}</p>
+									</td>
+									<td className="Users-email">{user.email}</td>
+									<td className="Users-role">
+										<p
+											className={`Users-roleChip is-${user.role.toLowerCase()}`}
+										>
+											{user.role}
+										</p>
+									</td>
+									<td className="Users-lastActive">
+										<time dateTime={user.lastActive.toISOString()}>
+											{dateRelative(user)}
+										</time>
+									</td>
+
+									{/*
+				<td className="Users-actions">
+					<button type="button" className="Users-actionEdit u-button">
+						Edit
+					</button>
+					<button
+						type="button"
+						className="Users-actionRemove u-button"
+						hidden={!canRemove(currentUser, user)}
+					>
+						Remove
+					</button>
+				</td>
+				*/}
+								</tr>
+							))
+						) : (
+							<tr>
+								<td colSpan={4}>No Users Found</td>
 							</tr>
-						))}
+						)}
 					</tbody>
 				</table>
 			</div>

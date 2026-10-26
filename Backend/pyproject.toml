@@ -23,6 +23,7 @@ dependencies = [
     "blake3 (>=1.0.11,<2.0.0)",
     "ollama (>=0.6.3,<0.7.0)",
     "sqlite-vec (>=0.1.9,<0.2.0)",
+    "gunicorn (>=26.2.0,<27.0.0); sys_platform != 'win32'",
 ]
 
 [dependency-groups]
@@ -31,7 +32,8 @@ dev = [
     "pytest (>=9.0.3,<10.0.0)",
     "syrupy (>=5.1.0,<6.0.0)",
     "fakeredis (>=2.39.0,<3.0.0)",
-    "pip-audit (>=2.10,<3)"
+    "pip-audit (>=2.10,<3)",
+    "pytest-cov (>=7.1.0,<8.0.0)"
 ]
 
 

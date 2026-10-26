@@ -23,20 +23,37 @@ export default function Settings() {
 	const { showToast } = useToast();
 
 	// General Tab State
+	// This is a TODO: replace with real data when ready
+	/*
 	const [orgName, setOrgName] = useState("The Father's House");
 	const [portalName, setPortalName] = useState('TFH Sermon Hub');
 	const [adminEmail, setAdminEmail] = useState('admin@tfh.org');
 	const [timezone, setTimezone] = useState('PT');
 	const [dateFormat, setDateFormat] = useState('MDY');
 	const [language, setLanguage] = useState('en-US');
+*/
+	const [orgName, setOrgName] = useState('');
+	const [portalName, setPortalName] = useState('');
+	const [adminEmail, setAdminEmail] = useState('');
+	const [timezone, setTimezone] = useState('');
+	const [dateFormat, setDateFormat] = useState('');
+	const [language, setLanguage] = useState('');
 
 	// Backup Tab
+	// This is a TODO: replace with real backup data from backend when ready
+	/*
 	const [automatedBackups, setAutomatedBackups] = useState(true);
 	const [backupTime, setBackupTime] = useState('03:00');
 	const [retentionDays, setRetentionDays] = useState('30');
 	const [lastBackup] = useState('Today at 3:00 AM - Sucessful');
+*/
+	const [_automatedBackups, _setAutomatedBackups] = useState(false);
+	const [backupTime, setBackupTime] = useState('');
+	const [retentionDays, setRetentionDays] = useState('');
+	const [lastBackup] = useState('');
 
 	// This is a TODO: replace with useQuery(()=> fetchHostingInfo()) when backend is ready
+	/*
 	const hostingInfo = {
 		provider: 'DigitalOcean',
 		region: 'SFO3 (SanFrancisco)',
@@ -45,23 +62,46 @@ export default function Settings() {
 		storageUsedGB: 24.6,
 		storageTotalGB: 100,
 	};
+*/
+
+	const [status, _setStatus] = useState('');
+	const [ssl, _setSsl] = useState('');
+
+	const [hostingInfo, _setHostingInfo] = useState({
+		provider: '',
+		region: '',
+		status: status,
+		ssl: ssl,
+	});
 
 	// Authentication Tab
+	// This is a TODO: replace with real tenantId, ClientId, redirectUri, and SSO status from backend when ready
+	/*
 	const [tenantId, setTenantId] = useState('tfh-org-tenant-abc123');
-	const [clientId, setClientId] = useState(
-		'1234abcd-56ef-78gh-90ij-klmnopqrstuv',
-	);
-	const [redirectUri, setRedirectUri] = useState(
-		'https://sermonhub.tfh.org/auth/callback',
-	);
-	// This is a TODO: replace with real SSO status from backend when ready
+	const [clientId, setClientId] = useState('1234abcd-56ef-78gh-90ij-klmnopqrstuv');
+	const [redirectUri, setRedirectUri] = useState('https://sermonhub.tfh.org/auth/callback');
 	const ssoStatus = 'Connected & Active';
+*/
 
+	const [tenantId, setTenantId] = useState('');
+	const [clientId, setClientId] = useState('');
+	const [redirectUri, setRedirectUri] = useState('');
+	const [ssoStatus, _setSsoStatus] = useState('');
+
+	// This is a TODO: replace with real sessionTimeout, idleTimeout, requireReauthm and logoutOnPasswordChange from backend when ready
+	/*
 	const [sessionTimeout, setSessionTimeout] = useState('8 hours');
 	const [idleTimeout, setIdleTimeout] = useState('30 minutes');
 	const [requireReauth, setRequireReauth] = useState(true);
 	const [logoutOnPasswordChange, setLogoutOnPasswordChange] = useState(true);
+*/
 
+	const [sessionTimeout, setSessionTimeout] = useState('');
+	const [idleTimeout, setIdleTimeout] = useState('');
+	const [_requireReauth, _setRequireReauth] = useState(true);
+	const [_logoutOnPasswordChange, _setLogoutOnPasswordChange] = useState(true);
+
+	// This is a TODO: replace with real security details from backend when ready
 	// Security Tab
 	const [requireLogin, setRequireLogin] = useState(true);
 	const [httpsOnly, setHttpsOnly] = useState(true);
@@ -88,6 +128,9 @@ export default function Settings() {
 	};
 
 	// AI Configuration Tab
+
+	// This is a TODO: replace with real AI configuration data and way of changing data for use with other models when ready
+	/*
 	const [aiProvider, setAiProvider] = useState('Local LLM (Development)');
 	const [apiKey, setApiKey] = useState('1234abcd-56ef-78gh-90ij-klmnopqrstuv');
 	const [aiModel, setAiModel] = useState('claude-opus-4 (Best quality)');
@@ -98,6 +141,16 @@ export default function Settings() {
 	const [autoGenerateTranscripts, setAutoGenerateTranscripts] = useState(true);
 	const [autoGenerateSummaries, setAutoGenerateSummaries] = useState(true);
 	const [autoGenerateTags, setAutoGenerateTags] = useState(true);
+*/
+	const [aiProvider, setAiProvider] = useState('');
+	const [apiKey, setApiKey] = useState('');
+	const [aiModel, setAiModel] = useState('');
+	const [processingMode, setProcessingMode] = useState('');
+	const [transcriptLanguage, setTranscriptLanguage] = useState('');
+	const [_autoGenerateTranscripts, _setAutoGenerateTranscripts] =
+		useState(true);
+	const [_autoGenerateSummaries, _setAutoGenerateSummaries] = useState(true);
+	const [_autoGenerateTags, _setAutoGenerateTags] = useState(true);
 
 	return (
 		<MainLayout title="Settings">
@@ -117,6 +170,7 @@ export default function Settings() {
 									type="text"
 									value={tenantId}
 									onChange={e => setTenantId(e.target.value)}
+									readOnly
 								/>
 							</FormField>
 							<FormField label="Client ID">
@@ -124,6 +178,7 @@ export default function Settings() {
 									type="password"
 									value={clientId}
 									onChange={e => setClientId(e.target.value)}
+									readOnly
 								/>
 							</FormField>
 							<FormField label="Redirect URI">
@@ -131,10 +186,15 @@ export default function Settings() {
 									type="text"
 									value={redirectUri}
 									onChange={e => setRedirectUri(e.target.value)}
+									readOnly
 								/>
 							</FormField>
 							<FormField label="SSO Status">
-								<Tag variant="green">{ssoStatus}</Tag>
+								<Tag
+									variant={ssoStatus === 'Connected & Active' ? 'green' : 'red'}
+								>
+									{ssoStatus}
+								</Tag>
 							</FormField>
 							<Button
 								variant="secondary"
@@ -152,6 +212,7 @@ export default function Settings() {
 						<CardHeader title="Session Settings" />
 						<div className="Card-body">
 							<FormField label="Session Timeout">
+								{/*
 								<select
 									value={sessionTimeout}
 									onChange={e => setSessionTimeout(e.target.value)}
@@ -161,8 +222,16 @@ export default function Settings() {
 									<option>24 hours</option>
 									<option>1 hour</option>
 								</select>
+								*/}
+								<input
+									type="text"
+									value={sessionTimeout}
+									onChange={e => setSessionTimeout(e.target.value)}
+									readOnly
+								/>
 							</FormField>
 							<FormField label="Idle Timeout">
+								{/*
 								<select
 									value={idleTimeout}
 									onChange={e => setIdleTimeout(e.target.value)}
@@ -172,13 +241,23 @@ export default function Settings() {
 									<option>1 hour</option>
 									<option>Never</option>
 								</select>
+								*/}
+								<input
+									type="text"
+									value={idleTimeout}
+									onChange={e => setIdleTimeout(e.target.value)}
+									readOnly
+								/>
 							</FormField>
+
+							{/*
 							<div className="Settings-checkboxGroup">
 								<label className="Settings-checkbox">
 									<input
 										type="checkbox"
 										checked={requireReauth}
 										onChange={e => setRequireReauth(e.target.checked)}
+										readOnly
 									/>
 									Require re-authentication after session expiry
 								</label>
@@ -187,10 +266,14 @@ export default function Settings() {
 										type="checkbox"
 										checked={logoutOnPasswordChange}
 										onChange={e => setLogoutOnPasswordChange(e.target.checked)}
+										readOnly
 									/>
 									Log out all sessions on password change
 								</label>
 							</div>
+							*/}
+
+							{/*
 							<div style={{ marginTop: '16px' }}>
 								<Button
 									variant="primary"
@@ -199,6 +282,7 @@ export default function Settings() {
 									Save Settings
 								</Button>
 							</div>
+							*/}
 						</div>
 					</Card>
 				</div>
@@ -212,6 +296,7 @@ export default function Settings() {
 						<CardHeader title="AI Provider Settings" />
 						<div className="Card-body">
 							<FormField label="Provider">
+								{/*
 								<select
 									value={aiProvider}
 									onChange={e => setAiProvider(e.target.value)}
@@ -220,19 +305,30 @@ export default function Settings() {
 									<option>Claude API</option>
 									<option>ChatGPT API</option>
 								</select>
+								*/}
+								<input
+									type="text"
+									value={aiProvider}
+									onChange={e => setAiProvider(e.target.value)}
+									readOnly
+								/>
 							</FormField>
+							{/*
 							<InfoBanner
 								message="Switch between local AI (free, for development) and paid API (production). Configure per-environment in deployment settings."
 								variant="gray"
 							/>
+							*/}
 							<FormField label="API Key">
 								<input
 									type="password"
 									value={apiKey}
 									onChange={e => setApiKey(e.target.value)}
+									readOnly
 								/>
 							</FormField>
 							<FormField label="Model">
+								{/*
 								<select
 									value={aiModel}
 									onChange={e => setAiModel(e.target.value)}
@@ -242,13 +338,22 @@ export default function Settings() {
 									<option>gpt-4o</option>
 									<option>gpt-4o-mini (Faster/Lower cost)</option>
 								</select>
+								*/}
+								<input
+									type="text"
+									value={aiModel}
+									onChange={e => setAiModel(e.target.value)}
+									readOnly
+								/>
 							</FormField>
+							{/*
 							<Button
 								variant="primary"
 								onClick={() => showToast('AI provider settings saved')}
 							>
 								Save Provider
 							</Button>
+							*/}
 						</div>
 					</Card>
 
@@ -257,6 +362,7 @@ export default function Settings() {
 						<CardHeader title="Processing Options" />
 						<div className="Card-body">
 							<FormField label="Processing Mode">
+								{/*
 								<select
 									value={processingMode}
 									onChange={e => setProcessingMode(e.target.value)}
@@ -264,8 +370,16 @@ export default function Settings() {
 									<option>Process at Import Time (one-time cost)</option>
 									<option>Process on Demand</option>
 								</select>
+								*/}
+								<input
+									type="text"
+									value={processingMode}
+									onChange={e => setProcessingMode(e.target.value)}
+									readOnly
+								/>
 							</FormField>
 							<FormField label="Transcript Language">
+								{/*
 								<select
 									value={transcriptLanguage}
 									onChange={e => setTranscriptLanguage(e.target.value)}
@@ -274,7 +388,15 @@ export default function Settings() {
 									<option>English</option>
 									<option>Spanish</option>
 								</select>
+								*/}
+								<input
+									type="text"
+									value={transcriptLanguage}
+									onChange={e => setTranscriptLanguage(e.target.value)}
+									readOnly
+								/>
 							</FormField>
+							{/*
 							<FormField label="Auto-generate on Import">
 								<div className="Settings-checkboxGroup">
 									<label className="Settings-checkbox">
@@ -305,12 +427,16 @@ export default function Settings() {
 									</label>
 								</div>
 							</FormField>
+							*/}
+
+							{/*
 							<Button
 								variant="primary"
 								onClick={() => showToast('Processing settings saved')}
 							>
 								Save Settings
 							</Button>
+							*/}
 						</div>
 					</Card>
 				</div>
@@ -329,6 +455,7 @@ export default function Settings() {
 										type="checkbox"
 										checked={requireLogin}
 										onChange={e => setRequireLogin(e.target.checked)}
+										disabled
 									/>
 									Require login for all access
 								</label>
@@ -337,6 +464,7 @@ export default function Settings() {
 										type="checkbox"
 										checked={httpsOnly}
 										onChange={e => setHttpsOnly(e.target.checked)}
+										disabled
 									/>
 									HTTPS only
 								</label>
@@ -345,6 +473,7 @@ export default function Settings() {
 										type="checkbox"
 										checked={secureCookies}
 										onChange={e => setSecureCookies(e.target.checked)}
+										disabled
 									/>
 									Secure session cookies (HttpOnly, SameSite, Max-Age)
 								</label>
@@ -353,6 +482,7 @@ export default function Settings() {
 										type="checkbox"
 										checked={allowPublicApi}
 										onChange={e => setAllowPublicApi(e.target.checked)}
+										disabled
 									/>
 									Allow public read-only API access
 								</label>
@@ -361,17 +491,20 @@ export default function Settings() {
 										type="checkbox"
 										checked={enableAuditLogging}
 										onChange={e => setEnableAuditLogging(e.target.checked)}
+										disabled
 									/>
 									Enable audit logging
 								</label>
 							</div>
 							<div style={{ marginTop: '16px' }}>
+								{/*
 								<Button
 									variant="primary"
 									onClick={() => showToast('Security settings saved')}
 								>
 									Save Settings
 								</Button>
+								*/}
 							</div>
 						</div>
 					</Card>
@@ -425,6 +558,7 @@ export default function Settings() {
 									type="text"
 									value={orgName}
 									onChange={e => setOrgName(e.target.value)}
+									readOnly
 								/>
 							</FormField>
 							<FormField label="Portal Display Name">
@@ -432,6 +566,7 @@ export default function Settings() {
 									type="text"
 									value={portalName}
 									onChange={e => setPortalName(e.target.value)}
+									readOnly
 								/>
 							</FormField>
 							<FormField label="Admin Contact Email">
@@ -439,20 +574,24 @@ export default function Settings() {
 									type="email"
 									value={adminEmail}
 									onChange={e => setAdminEmail(e.target.value)}
+									readOnly
 								/>
 							</FormField>
+							{/*
 							<Button
 								variant="primary"
 								onClick={() => showToast('General settings saved')}
 							>
 								Save Changes
 							</Button>
+							*/}
 						</div>
 					</Card>
 					<Card>
 						<CardHeader title="Regional Settings" />
 						<div className="Card-body">
 							<FormField label="Timezone">
+								{/*
 								<select
 									value={timezone}
 									onChange={e => setTimezone(e.target.value)}
@@ -461,8 +600,15 @@ export default function Settings() {
 									<option value="ET">Eastern Time (EST) - UTC-5</option>
 									<option value="CT">Central Time (CT) - UTC-6</option>
 								</select>
+								*/}
+								<input
+									value={timezone}
+									onChange={e => setTimezone(e.target.value)}
+									readOnly
+								/>
 							</FormField>
 							<FormField label="Date Format">
+								{/*
 								<select
 									value={dateFormat}
 									onChange={e => setDateFormat(e.target.value)}
@@ -471,8 +617,16 @@ export default function Settings() {
 									<option value="DMY">DD/MM/YYYY</option>
 									<option value="ISO">YYYY-MM-DD</option>
 								</select>
+								*/}
+								<input
+									type="dateformat"
+									value={dateFormat}
+									onChange={e => setDateFormat(e.target.value)}
+									readOnly
+								/>
 							</FormField>
 							<FormField label="Language">
+								{/*
 								<select
 									value={language}
 									onChange={e => setLanguage(e.target.value)}
@@ -480,13 +634,22 @@ export default function Settings() {
 									<option value="en-US">English (US)</option>
 									<option value="en-UK">English (UK)</option>
 								</select>
+								*/}
+								<input
+									type="language"
+									value={language}
+									onChange={e => setLanguage(e.target.value)}
+									readOnly
+								/>
 							</FormField>
+							{/*
 							<Button
 								variant="primary"
 								onClick={() => showToast('Regional settings saved')}
 							>
 								Save Changes
 							</Button>
+							*/}
 						</div>
 					</Card>
 				</div>
@@ -507,29 +670,24 @@ export default function Settings() {
 							</div>
 							<div className="Settings-infoRow">
 								<span className="Settings-infoLabel">Status</span>
-								<Tag variant="green">{hostingInfo.status}</Tag>
+								<Tag
+									variant={hostingInfo.status === 'healthy' ? 'green' : 'red'}
+								>
+									{hostingInfo.status}
+								</Tag>
 							</div>
 							<div className="Settings-infoRow">
 								<span className="Settings-infoLabel">SSL</span>
-								<Tag variant="green">{hostingInfo.ssl}</Tag>
+								<Tag
+									variant={hostingInfo.ssl === 'HTTPS Active' ? 'green' : 'red'}
+								>
+									{hostingInfo.ssl}
+								</Tag>
 							</div>
 							<div className="Settings-storageSection">
-								<p className="Settings-storageText">
-									{hostingInfo.storageUsedGB} GB / {hostingInfo.storageTotalGB}{' '}
-									GB
-								</p>
-								<progress
-									max={hostingInfo.storageTotalGB}
-									value={hostingInfo.storageUsedGB}
-								/>
+								<p className="Settings-storageText">Unavailable</p>
 								<p className="Settings-storageLabel">
-									{hostingInfo.storageUsedGB} GB of {hostingInfo.storageTotalGB}{' '}
-									GB used (
-									{Math.round(
-										(hostingInfo.storageUsedGB / hostingInfo.storageTotalGB) *
-											100,
-									)}
-									%)
+									Storage usage is not available in this app.
 								</p>
 							</div>
 						</div>
@@ -537,6 +695,7 @@ export default function Settings() {
 					<Card>
 						<CardHeader title="Backup Schedule" />
 						<div className="Card-body">
+							{/*
 							<label className="Settings-checkbox">
 								<input
 									type="checkbox"
@@ -545,14 +704,17 @@ export default function Settings() {
 								/>
 								Automated daily backups
 							</label>
+								*/}
 							<FormField label="Backup Time (server local)">
 								<input
 									type="time"
 									value={backupTime}
 									onChange={e => setBackupTime(e.target.value)}
+									readOnly
 								/>
 							</FormField>
-							<FormField label="Retention Perios">
+							<FormField label="Retention Period">
+								{/*
 								<select
 									value={retentionDays}
 									onChange={e => setRetentionDays(e.target.value)}
@@ -560,13 +722,21 @@ export default function Settings() {
 									<option value="30">30 days</option>
 									<option value="60">60 days</option>
 									<option value="90">90 days</option>
-									<option value="365">1 yeaer</option>
+									<option value="365">1 year</option>
 								</select>
+								*/}
+								<input
+									type="text"
+									value={retentionDays}
+									onChange={e => setRetentionDays(e.target.value)}
+									readOnly
+								/>
 							</FormField>
 							<FormField label="Last Backup">
 								<input type="text" value={lastBackup} readOnly />
 							</FormField>
 							<div className="Settings-backupActions">
+								{/*
 								<Button
 									variant="primary"
 									onClick={() => showToast('Backup Settings saved')}
@@ -579,6 +749,7 @@ export default function Settings() {
 								>
 									Run Now
 								</Button>
+								*/}
 							</div>
 						</div>
 					</Card>

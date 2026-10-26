@@ -4,7 +4,7 @@ This documents the Pagination that is implemented for `/api/sermons`; Speakers, 
 
 ## API
 
-Pagination is opt-in: supplying `page` returns a paginated object. Without `page`, the endpoint returns the complete matching array, preserving Dashboard and Series consumers. Supplying only a page size does not enable pagination.
+Pagination is opt-in: supplying `page` returns a paginated object. Without `page`, the endpoint returns the complete matching array for legacy consumers such as Series. Supplying only a page size does not enable pagination.
 
 Example:
 
@@ -38,6 +38,37 @@ Omit inactive filters. Filters combine with AND and apply in the database before
 
 Empty and out-of-range requests return HTTP 200 with empty items, accurate totals, and the requested page number. Validation errors contain `error` and `message` fields. Sermon item fields and the detail endpoint are unchanged.
 
+## Search
+
+`GET /api/search` uses the same opt-in `page` contract. With `page`, it returns
+`items`, `total`, `page`, `pageSize`, `totalPages` and aliases `results` (identical
+to `items`), `page_size` and `total_pages`. Without `page`, it returns the complete
+ranked matching array; supplying only `pageSize` does not turn on pagination.
+The default page size is 10, the maximum is 100, and `page_size` / `per_page` are
+accepted size aliases.
+
+```text
+GET /api/search?q=grace&type=all&speaker=any&date=any&page=1&pageSize=6
+```
+
+Search has real hybrid relevance ranking, unlike `/api/sermons?sort=Relevance`.
+Only PUBLISHED sermons participate. Speaker, date and type filters apply before
+sermons are grouped and counted; `total` counts distinct matching sermons, not
+chunks, and is not capped by chat's eight-chunk budget. Each result contains the
+best snippet and its nullable `chunk_id`, `start_sec` and `end_sec`. Metadata-only
+matches have no source time. Ranked result ties are deterministic.
+
+Empty/no-match searches return 200 with `total: 0`, `totalPages: 0` and empty
+items. An out-of-range page keeps the requested page and full filtered total,
+but has empty items. Invalid filters/paging return JSON 400 with `error` and
+`message`; embedding/retrieval failures return JSON 503, not a successful empty
+page. Missing/invalid authentication returns 401; disallowed roles return 403.
+
+See [real sermon search](search.md) for the complete filter syntax, inclusive
+date windows, result aliases, ranking, safe video links and frontend integration
+boundaries. This section changes search only; it does not migrate Dashboard or
+other legacy array consumers.
+
 ## Sermons page
 
 `Frontend/src/Sermons.tsx` requests nine sermons per page and renders the returned items without local filtering or sorting. Its cache key is:
@@ -52,6 +83,16 @@ Filter choices load separately from `/api/speakers`, `/api/series`, and `/api/ta
 
 The page waits for filter choices before enabling controls. Failed filter requests show the shared ErrorBox with refresh instructions, rather than silently displaying empty choices. The app query provider obtains the toast callback inside a React component so failed requests do not trigger an invalid hook call.
 
+## Dashboard
+
+Dashboard reuses the existing endpoints rather than a separate stats service:
+
+- `/api/sermons?page=1&pageSize=5&sort=Newest` supplies the full-library `total` and five recent sermons in server date/ID order.
+- `/api/series?page=1&per_page=1` supplies the series `total`. This endpoint uses `per_page`, not `pageSize`.
+- `/api/speakers?page=1&pageSize=1` supplies the speaker `total`.
+
+The dashboard keys are `['sermons', 'dashboard', { page: 1, pageSize: 5, sort: 'Newest' }]`, `['series', 'count']`, and `['speakers', 'count']`; they cannot reuse legacy array responses. Existing import/processing invalidation and successful sermon edits/deletions invalidate these prefixes, so returning to Dashboard refetches current totals and recent items. Cards retain independent loading/error/retry states; an empty recent list displays "No sermons yet."
+
 ## Tags page
 
 `/api/tags` supports the same opt-in `page`/`pageSize` contract, sorted by tag name ascending; `tags` is the alias for `items`. `Frontend/src/TagsAndMetadata.tsx` requests ten tags per page under the `['paginated-tags', { page, pageSize }]` cache key and keeps the previous page visible while the next one loads. By default the endpoint returns every tag, including unused tags with a count of 0; `used=true` (or `1`) filters to tags with a count above 0 in the database, before counting or paging. The Sermons filters use the unpaginated `used=true` form under the `['tags', { used: true }]` cache key.
@@ -65,9 +106,10 @@ The component renders Previous, Next, and current-page feedback. It handles firs
 ## Verification
 
 - Backend tests cover filters, combined/no-match results, totals, pagination, validation, stable sorting, and legacy responses.
-- Vitest covers response validation and shared control rendering.
+- Vitest covers response validation, shared control rendering, dashboard totals/bounded requests/empty/error states, and cache refresh after successful sermon changes.
 - `Frontend/e2e/sermons.spec.ts` exercises the real page with mocked API responses: every filter/sort resets the page and persists in subsequent requests, each metadata failure displays an error and recovers on refresh, and Dashboard keeps its complete library count.
 - Browser fixtures test frontend wiring; database filtering is verified by backend tests.
+- `Frontend/e2e/dashboard.spec.ts` verifies full-library totals from bounded pages and server-ordered recent sermons.
 
 Run from the respective directories:
 

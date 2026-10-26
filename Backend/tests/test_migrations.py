@@ -52,10 +52,7 @@ def test_caption_segments_round_trip_and_downgrade_keeps_text(migration_app):
 
 def test_sync_run_upgrade_preserves_existing_chunk_models_and_vectors(migration_app):
     with migration_app.app_context():
-        upgrade(directory=str(up.MIGRATIONS), revision="5616dbd32dfd")
-        # Current ORM fixtures also require the independent summary-origin branch.
-        # Keep SyncRun unapplied so this still verifies its schema upgrade.
-        upgrade(directory=str(up.MIGRATIONS), revision="071280c204c4")
+        upgrade(directory=str(up.MIGRATIONS))
         populate(migration_app)
         sermon = db.session.get(Sermon, 1)
         sermon.transcript_segments = [{"start": 12.0, "end": 18.0, "text": "Grace is a gift."}]
@@ -67,7 +64,6 @@ def test_sync_run_upgrade_preserves_existing_chunk_models_and_vectors(migration_
         before = (chunk.text, chunk.start, chunk.end, chunk.embedding_model)
         vector = db.session.get(SermonChunkEmbedding, chunk_id).embedding
 
-        upgrade(directory=str(up.MIGRATIONS))
         run = SyncRun(id=None)
         db.session.add(run)
         db.session.commit()

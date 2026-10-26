@@ -1,0 +1,9 @@
+.SummaryRegenStatus {
+	margin: 0.75rem 20px 0;
+	font-size: 0.875rem;
+	color: var(--cl-on-surface-muted);
+}
+
+.SummaryRegenStatus--failed {
+	color: var(--cl-on-error-container);
+}

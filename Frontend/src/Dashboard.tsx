@@ -8,66 +8,64 @@ import RecentActivity from '$/components/RecentActivity';
 import RecentSermonsTable from '$/components/RecentSermonsTable';
 import StatCard from '$/components/StatCard';
 import { SeriesPage } from '$/types/series';
-import { Sermon } from '$/types/sermon';
-import { Speaker } from '$/types/speaker';
+import { PaginatedSermons } from '$/types/sermon';
+import { PaginatedSpeakers } from '$/types/speaker';
 
 const RECENT_SERMONS_COUNT = 5;
+const RECENT_SERMONS_PARAMS = {
+	page: 1,
+	pageSize: RECENT_SERMONS_COUNT,
+	sort: 'Newest',
+} as const;
 
 export default function Dashboard() {
 	const sermonsQuery = useQuery({
-		queryKey: ['sermons'],
+		// Keep the paginated dashboard response separate from legacy array caches.
+		queryKey: ['sermons', 'dashboard', RECENT_SERMONS_PARAMS],
 		queryFn: async () => {
-			const res = await axios.get('/api/sermons');
-			const sermons = await Sermon.array().parseAsync(res.data);
-			return sermons;
+			const res = await axios.get('/api/sermons', {
+				params: RECENT_SERMONS_PARAMS,
+			});
+			return PaginatedSermons.parseAsync(res.data);
 		},
 	});
 
-	// Ask the server for the total series count for the dashboard stat card
 	const seriesQuery = useQuery({
-		// Unique cache key with 'count' so it doesn't conflict with the full Series page query cache
 		queryKey: ['series', 'count'],
 		queryFn: async () => {
-			// Ask for only 1 item per page so we don't waste bandwidth downloading all series just to get the total count
-			const res = await axios.get('/api/series?page=1&per_page=1');
-			// Validate that the server response matches our paginated SeriesPage schema
-			return await SeriesPage.parseAsync(res.data);
+			// Series uses per_page rather than the shared pageSize parameter.
+			const res = await axios.get('/api/series', {
+				params: { page: 1, per_page: 1 },
+			});
+			return SeriesPage.parseAsync(res.data);
 		},
 	});
 
 	const speakersQuery = useQuery({
-		queryKey: ['speakers'],
+		queryKey: ['speakers', 'count'],
 		queryFn: async () => {
-			const res = await axios.get('/api/speakers');
-			const speakers = await Speaker.array().parseAsync(res.data);
-			return speakers;
+			const res = await axios.get('/api/speakers', {
+				params: { page: 1, pageSize: 1 },
+			});
+			return PaginatedSpeakers.parseAsync(res.data);
 		},
 	});
 
-	const recentSermons = (sermonsQuery.data ?? [])
-		.toSorted((a, b) => b.date.getTime() - a.date.getTime())
-		.slice(0, RECENT_SERMONS_COUNT);
+	const recentSermons = sermonsQuery.data?.items ?? [];
 
 	return (
 		<MainLayout title="Dashboard">
 			{/* Top row: 4 stat cards */}
 			{/*
-			 * Counts below are derived client-side (array .length) from the full
-			 * /api/sermons, /api/series, and /api/speakers lists we already fetch
-			 * for this page. That's deliberate for now — the backend has no
-			 * dedicated stats endpoint, and the current data volumes are small.
-			 * Once the lists get large, this wastes bandwidth shipping full
-			 * records just to count them; Sprint 6 will add a proper stats
-			 * route that returns counts computed server-side.
-			 *
-			 * Three independent requests feed this page (sermons, series,
-			 * speakers), so each card/section renders its own loading and
-			 * error state from its own query.
+			 * Existing paginated endpoints provide full-library totals without
+			 * downloading complete lists. The bounded sermon page also supplies
+			 * the recent rows in the server's date/ID order. Each query retains
+			 * its own loading and retry state; no analytics service is needed.
 			 */}
 			<section className="Dashboard-stats">
 				<StatCard
 					label="Total Sermons"
-					value={sermonsQuery.data?.length}
+					value={sermonsQuery.data?.total}
 					isLoading={sermonsQuery.isPending}
 					isError={sermonsQuery.isError}
 					onRetry={() => sermonsQuery.refetch()}
@@ -82,7 +80,7 @@ export default function Dashboard() {
 				/>
 				<StatCard
 					label="Speakers"
-					value={speakersQuery.data?.length}
+					value={speakersQuery.data?.total}
 					isLoading={speakersQuery.isPending}
 					isError={speakersQuery.isError}
 					onRetry={() => speakersQuery.refetch()}

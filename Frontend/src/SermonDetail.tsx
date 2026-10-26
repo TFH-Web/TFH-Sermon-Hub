@@ -11,12 +11,17 @@ import { Card } from '$/components/Card.tsx';
 import ErrorBox from '$/components/ErrorBox.tsx';
 import Loading from '$/components/Loading.tsx';
 import MainLayout from '$/components/MainLayout';
+import ManualSummaryEditor from '$/components/ManualSummaryEditor';
 import SermonSummaryOrigin from '$/components/SermonSummaryOrigin';
 import SermonTag from '$/components/SermonTag';
 import SermonTranscript from '$/components/SermonTranscript';
+import SummaryRegenStatus from '$/components/SummaryRegenStatus.tsx';
 import Tag from '$/components/Tag.tsx';
-import { useToast } from '$/components/ToastContext.tsx';
-import { useIsAdmin } from '$/lib/auth';
+import {
+	regenPollInterval,
+	useSummaryRegeneration,
+} from '$/hooks/useSummaryRegeneration';
+import { useAuth, useIsAdmin } from '$/lib/auth';
 import { formatCalendarDate } from '$/lib/date';
 import { parseSourceTimestamp } from '$/lib/sourceTimestamp';
 import { buildYouTubeWatchUrl, resolveYouTubeVideoId } from '$/lib/youtube';
@@ -59,13 +64,15 @@ function SermonDetailContent({
 	sourceTimestamp: number | null;
 }) {
 	const isAdmin = useIsAdmin();
-	const { showToast } = useToast(); // let's up pop up a little message at the corner of the screen
+
+	const summarySession = useAuth(
+		state =>
+			`${state.status}:${state.account?.homeAccountId ?? ''}:${state.roles.includes('Admin')}`,
+	);
 
 	const { id } = useParams(); // reads the number of the web address, so /sermons/5 gives us 5
-	const [isEditingSummary, setIsEditingSummary] = useState(false); // Remembers if the summary edit box is open
 	const [editSermonOpen, setEditSermonOpen] = useState(false); //	Remembers if the Edit popup is open
 	const [deleteSermonOpen, setDeleteSermonOpen] = useState(false); // Remembers if the Delete popup is open
-	const [isRegenerating, setIsRegenerating] = useState(false); // Stops a second click from queueing the same summary job twice
 
 	const playerRef = useRef<YouTubePlayer | null>(null); //creates reference for youtube player
 	const [playerReady, setPlayerReady] = useState(false); //remembers if the player is ready (video is loaded)
@@ -88,52 +95,13 @@ function SermonDetailContent({
 		// A sermon that does not exist will still not exist on the third try, so only keep trying for real failures like the server being down.
 		retry: (failureCount, error) => !isNotFound(error) && failureCount < 3,
 		refetchInterval: query =>
-			query.state.data?.status === 'Processing' ? 2000 : false,
+			query.state.data?.status === 'Processing'
+				? 2000
+				: regenPollInterval(query.state.data),
 	});
 
-	// Ask the server for a new AI summary, then reload the sermon so the card shows it.
-	// With the job queue on, the new summary only appears once the worker finishes, so the toast says it may take a moment.
-	const regenerateSummary = async () => {
-		if (isRegenerating) return;
-		setIsRegenerating(true);
-		try {
-			await axios.post(`/api/sermons/${id}/regenerate-summary`);
-			showToast(
-				'Regenerating summary with AI. It may take a moment to appear.',
-				'info',
-			);
-			await query.refetch();
-		} catch (error) {
-			// The server sends a readable message for the cases people can act on, like the job queue being down.
-			const message =
-				(axios.isAxiosError(error) && error.response?.data?.error) ||
-				'Could not regenerate the summary';
-			showToast(message, 'error');
-		} finally {
-			setIsRegenerating(false);
-		}
-	};
-
-	const updateSummary = async (formData: FormData) => {
-		if (isRegenerating) return;
-		setIsRegenerating(true);
-		try {
-			await axios.patch(
-				`/api/sermons/${id}`,
-				Object.fromEntries(formData.entries()),
-			);
-			showToast('Updating summary. It may take a moment to appear.', 'info');
-			await query.refetch();
-		} catch (error) {
-			// The server sends a readable message for the cases people can act on, like the job queue being down.
-			const message =
-				(axios.isAxiosError(error) && error.response?.data?.error) ||
-				'Could not update the summary';
-			showToast(message, 'error');
-		} finally {
-			setIsRegenerating(false);
-		}
-	};
+	// Ask the server for a new AI summary. The server tracks the request, so this page, other tabs and a reload all show where it is.
+	const regen = useSummaryRegeneration(id, query.data);
 
 	//ask server for data of all sermons
 	const sermonsQuery = useQuery({
@@ -406,35 +374,20 @@ function SermonDetailContent({
 							<Button
 								variant="ghost"
 								className="SermonDetail-regenerate-btn"
-								onClick={regenerateSummary}
-								disabled={!isAdmin || isRegenerating}
+								onClick={regen.start}
+								disabled={!isAdmin || regen.isActive}
 							>
-								{isRegenerating ? 'Regenerating...' : 'Regenerate with AI'}
+								{regen.isActive ? 'Regenerating...' : 'Regenerate with AI'}
 							</Button>
 						</div>
 					</div>
+					<SummaryRegenStatus
+						state={regen.state}
+						error={regen.error}
+						stale={regen.isStale}
+					/>
 					<div className="SermonDetail-summary-container">
-						{isEditingSummary ? (
-							<form
-								id="SermonDetail-summary-form"
-								method="post"
-								onSubmit={async e => {
-									e.preventDefault();
-
-									setIsEditingSummary(false);
-
-									const formData = new FormData(e.target);
-									updateSummary(formData);
-								}}
-							>
-								<textarea
-									name="summary"
-									rows={10}
-									className="SermonDetail-summary-editing"
-									defaultValue={summaryParagraphs.join('\n\n')}
-								/>
-							</form>
-						) : summaryParagraphs.length > 0 ? (
+						{summaryParagraphs.length > 0 ? (
 							summaryParagraphs.map(paragraph => (
 								<p key={paragraph} className="SermonDetail-summary-paragraph">
 									{paragraph}
@@ -447,37 +400,10 @@ function SermonDetailContent({
 						)}
 						{/* Same idea as the transcript. Say there is no summary rather than showing an empty panel. */}
 					</div>
-					<div className="SermonDetail-summary-edit-container">
-						{isEditingSummary ? (
-							<div>
-								<Button
-									variant="primary"
-									className="SermonDetail-summary-btn"
-									type="submit"
-									form="SermonDetail-summary-form"
-								>
-									Save
-								</Button>
-								<Button
-									variant="secondary"
-									className="SermonDetail-summary-btn"
-									disabled={!isAdmin}
-									onClick={() => setIsEditingSummary(false)}
-								>
-									Cancel
-								</Button>
-							</div>
-						) : (
-							<Button
-								variant="secondary"
-								className="SermonDetail-summary-btn"
-								disabled={!isAdmin}
-								onClick={() => setIsEditingSummary(true)}
-							>
-								Edit Summary Manually
-							</Button>
-						)}
-					</div>
+					<ManualSummaryEditor
+						key={`${id}:${summarySession}`}
+						sermon={sermon}
+					/>
 				</Card>
 
 				{/* Metadata Section */}

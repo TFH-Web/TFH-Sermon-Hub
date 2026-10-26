@@ -53,17 +53,3 @@
 .Pagination.ImportUpload-pagination {
 	margin-block: 1rem 0;
 }
-
-.ImportUpload-checkboxGroup {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-}
-
-.ImportUpload-checkbox {
-	display: flex;
-	gap: 8px;
-	align-items: center;
-	font-size: 13px;
-	cursor: pointer;
-}

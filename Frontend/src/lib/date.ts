@@ -87,3 +87,16 @@ export function formatDateRange(from: string, to: string): string {
 	if (to) return `Up to ${formatCalendarDateString(to)}`;
 	return 'All dates';
 }
+
+/** Read a timestamp the server sent as UTC without a zone suffix, e.g. "2026-10-20T06:49:24.744828". A bare one would be read as local time. */
+export function parseUtcTimestamp(value: string): Date {
+	return new Date(/(?:Z|[+-]\d\d:?\d\d)$/i.test(value) ? value : `${value}Z`);
+}
+
+/** Show a timestamp the server sent as UTC in the viewer's own time zone, e.g. "Oct 20, 2026, 6:49 AM". */
+export function formatTimestamp(value: string): string {
+	return formatDate(parseUtcTimestamp(value), {
+		dateStyle: 'medium',
+		timeStyle: 'short',
+	});
+}

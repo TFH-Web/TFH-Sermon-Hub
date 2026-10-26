@@ -53,12 +53,17 @@ export function useProcessingCount(): number {
 }
 
 /**
- * Refetch everything a new or reprocessed sermon can change: the import lists, the sermon lists, and series and speakers.
+ * Refetch everything a new, updated or reprocessed sermon can change: the import lists, the sermon lists and
+ * the sermon pages, and series and speakers.
  * The promise settles once the lists on screen have been refetched, for callers that want to wait for that.
  */
-export function invalidateSermonData(queryClient: QueryClient) {
+export function invalidateSermonData(
+	queryClient: QueryClient,
+	options: { excludeDetailId?: number } = {},
+) {
 	const stale = [
 		IMPORT_SERMONS_KEY,
+		'sermon',
 		'sermons',
 		'paginated-sermons',
 		'series',
@@ -66,6 +71,16 @@ export function invalidateSermonData(queryClient: QueryClient) {
 		'paginated-speakers',
 	];
 	return Promise.all(
-		stale.map(key => queryClient.invalidateQueries({ queryKey: [key] })),
+		stale.map(key =>
+			queryClient.invalidateQueries({
+				queryKey: [key],
+				// A delete must not refetch the active detail it just removed. Imports
+				// and edits still refresh all details, including numeric/string ID keys.
+				predicate: query =>
+					key !== 'sermon' ||
+					options.excludeDetailId === undefined ||
+					String(query.queryKey[1]) !== String(options.excludeDetailId),
+			}),
+		),
 	);
 }

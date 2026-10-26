@@ -59,6 +59,7 @@ export default function SermonTranscript({
 	const { showToast } = useToast();
 	const user = useUser();
 	const queryClient = useQueryClient();
+	const videoId = resolveYouTubeVideoId(sermon);
 	const [timed, setTimed] = useState(false);
 	const keywordPattern = useMemo(() => {
 		const keywords = [
@@ -116,7 +117,6 @@ export default function SermonTranscript({
 			showToast('Could not start caption processing. Try again.', 'error');
 		},
 	});
-	const videoId = resolveYouTubeVideoId(sermon); // Use the same validated video identity as the embedded player.
 	const text = query.data ? query.data.transcript : sermon.transcript;
 	const segments = query.data?.segments ?? [];
 	const processing = refresh.isPending || sermon.status === 'Processing';

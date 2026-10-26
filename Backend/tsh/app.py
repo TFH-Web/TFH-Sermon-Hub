@@ -5,6 +5,7 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 from werkzeug.exceptions import HTTPException, InternalServerError
 
+from tsh.captions import parse_flag
 from tsh.views import api
 
 
@@ -52,9 +53,11 @@ def create_app(
         "YOUTUBE_OAUTH_CLIENT_SECRET": "",
         "YOUTUBE_OAUTH_REFRESH_TOKEN": "",
         "YOUTUBE_CAPTION_LANGUAGE": "en",
+        "CAPTIONS_ENABLED": "true",
     }
     for name, default in youtube_defaults.items():
         app.config.setdefault(name, os.environ.get(name, default))
+    parse_flag(app.config["CAPTIONS_ENABLED"], "CAPTIONS_ENABLED")
 
     from tsh.database import db
     db.init_app(app)
@@ -85,6 +88,8 @@ def create_app(
 
     from tsh.youtube_import import import_youtube_command
     app.cli.add_command(import_youtube_command)
+    from tsh.video_link_report import check_video_links_command
+    app.cli.add_command(check_video_links_command)
     from tsh.caption_backfill import backfill_captions_command
     app.cli.add_command(backfill_captions_command)
     from tsh.pipeline import reembed_command

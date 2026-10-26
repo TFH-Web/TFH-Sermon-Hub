@@ -150,9 +150,7 @@ def test_revoked_token_stops_after_first_attempt(
 
     def download(video_id):
         calls.append(video_id)
-        raise captions.CaptionError(
-            "invalid_grant: OAuth refresh token expired or was revoked"
-        )
+        raise captions.CaptionAuthError(captions.auth_message("invalid_grant"))
 
     monkeypatch.setattr(captions, "get_transcript", download)
     result = runner.invoke(args=["backfill-captions", "--limit", "6"])

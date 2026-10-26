@@ -12,30 +12,24 @@ from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy import func
 
-from tsh import youtube
+from tsh import captions, youtube
 from tsh.database import db
 from tsh.models import Series, Sermon, Speaker, SyncRun, SyncRunState, UploadStatus, utcnow
 from tsh.pipeline import start_processing
 from tsh.queue import JOB_TIMEOUT, enqueue
 from tsh.youtube_titles import ParsedTitle, parse_title, series_named_in
 
+
 # Every description is this boilerplate plus a few links, so everything from here on is dropped.
 BOILERPLATE_START = "broadcasted live from"
 DURATION_RE = re.compile(r"^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$")
 # YouTube's own titles for playlist entries whose video is gone or hidden.
 HIDDEN_TITLES = {"Private video", "Deleted video"}
-VIDEO_ID = r"[A-Za-z0-9_-]{11}"
 # A running sync past this age has outlived RQ's timeout, so its worker is gone. The margin covers a slow start.
 STALE_SYNC_AFTER = timedelta(seconds=JOB_TIMEOUT) + timedelta(minutes=5)
 # A queued sync shares the "sermons" queue and can wait behind many 15 minute sermon jobs after a big
 # import, so it is only treated as lost (for example Redis was flushed) after much longer.
 STALE_QUEUED_SYNC_AFTER = timedelta(hours=24)
-# youtube.com/watch?v=ID, youtu.be/ID and youtube.com/shorts/ID, with or without www., m. and extra params.
-VIDEO_URL_PATTERNS = [
-    re.compile(rf"^https?://(?:www\.|m\.)?youtube\.com/watch\?(?:.*&)?v=({VIDEO_ID})(?:[&#].*)?$"),
-    re.compile(rf"^https?://youtu\.be/({VIDEO_ID})(?:[?#].*)?$"),
-    re.compile(rf"^https?://(?:www\.|m\.)?youtube\.com/shorts/({VIDEO_ID})(?:[?#/].*)?$"),
-]
 
 
 class VideoImportError(Exception):
@@ -72,6 +66,13 @@ class ImportReport:
     # New sermons whose pipeline job could not be queued, as "title (id): error". They are left FAILED
     # and can be retried with the reprocess endpoint.
     queue_failures: list[str] = field(default_factory=list)
+    # Why caption downloads are on hold (quota used up, sign-in expired, or CAPTIONS_ENABLED off), or None.
+    # A snapshot taken when the import ended, not live status. With the worker the caption jobs have not run
+    # yet, so this only knows the saved breaker and flag; a later failure is on each sermon's processing_error.
+    caption_pause: str | None = None
+    # New sermons whose captions did not download because of that pause. They are not queue_failures:
+    # they are saved, and reprocessing or backfill-captions picks them up once the pause ends.
+    caption_deferred: int = 0
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -97,6 +98,8 @@ def import_channel(date_from: date | None = None, date_to: date | None = None, *
     duration, date and link are updated (see _update_sermon). New sermons are queued with start_processing;
     one that cannot be queued is counted in queue_failures and the import carries on. Once Redis
     cannot be reached, the rest are set FAILED without trying, since each try would wait for a timeout.
+    If caption downloads are on hold, the report says so in caption_pause and caption_deferred; the import
+    itself still succeeds.
     Returns an ImportReport. Raises youtube.YouTubeError if the channel or the video details cannot be fetched.
     """
     report = ImportReport()
@@ -161,6 +164,7 @@ def import_channel(date_from: date | None = None, date_to: date | None = None, *
 
     if process:
         _queue_new_sermons(new_sermons, report)
+        _note_caption_pause(new_sermons, report)
     return report
 
 
@@ -259,15 +263,6 @@ def run_sync(run_id: int) -> None:
     run.sermons_unchanged = report.sermons_unchanged
     run.finished_at = utcnow()
     db.session.commit()
-
-
-def parse_video_id(url: str) -> str | None:
-    """Return the video id from a youtube.com/watch?v=, youtu.be/ or youtube.com/shorts/ URL, or None if it is not one."""
-    for pattern in VIDEO_URL_PATTERNS:
-        match = pattern.match(url.strip())
-        if match:
-            return match.group(1)
-    return None
 
 
 def import_video(video_id: str) -> tuple[Sermon, bool]:
@@ -464,6 +459,25 @@ def _queue_new_sermons(sermons: list[Sermon], report: ImportReport) -> None:
             current_app.logger.exception("Could not queue imported sermon %s", sermon.id)
             report.queue_failures.append(f"{sermon.title} ({sermon.youtube_video_id}): {str(e) or type(e).__name__}")
             redis_down = isinstance(e, (RedisConnectionError, RedisTimeoutError))
+
+
+def _note_caption_pause(sermons: list[Sermon], report: ImportReport) -> None:
+    """Set report.caption_pause and caption_deferred from how the new sermons' caption step ended.
+
+    Without REDIS_URL the sermons have already been processed, so their processing_error shows a quota,
+    sign-in or captions-off pause. With the worker they are still Processing, so only the saved breaker and
+    CAPTIONS_ENABLED (captions.pause_reason) can be known. Reads only: no sermon is changed, and YouTube is not called.
+    """
+    db.session.expire_all()
+    prefixes = (captions.QUOTA_PREFIX, captions.AUTH_PREFIX, captions.DISABLED_PREFIX)
+    held = [s for s in sermons if (s.processing_error or "").startswith(prefixes)]
+    report.caption_deferred = len(held)
+    report.caption_pause = captions.pause_reason()
+    if report.caption_pause is None:
+        # An expired sign-in has no saved state, so it is only known from a sermon that hit it.
+        signed_out = next((s for s in held if s.processing_error.startswith(captions.AUTH_PREFIX)), None)
+        if signed_out is not None:
+            report.caption_pause = signed_out.processing_error.removeprefix("fetch_transcript: ")
 
 
 def _synced_fields(video: dict, duration: int) -> dict:

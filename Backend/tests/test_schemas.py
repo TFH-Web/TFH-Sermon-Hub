@@ -255,7 +255,14 @@ def test_sermon_schema_load():
     })
     processed_sermon = sermon_schema.load(data)
     assert processed_sermon.processed_at == datetime(2026, 10, 1, 12, 30)
-    assert sermon_schema.dump(processed_sermon) == data
+    regen_idle = {
+        "summaryRegenState": "idle",
+        "summaryRegenError": None,
+        "summaryRegenRequestedAt": None,
+        "summaryRegenStartedAt": None,
+        "summaryRegenFinishedAt": None,
+    }
+    assert sermon_schema.dump(processed_sermon) == {**data, **regen_idle}
 
     data["processedAt"] = "invalid-date"
     with pytest.raises(ValidationError) as exc_info:
