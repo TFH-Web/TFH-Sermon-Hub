@@ -11,7 +11,9 @@ def populate(app: Flask):
     series_hope_rising = Series(id=None, title="Hope Rising")
     series_fearless = Series(id=None, title="Fearless")
     series_together = Series(id=None, title="Together")
-    series_new_ground = Series(id=None, title="New Ground") # No sermons point at this one, so the empty-series case gets tested
+    series_new_ground = Series(
+        id=None, title="New Ground"
+    )  # No sermons point at this one, so the empty-series case gets tested
     db.session.add_all(
         [
             series_live_your_best_life,
@@ -19,6 +21,29 @@ def populate(app: Flask):
             series_fearless,
             series_together,
             series_new_ground,
+        ]
+    )
+
+    series_1 = Series(id=None, title="Series 1")
+    series_2 = Series(id=None, title="Series 2")
+    series_3 = Series(id=None, title="Series 3")
+    series_4 = Series(id=None, title="Series 4")
+    series_5 = Series(id=None, title="Series 5")
+    series_6 = Series(id=None, title="Series 6")
+    series_7 = Series(id=None, title="Series 7")
+    series_8 = Series(id=None, title="Series 8")
+    series_9 = Series(id=None, title="Series 9")
+    db.session.add_all(
+        [
+            series_1,
+            series_2,
+            series_3,
+            series_4,
+            series_5,
+            series_6,
+            series_7,
+            series_8,
+            series_9,
         ]
     )
 
@@ -140,7 +165,9 @@ def populate(app: Flask):
     tag_anxiety = Tag(name="anxiety", source=TagSource.MANUAL, sermons=[])
     tag_fear = Tag(name="fear", source=TagSource.MANUAL, sermons=[])
     tag_life = Tag(name="life", source=TagSource.MANUAL, sermons=[])
-    db.session.add_all([tag_faith, tag_hope, tag_healing, tag_grace, tag_anxiety, tag_fear, tag_life])
+    db.session.add_all(
+        [tag_faith, tag_hope, tag_healing, tag_grace, tag_anxiety, tag_fear, tag_life]
+    )
 
     video_link = "https://youtu.be/JQSUGFQO5FU"
     video_link2 = "https://youtu.be/BROKENLINKTEST"
@@ -252,4 +279,128 @@ def populate(app: Flask):
             sermon_bold_faith,
         ]
     )
+
+    sermon_1 = Sermon(
+        id=None,
+        title="Sermon 1",
+        video_link=video_link,
+        duration=6767,
+        speaker_id=None,
+        series_id=None,
+        speaker=speaker_dave_patterson,
+        series=None,
+        date=date(2027, 1, 1),
+        description="Lorem ipsum dolor sit amet",
+        transcript=None,
+        summary=None,
+        status=UploadStatus.PUBLISHED,
+        tags=[],
+    )
+    sermon_2 = Sermon(
+        id=None,
+        title="Sermon 2",
+        video_link=video_link,
+        duration=6767,
+        speaker_id=None,
+        series_id=None,
+        speaker=speaker_dave_patterson,
+        series=None,
+        date=date(2027, 1, 2),
+        description="Lorem ipsum dolor sit amet",
+        transcript=None,
+        summary=None,
+        status=UploadStatus.PUBLISHED,
+        tags=[],
+    )
+    sermon_3 = Sermon(
+        id=None,
+        title="Sermon 3",
+        video_link=video_link,
+        duration=6767,
+        speaker_id=None,
+        series_id=None,
+        speaker=speaker_dave_patterson,
+        series=None,
+        date=date(2027, 1, 3),
+        description="Lorem ipsum dolor sit amet",
+        transcript=None,
+        summary=None,
+        status=UploadStatus.PUBLISHED,
+        tags=[],
+    )
+    sermon_4 = Sermon(
+        id=None,
+        title="Sermon 4",
+        video_link=video_link,
+        duration=6767,
+        speaker_id=None,
+        series_id=None,
+        speaker=speaker_dave_patterson,
+        series=None,
+        date=date(2027, 1, 4),
+        description="Lorem ipsum dolor sit amet",
+        transcript=None,
+        summary=None,
+        status=UploadStatus.PUBLISHED,
+        tags=[],
+    )
+    sermon_5 = Sermon(
+        id=None,
+        title="Sermon 5",
+        video_link=video_link,
+        duration=6767,
+        speaker_id=None,
+        series_id=None,
+        speaker=speaker_dave_patterson,
+        series=None,
+        date=date(2027, 1, 5),
+        description="Lorem ipsum dolor sit amet",
+        transcript=None,
+        summary=None,
+        status=UploadStatus.PUBLISHED,
+        tags=[],
+    )
+    sermon_6 = Sermon(
+        id=None,
+        title="Sermon 6",
+        video_link=video_link,
+        duration=6767,
+        speaker_id=None,
+        series_id=None,
+        speaker=speaker_dave_patterson,
+        series=None,
+        date=date(2027, 1, 6),
+        description="Lorem ipsum dolor sit amet",
+        transcript=None,
+        summary=None,
+        status=UploadStatus.PUBLISHED,
+        tags=[],
+    )
+    sermon_7 = Sermon(
+        id=None,
+        title="Sermon 7",
+        video_link=video_link,
+        duration=6767,
+        speaker_id=None,
+        series_id=None,
+        speaker=speaker_dave_patterson,
+        series=None,
+        date=date(2027, 1, 7),
+        description="Lorem ipsum dolor sit amet",
+        transcript=None,
+        summary=None,
+        status=UploadStatus.PUBLISHED,
+        tags=[],
+    )
+
+    db.session.add_all([
+        sermon_1,
+        sermon_2,
+        sermon_3,
+        sermon_4,
+        sermon_5,
+        sermon_6,
+        sermon_7,
+    ]);
+
     db.session.commit()

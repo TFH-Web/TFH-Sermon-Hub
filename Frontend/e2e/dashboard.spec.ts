@@ -1,35 +1,33 @@
 import { expect } from '@playwright/test';
 import { test } from './fixtures';
-import { setupRoutes } from './setup';
 
 test.beforeEach(async ({ page }) => {
-	setupRoutes(page);
 	await page.goto('/');
 });
 
 test('metrics work', async ({ page }) => {
 	for (const { name, stat } of [
-		{ name: 'Total Sermons', stat: 10 },
-		{ name: 'Series', stat: 15 },
-		{ name: 'Speakers', stat: 15 },
+		{ name: 'Total Sermons', stat: 6 },
+		{ name: 'Series', stat: 14 },
+		{ name: 'Speakers', stat: 25 },
 	]) {
 		await test.step(`metric: ${name}`, async () => {
 			const heading = page.getByRole('heading', { name });
-			await expect(heading).toBeVisible();
+			await expect.soft(heading).toBeVisible();
 
 			const parent = heading.locator('..');
-			await expect(parent.getByText(stat.toString())).toBeVisible();
+			await expect.soft(parent.getByText(stat.toString())).toBeVisible();
 		});
 	}
 });
 
 test('recent sermons are listed', async ({ page }) => {
-	const rows = page.getByRole('rowheader').filter({ hasText: /Sermon \d+/ });
+	const rows = page.getByRole('rowheader');
 	await expect(rows).toHaveText([
-		'Sermon 10',
-		'Sermon 9',
-		'Sermon 8',
-		'Sermon 7',
-		'Sermon 6',
+		'Under Grace',
+		'Walking in Freedom',
+		'Anchored in Hope',
+		'Power of Community',
+		'Worship as a Lifestyle',
 	]);
 });
