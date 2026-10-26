@@ -11,6 +11,7 @@ import { Card } from '$/components/Card.tsx';
 import ErrorBox from '$/components/ErrorBox.tsx';
 import Loading from '$/components/Loading.tsx';
 import MainLayout from '$/components/MainLayout';
+import ManualSummaryEditor from '$/components/ManualSummaryEditor';
 import SermonTranscript from '$/components/SermonTranscript';
 import SummaryRegenStatus from '$/components/SummaryRegenStatus.tsx';
 import Tag from '$/components/Tag.tsx';
@@ -18,7 +19,7 @@ import {
 	regenPollInterval,
 	useSummaryRegeneration,
 } from '$/hooks/useSummaryRegeneration';
-import { useIsAdmin } from '$/lib/auth';
+import { useAuth, useIsAdmin } from '$/lib/auth';
 import { buildYouTubeWatchUrl, resolveYouTubeVideoId } from '$/lib/youtube';
 import DeleteSermonModal from '$/modals/DeleteSermonModal.tsx';
 import EditSermonModal from '$/modals/EditSermonModal.tsx';
@@ -42,10 +43,12 @@ function isNotFound(error: unknown): boolean {
 export default function SermonDetail() {
 	const isAdmin = useIsAdmin();
 
-	const [_summary, setSummary] = useState<string | null>(null); // Starts as nothing. It only holds text once the user types their own summary.
+	const summarySession = useAuth(
+		state =>
+			`${state.status}:${state.account?.homeAccountId ?? ''}:${state.roles.includes('Admin')}`,
+	);
 
 	const { id } = useParams(); // reads the number of the web address, so /sermons/5 gives us 5
-	const [isEditingSummary, setIsEditingSummary] = useState(false); // Remembers if the summary edit box is open
 	const [editSermonOpen, setEditSermonOpen] = useState(false); //	Remembers if the Edit popup is open
 	const [deleteSermonOpen, setDeleteSermonOpen] = useState(false); // Remembers if the Delete popup is open
 
@@ -333,34 +336,10 @@ export default function SermonDetail() {
 							</p>
 						)}
 					</div>
-					<div className="SermonDetail-summary-edit-container">
-						{isEditingSummary ? (
-							<div className="SermonDetail-summary-editing">
-								<Button
-									variant="secondary"
-									className="SermonDetail-summary-btn"
-									disabled={!isAdmin}
-									onClick={() => setIsEditingSummary(false)}
-								>
-									Edit Summary Manually
-								</Button>
-								<textarea
-									className="SermonDetail-summary-textarea"
-									value={_summary ?? sermon.summary ?? ''}
-									onChange={e => setSummary(e.target.value)}
-								/>
-							</div>
-						) : (
-							<Button
-								variant="secondary"
-								className="SermonDetail-summary-btn"
-								disabled={!isAdmin}
-								onClick={() => setIsEditingSummary(true)}
-							>
-								Edit Summary Manually
-							</Button>
-						)}
-					</div>
+					<ManualSummaryEditor
+						key={`${id}:${summarySession}`}
+						sermon={sermon}
+					/>
 				</Card>
 
 				{/* Metadata Section */}
