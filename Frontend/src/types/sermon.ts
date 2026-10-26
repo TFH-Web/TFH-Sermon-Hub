@@ -39,6 +39,7 @@ export const Sermon = z.object({
 	summaryRegenState: SummaryRegenState.optional(),
 	summaryRegenError: z.string().nullish(),
 	summaryRegenRequestedAt: z.string().nullish(),
+	summaryRegenStartedAt: z.string().nullish(),
 });
 export type Sermon = z.infer<typeof Sermon>;
 
