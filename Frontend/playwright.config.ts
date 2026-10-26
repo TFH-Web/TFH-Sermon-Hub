@@ -20,9 +20,11 @@ export default defineConfig({
 	/* Fail the build on CI if you accidentally left test.only in the source code. */
 	forbidOnly: !!process.env.CI,
 	/* Retry on CI only */
-	retries: process.env.CI ? 2 : 0,
-	/* Opt out of parallel tests on CI. */
-	workers: process.env.CI ? 1 : undefined,
+	retries: process.env.CI ? 1 : 0,
+	/* Each mocked test owns its browser context and route state. */
+	workers: process.env.CI ? 2 : undefined,
+	/* Stop before the job limit so failure reports can still upload. */
+	globalTimeout: process.env.CI ? 10 * 60_000 : undefined,
 	/* Reporter to use. See https://playwright.dev/docs/test-reporters */
 	reporter: 'html',
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
