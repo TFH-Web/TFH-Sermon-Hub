@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-from marshmallow import Schema, fields, post_load
+from marshmallow import Schema, fields, post_load, pre_load
 
 from tsh.models import (
     Series,
     Sermon,
     SermonChunk,
     Speaker,
+    SummaryRegenState,
     SyncRunState,
     Tag,
     TagSource,
-    UploadStatus, SermonChunkEmbedding,
+    UploadStatus, 
+    SermonChunkEmbedding,    
 )
 
 
@@ -158,6 +160,20 @@ class SermonSchema(CamelCaseSchema):
     transcript_segments = fields.Nested(
         TranscriptSegmentSchema, many=True, allow_none=True
     )
+
+    # Where "Regenerate with AI" is, so the page can show it after a reload. The server sets these, never the client.
+    summary_regen_state = fields.Enum(SummaryRegenState, by_value=True, dump_only=True)
+    summary_regen_error = fields.String(allow_none=True, dump_only=True)
+    summary_regen_requested_at = fields.DateTime(allow_none=True, dump_only=True)
+    summary_regen_started_at = fields.DateTime(allow_none=True, dump_only=True)
+    summary_regen_finished_at = fields.DateTime(allow_none=True, dump_only=True)
+
+    @pre_load
+    def drop_regeneration_fields(self, data, **kwargs):
+        # The response carries these, so a client may send it back whole. Ignore them instead of rejecting or saving them.
+        if isinstance(data, dict):
+            data = {key: value for key, value in data.items() if not key.startswith("summaryRegen")}
+        return data
 
     @post_load
     def make_sermon(self, data, **kwargs) -> Sermon:

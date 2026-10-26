@@ -10,6 +10,17 @@ export const statuses = ['Published', 'Processing', 'Draft', 'Failed'] as const;
 export const Status = z.enum(statuses);
 export type Status = z.infer<typeof Status>;
 
+// Where "Regenerate with AI" is. The server keeps this on the sermon, so every tab and a reloaded page see the same thing.
+export const summaryRegenStates = [
+	'idle',
+	'queued',
+	'running',
+	'completed',
+	'failed',
+] as const;
+export const SummaryRegenState = z.enum(summaryRegenStates);
+export type SummaryRegenState = z.infer<typeof SummaryRegenState>;
+
 export const Sermon = z.object({
 	id: z.number(),
 	title: z.string().nonempty(),
@@ -26,6 +37,10 @@ export const Sermon = z.object({
 	status: Status,
 	processingError: z.string().nullish(),
 	processedAt: z.string().nullish(),
+	summaryRegenState: SummaryRegenState.optional(),
+	summaryRegenError: z.string().nullish(),
+	summaryRegenRequestedAt: z.string().nullish(),
+	summaryRegenStartedAt: z.string().nullish(),
 });
 export type Sermon = z.infer<typeof Sermon>;
 
