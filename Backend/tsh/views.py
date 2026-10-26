@@ -627,6 +627,47 @@ def regenerate_sermon_summary(id: int):
     return sermon_schema.dump(sermon), 202
 
 
+@api.patch("/sermons/<int:id>/summary")
+@require_role("Admin")
+def update_sermon_summary(id: int):
+    """Permanently save a manually edited sermon summary.
+
+    Returns 200 with the updated sermon.
+    Sends 400 for invalid input, 401 without authentication,
+    403 for non-Admins, 404 if the sermon does not exist,
+    and 500 if the database update fails.
+    """
+    sermon = db.session.get(Sermon, id)
+
+    if sermon is None:
+        message = f"Sermon with id {id} not found"
+        return jsonify({"error": message, "message": message}), 404
+
+    payload = request.get_json(silent=True)
+
+    if not isinstance(payload, dict):
+        message = "A JSON object is required"
+        return jsonify({"error": message, "message": message}), 400
+
+    summary = payload.get("summary")
+
+    if not isinstance(summary, str):
+        message = "Summary must be a string"
+        return jsonify({"error": message, "message": message}), 400
+
+    try:
+        sermon.summary = summary
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception(
+            "Failed to save summary for sermon %s", id
+        )
+        message = "Failed to save sermon summary"
+        return jsonify({"error": message, "message": message}), 500
+
+    return sermon_schema.dump(sermon), 200
+
 def read_date_range(body) -> tuple[date | None, date | None]:
     """Read the optional "from" and "to" dates of a sync request body, e.g. {"from": "2026-09-01", "to": "2026-09-30"}.
 
