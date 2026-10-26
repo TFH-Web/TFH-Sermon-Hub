@@ -1,4 +1,10 @@
 .Sidebar {
+	/* Resolve this surface's tokens locally. Production CSS lowering otherwise
+	   freezes inherited light-dark() tokens in the root's light scheme. */
+	--cl-background: var(--cl-dark);
+	--cl-foreground: var(--cl-light);
+	--cl-outline: oklch(from var(--cl-foreground) l c h / 0.1);
+
 	z-index: var(--z-sidebar);
 	display: grid;
 	grid-template-rows: 5rem 1fr 5rem;
@@ -11,6 +17,17 @@
 
 	> * ~ * {
 		border-block-start: 1px solid var(--cl-outline);
+	}
+
+	.NavbarItem.is-active,
+	.Profile-logOut {
+		/* Brightening filled controls would reduce label contrast below 4.5:1. */
+		--hover-brightness: 1;
+	}
+
+	:where(.NavbarItem, .Profile-logOut):focus-visible {
+		outline: 2px solid var(--cl-foreground);
+		outline-offset: 2px;
 	}
 }
 
