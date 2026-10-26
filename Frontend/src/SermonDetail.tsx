@@ -3,7 +3,7 @@ import axios from 'axios'; // Sends the HTTP request to the backend
 import { useRef, useState } from 'react'; // Allows the page remember things that changed like if something was enabled or disabled
 
 import './SermonDetail.css';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import type { YouTubeProps } from 'react-youtube';
 import YouTube from 'react-youtube';
 import Button from '$/components/Button';
@@ -12,6 +12,8 @@ import ErrorBox from '$/components/ErrorBox.tsx';
 import Loading from '$/components/Loading.tsx';
 import MainLayout from '$/components/MainLayout';
 import ManualSummaryEditor from '$/components/ManualSummaryEditor';
+import SermonSummaryOrigin from '$/components/SermonSummaryOrigin';
+import SermonTag from '$/components/SermonTag';
 import SermonTranscript from '$/components/SermonTranscript';
 import SummaryRegenStatus from '$/components/SummaryRegenStatus.tsx';
 import Tag from '$/components/Tag.tsx';
@@ -20,6 +22,8 @@ import {
 	useSummaryRegeneration,
 } from '$/hooks/useSummaryRegeneration';
 import { useAuth, useIsAdmin } from '$/lib/auth';
+import { formatCalendarDate } from '$/lib/date';
+import { parseSourceTimestamp } from '$/lib/sourceTimestamp';
 import { buildYouTubeWatchUrl, resolveYouTubeVideoId } from '$/lib/youtube';
 import DeleteSermonModal from '$/modals/DeleteSermonModal.tsx';
 import EditSermonModal from '$/modals/EditSermonModal.tsx';
@@ -41,6 +45,24 @@ function isNotFound(error: unknown): boolean {
 }
 
 export default function SermonDetail() {
+	const { id } = useParams();
+	const [searchParams] = useSearchParams();
+	const sourceTimestamp = parseSourceTimestamp(searchParams.get('t'));
+
+	// Start fresh when the selected sermon or source timestamp changes.
+	return (
+		<SermonDetailContent
+			key={`${id}:${sourceTimestamp ?? 'start'}`}
+			sourceTimestamp={sourceTimestamp}
+		/>
+	);
+}
+
+function SermonDetailContent({
+	sourceTimestamp,
+}: {
+	sourceTimestamp: number | null;
+}) {
 	const isAdmin = useIsAdmin();
 
 	const summarySession = useAuth(
@@ -54,7 +76,8 @@ export default function SermonDetail() {
 
 	const playerRef = useRef<YouTubePlayer | null>(null); //creates reference for youtube player
 	const [playerReady, setPlayerReady] = useState(false); //remembers if the player is ready (video is loaded)
-	const [pendingSeek, setPendingSeek] = useState<number | null>(null); //remembers if the video is seeking a timestamp, setPendingSeek stores (seconds: number) to tell where to seek towards when video is loaded
+	// Remember the latest timestamp so a recreated player can restore it.
+	const pendingSeekRef = useRef<number | null>(sourceTimestamp);
 	const [videoError, setVideoError] = useState<string | null>(null); //remembers if there is an error with loading the video
 
 	const navigate = useNavigate(); // Lets us send the user to a different page
@@ -139,6 +162,12 @@ export default function SermonDetail() {
 	// If the sermon has no summary saved, we end up with nothing to show.
 	const summaryParagraphs = sermon.summary ? toParagraphs(sermon.summary) : [];
 
+	// Count AI and manual tags separately instead of labeling every tag as AI.
+	const aiTagCount = sermon.tags.filter(tag => tag.source === 'ai').length;
+	const manualTagCount = sermon.tags.filter(
+		tag => tag.source === 'manual',
+	).length;
+
 	// Filters list of sermons to a new array containing only sermons in the same series
 	// const [filteredSermons, setFilteredSermons] = useState<Sermon[]>([]);
 	let filteredSermons: Sermon[] = [];
@@ -178,27 +207,53 @@ export default function SermonDetail() {
 	>[0]['target'];
 
 	const handlePlayerReady: YouTubeProps['onReady'] = event => {
-		//readies the player, also seeks to time if already requested to seek time before video start
 		playerRef.current = event.target;
 		setPlayerReady(true);
 
-		if (pendingSeek !== null) {
-			event.target.seekTo(pendingSeek, true);
+		// Restore the requested timestamp whenever the player is recreated.
+		const seconds = pendingSeekRef.current;
+
+		if (seconds === null) {
+			return;
+		}
+
+		try {
+			event.target.seekTo(seconds, true);
 			event.target.playVideo();
-			setPendingSeek(null);
+		} catch {
+			// Keep external video links available if seeking fails.
+			playerRef.current = null;
+			setPlayerReady(false);
+			setVideoError('The video could not seek to the selected timestamp.');
 		}
 	};
 
-	function seekToTranscriptTime(seconds: number) {
-		//skips player to specified time in video (in seconds), to be used with transcript to skip to specified segment
-		if (playerReady && playerRef.current) {
+	function seekToTranscriptTime(seconds: number): boolean {
+		// Use the external link if the embedded video cannot handle the request.
+		if (!Number.isFinite(seconds) || seconds < 0 || !videoId || videoError) {
+			return false;
+		}
+
+		// Keep the latest requested timestamp if the player is recreated.
+		pendingSeekRef.current = seconds;
+
+		// Wait for the ready callback if the player is still loading.
+		if (!playerReady || !playerRef.current) {
+			return true;
+		}
+
+		try {
+			// Move the video to the selected cue and start playback.
 			playerRef.current.seekTo(seconds, true);
 			playerRef.current.playVideo();
-		} else {
-			setPendingSeek(seconds);
+			return true;
+		} catch {
+			// Allow the timestamp's external link if the player fails.
+			return false;
 		}
 	}
 
+	// Validate the saved link and ID before displaying a video or link.
 	const videoId = resolveYouTubeVideoId(sermon);
 	const watchUrl = videoId ? buildYouTubeWatchUrl(videoId) : null;
 
@@ -228,14 +283,23 @@ export default function SermonDetail() {
 										title={sermon.title}
 										onReady={handlePlayerReady}
 										onError={() => {
+											// Stop waiting for a player that failed to load.
+											playerRef.current = null;
+											pendingSeekRef.current = null;
+											setPlayerReady(false);
 											setVideoError(
 												'This video could not be loaded. It may be unavailable or embedding may be disabled.',
 											);
-											console.log({ videoError });
 										}}
 										opts={{
 											playerVars: {
 												rel: 0,
+
+												// Set the starting position when opening a source link.
+												start:
+													sourceTimestamp === null
+														? undefined
+														: Math.floor(sourceTimestamp),
 											},
 										}}
 									/>
@@ -252,20 +316,15 @@ export default function SermonDetail() {
 							<p className="SermonDetail-meta">
 								{getFullName(sermon.speaker)}
 								{' • '}
-								{sermon.date.toLocaleDateString('en-US', {
-									month: 'short',
-									day: 'numeric',
-									year: 'numeric',
-								})}
+								{formatCalendarDate(sermon.date)}
 								{sermon.duration
 									? ` • ${durationToString(sermon.duration)}`
 									: ''}
 							</p>
 							<div className="SermonDetail-tags">
+								{/* Show AI origin only for tags marked as AI by the API. */}
 								{sermon.tags.map(tag => (
-									<Tag key={tag.name} variant="solid">
-										{tag.name}
-									</Tag>
+									<SermonTag key={tag.name} tag={tag} />
 								))}
 							</div>
 							<div className="SermonDetail-btn-group">
@@ -299,16 +358,19 @@ export default function SermonDetail() {
 						</div>
 					</div>
 				</div>
-				<SermonTranscript sermon={sermon} />
+				{/* Let transcript timestamps control this sermon's video. */}
+				<SermonTranscript sermon={sermon} onSeek={seekToTranscriptTime} />
 
 				{/* Summary Section */}
 				<Card className="SermonDetail-summary">
 					<div className="SermonDetail-card-header">
 						<h2 className="SermonDetail-card-title">Summary</h2>
 						<div className="SermonDetail-card-actions">
-							{sermon.summary && sermon.summarySource === 'ai' && (
-								<Tag variant="blue">AI generated</Tag>
-							)}
+							{/* Keep the saved origin visible while viewing or editing. */}
+							<SermonSummaryOrigin
+								summary={sermon.summary}
+								summarySource={sermon.summarySource}
+							/>
 							<Button
 								variant="ghost"
 								className="SermonDetail-regenerate-btn"
@@ -325,7 +387,6 @@ export default function SermonDetail() {
 						stale={regen.isStale}
 					/>
 					<div className="SermonDetail-summary-container">
-						{/* Same idea as the transcript. Say there is no summary rather than showing an empty panel. */}
 						{summaryParagraphs.length > 0 ? (
 							summaryParagraphs.map(paragraph => (
 								<p key={paragraph} className="SermonDetail-summary-paragraph">
@@ -337,6 +398,7 @@ export default function SermonDetail() {
 								No summary yet. Generate one with AI.
 							</p>
 						)}
+						{/* Same idea as the transcript. Say there is no summary rather than showing an empty panel. */}
 					</div>
 					<ManualSummaryEditor
 						key={`${id}:${summarySession}`}
@@ -367,11 +429,7 @@ export default function SermonDetail() {
 
 						<span className="SermonDetail-metadata-label">Date</span>
 						<span className="SermonDetail-metadata-value">
-							{sermon.date.toLocaleDateString('en-US', {
-								month: 'long',
-								day: 'numeric',
-								year: 'numeric',
-							})}
+							{formatCalendarDate(sermon.date, 'long')}
 						</span>
 
 						<span className="SermonDetail-metadata-label">Duration</span>
@@ -380,7 +438,7 @@ export default function SermonDetail() {
 						</span>
 
 						<span className="SermonDetail-metadata-label">Video</span>
-						{/* Never render an unchecked saved URL. */}
+						{/* Show only a link built from a validated video ID. */}
 						<span className="SermonDetail-metadata-value">
 							{watchUrl ? (
 								<a
@@ -396,15 +454,6 @@ export default function SermonDetail() {
 							)}
 						</span>
 
-						<span>
-							<button type="button" onClick={() => seekToTranscriptTime(15)}>
-								<p>
-									Click to Skip Video to 0:15 (This is to test video seeking)
-								</p>
-							</button>
-						</span>
-						<span></span>
-
 						<span className="SermonDetail-metadata-label">Transcript</span>
 						{/* Only say "Generated" if a transcript really exists.
 						Most sermons in the database do not have one yet. */}
@@ -419,16 +468,23 @@ export default function SermonDetail() {
 						<span className="SermonDetail-metadata-label">Summary</span>
 						{/* Same idea for the summary */}
 						<span className="SermonDetail-metadata-value">
+							{/* Summary existence does not tell us who created it. */}
 							{sermon.summary ? (
-								<Tag variant="green">Generated</Tag>
+								<Tag variant="green">Available</Tag>
 							) : (
-								<Tag variant="amber">Not generated</Tag>
+								<Tag variant="amber">Not available</Tag>
 							)}
 						</span>
 
 						<span className="SermonDetail-metadata-label">Tags</span>
 						<span className="SermonDetail-metadata-value">
-							<Tag variant="green">AI Generated ({sermon.tags.length})</Tag>
+							{aiTagCount > 0 && (
+								<Tag variant="green">AI Generated ({aiTagCount})</Tag>
+							)}
+							{manualTagCount > 0 && (
+								<Tag variant="outline">Manual ({manualTagCount})</Tag>
+							)}
+							{sermon.tags.length === 0 && <span>No tags</span>}
 						</span>
 					</div>
 				</Card>

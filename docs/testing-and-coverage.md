@@ -73,8 +73,9 @@ coverage includes both line and branch opportunities; record line and branch
 percentages separately when comparing baselines.
 
 From `Frontend`, `npm run test` includes all `src/**/*.{ts,tsx}`, excluding tests
-and type declarations, and produces terminal, HTML, `coverage-summary.json`
-and LCOV reports. Files without unit tests remain in the denominator.
+(`**/*.test.{ts,tsx}`) and type declarations (`**/*.d.ts`), and produces
+terminal, HTML, `coverage-summary.json` and LCOV reports. CSS and other assets
+are not measured. Files without unit tests remain in the denominator.
 
 Both workflows check out the repository and set up their own runtime and
 locked dependencies. The backend and Vitest jobs write coverage summaries and
@@ -111,18 +112,102 @@ publishes its own measurements.
 | Suite | Result | Lines | Branches | Other measurements |
 | --- | --- | --- | --- | --- |
 | pytest, all `tsh` | 767 passed; 3 snapshots passed | 92.61% (2257/2437) | 83.65% (609/728) | Combined line/branch coverage 90.55% |
-| Vitest, all `src` | 279 passed | 50.19% (773/1540) | 48.54% (569/1172) | Statements 49.90%; functions 42.12% |
+| Vitest, all `src` | 367 passed (32 files) | 62.33% (1013/1625) | 61.05% (787/1289) | Statements 61.45% (1076/1751); functions 53.00% (291/549) |
 | Chromium real-API core flow | 1 passed | — | — | Real import, pipeline, vector search and grounded source citation |
+
+The Vitest row was re-measured on `dev` commit `bcd7e3e` (details in
+[Vitest baseline on dev](#vitest-baseline-on-dev)). The pytest and Chromium
+rows, and the commit and environment described above, apply to those two rows
+only.
 
 Production build and the full frontend Biome check also passed. The backend
 run emitted existing SQLite connection `ResourceWarning`s on Python 3.14;
 these were not turned into coverage exclusions or disabled tests.
 
 For discussion after the final candidate is measured, initial **proposals** are
-backend lines 90% / branches 80%, and frontend lines 45% / branches 45%.
-These provide a little room below this first baseline while including untested
+backend lines 90% / branches 80%, and frontend lines 55% / branches 55%.
+These provide a little room below the measured baselines while including untested
 files. They are not team-approved and are not enforced in CI. Record the team
 decision and the final-candidate measurements before enabling thresholds.
+
+## Vitest baseline on dev
+
+Measured on 2026-10-25 against `dev` commit `bcd7e3e` with no local changes.
+The environment was Windows 11, Node 24.13.1, Vitest 4.1.12 and
+`@vitest/coverage-v8` 4.1.12, using the dependencies already installed locally
+(CI installs the locked set on Ubuntu with Node 24 and publishes its own
+numbers). Command, from `Frontend`: `npm run test`. All 32 test files and 367
+tests passed.
+
+| Metric | Coverage | Covered/total |
+| --- | --- | --- |
+| Lines | 62.33% | 1013/1625 |
+| Branches | 61.05% | 787/1289 |
+| Functions | 53.00% | 291/549 |
+| Statements | 61.45% | 1076/1751 |
+
+102 production files are measured. The passing-test count includes the
+placeholder `tests/example.test.ts` (`1 + 1`), which covers no source. The first
+baseline above counted 279 tests and 50.19% of lines; it was measured on a
+different commit, so the difference is not attributed to a single change.
+
+### Exclusions
+
+| Pattern | Reason |
+| --- | --- |
+| `**/*.test.{ts,tsx}` | Test files are not application code. |
+| `**/*.d.ts` | Type declarations contain no executable code. |
+
+Vitest's default coverage exclusion list is empty, so shared test helpers would
+count as application code. The `src/test/` helpers from the TFH-629 tests are
+not on `dev` yet. Until a `src/test/**` exclusion is added, they will count as
+application code once they merge.
+
+### Reviewed and not excluded
+
+- `src/main.tsx` is the application bootstrap. Only the Playwright suites run
+  it, so it shows 0% here (8 lines).
+- `src/data/aiSearch.ts`, `series.ts`, `speakers.ts` and `users.ts` are one line
+  each, and no other file under `src`, `e2e`, `e2e-integration` or `tests`
+  imports them on `dev`. (`tags.ts` is imported by `PopularTags.tsx`.) Removing
+  them is a separate cleanup.
+- `src/lib/polymorphic.ts` and `src/types/aiSearch.ts` hold only types and have
+  no executable lines, so they add nothing to the totals.
+
+Together `main.tsx` and the four unused data files are 12 of the 1625 lines.
+Excluding them would move the line total by about half a point, so they stay in
+the denominator.
+
+### Files with no covered lines
+
+29 files have executable lines and 0% line coverage (line counts in
+parentheses). This list is a snapshot of `bcd7e3e`; the HTML report in
+`Frontend/coverage/index.html` and the `vitest-coverage` CI artifact are the
+live view.
+
+- `src`: `Sermons.tsx` (63), `Series.tsx` (32), `TagsAndMetadata.tsx` (29),
+  `Speakers.tsx` (20), `AISearchResults.tsx` (15), `main.tsx` (8),
+  `AISearch.tsx` (7), `Notifications.tsx` (3), `authConfig.ts` (3)
+- `src/components`: `SearchDateDropdown.tsx` (60), `AISearchPreviewCard.tsx`
+  (25), `SermonImportItem.tsx` (20), `SearchFilters.tsx` (6), `SermonCard.tsx`
+  (6), `SearchResultCard.tsx` (4), `PopularTags.tsx` (2), `SearchBar.tsx` (2),
+  `FilterDropdown.tsx` (1), `SpeakerCard.tsx` (1)
+- `src/data`: `aiSearch.ts`, `series.ts`, `speakers.ts`, `tags.ts`, `users.ts`
+  (1 each)
+- `src/hooks`: `useAISearch.ts` (20), `useAISearchRequest.ts` (6)
+- `src/modals`: `NewSeriesModal.tsx` (24), `AddTagModal.tsx` (21),
+  `AddSermon.tsx` (6)
+
+`SermonCard.tsx` and `SermonImportItem.tsx` should leave this list when the
+TFH-629 component tests merge.
+
+### Frontend floor proposal
+
+The frontend proposal is lines 55% / branches 55%: at least three points below
+the measured totals (62.33% and 61.05%), rounded down to a multiple of 5. The
+same rule applied to the first baseline gives the earlier 45% / 45%. This is a
+proposal for team agreement and is not enforced in CI. Totals will move as
+other pull requests merge, so re-measure before the team agrees a floor.
 
 ## Browser CI setup time
 

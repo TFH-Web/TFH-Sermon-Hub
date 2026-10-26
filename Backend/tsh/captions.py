@@ -41,7 +41,7 @@ class CaptionAuthError(CaptionError):
 
 class CaptionsDisabledError(CaptionError):
     """Caption downloads are turned off by CAPTIONS_ENABLED, so no caption request is made."""
-    
+
 
 DISABLED_MESSAGE = ("captions are turned off (CAPTIONS_ENABLED is false); turn them on and reprocess to get a transcript")
 

@@ -15,6 +15,56 @@ const sampleResult: SearchApiResult = {
 	thumbnailUrl: '/images/faith.jpg',
 };
 
+const timedResult: SearchApiResult = {
+	...sampleResult,
+	sermonId: 42,
+	chunk_id: 481,
+	start_sec: 75.5,
+	end_sec: 91.25,
+	youtube_video_id: 'F_OiCiZ3Y3Y',
+	video_link: 'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y',
+};
+
+describe('search source navigation', () => {
+	test.each([0, 1.25, 75.5])('preserves the exact source start %s', seconds => {
+		const mapped = mapSearchResult(
+			{ ...timedResult, start_sec: seconds },
+			'grace',
+		);
+		expect(mapped.redirectTo).toBe(`/sermons/42?t=${seconds}`);
+		expect(mapped.sourceStartSeconds).toBe(seconds);
+		expect(mapped.sermonId).toBe('42');
+	});
+
+	test.each([
+		{ chunk_id: null, start_sec: null, end_sec: null },
+		{ chunk_id: null, start_sec: 0 },
+		{ chunk_id: -1 },
+		{ start_sec: null },
+		{ start_sec: -1 },
+		{ start_sec: Number.NaN },
+		{ start_sec: Number.POSITIVE_INFINITY },
+		{ start_sec: Number.MAX_SAFE_INTEGER + 1 },
+		{ end_sec: null },
+		{ end_sec: 1 },
+		{ end_sec: Number.POSITIVE_INFINITY },
+		{ youtube_video_id: null, video_link: null },
+		{ youtube_video_id: 'invalid' },
+		{ video_link: 'https://evil.example/watch?v=F_OiCiZ3Y3Y' },
+		{ youtube_video_id: 'abcdefghijk' },
+	])('does not invent a seek for invalid or absent source %j', source => {
+		const mapped = mapSearchResult({ ...timedResult, ...source }, 'grace');
+		expect(mapped.redirectTo).toBe('/sermons/42');
+		expect(mapped.sourceStartSeconds).toBeNull();
+	});
+
+	test('uses the documented score field without presenting a percentage', () => {
+		expect(mapSearchResult({ ...sampleResult, score: 0.685 }, '').match).toBe(
+			0.685,
+		);
+	});
+});
+
 describe('mapSearchResult', () => {
 	// Check that returned sermon information reaches the card.
 	test('maps sermon metadata to the card', () => {
@@ -28,7 +78,7 @@ describe('mapSearchResult', () => {
 			date: '2026-09-27',
 			series: 'Faith Series',
 			thumbnailUrl: '/images/faith.jpg',
-			match: 97,
+			match: 0.97,
 		});
 	});
 
@@ -79,23 +129,22 @@ describe('mapSearchResult', () => {
 		expect(result.thumbnailUrl).toBeUndefined();
 	});
 
-	// Check normal scores, rounding, and values outside the valid range.
+	// Keep ranking weights as weights, without converting them into confidence percentages.
 	test.each([
-		{ score: -0.2, percentage: 0 },
-		{ score: 0, percentage: 0 },
-		{ score: 0.975, percentage: 98 },
-		{ score: 1, percentage: 100 },
-		{ score: 1.4, percentage: 100 },
-	])('converts score $score to $percentage percent', ({
+		{ score: -0.2, expected: 0 },
+		{ score: 0, expected: 0 },
+		{ score: 0.975, expected: 0.975 },
+		{ score: 1, expected: 1 },
+		{ score: 1.4, expected: 1 },
+	])('keeps score $score as ranking weight $expected', ({
 		score,
-		percentage,
+		expected,
 	}) => {
 		const result = mapSearchResult(
 			{ ...sampleResult, ai_score: score },
 			'anxiety',
 		);
-
-		expect(result.match).toBe(percentage);
+		expect(result.match).toBe(expected);
 	});
 
 	// Highlight words should ignore capitalization, extra spaces, and repeats.

@@ -43,8 +43,19 @@ function highlightKeywords(text: string, pattern: RegExp | null) {
 	});
 }
 
-/** Render the saved transcript, source timestamps, and the Admin caption refresh action. */
-export default function SermonTranscript({ sermon }: { sermon: Sermon }) {
+// Information and optional video control passed into the transcript.
+interface SermonTranscriptProps {
+	sermon: Sermon;
+
+	// Return true when the embedded player accepts the timestamp.
+	onSeek?: (seconds: number) => boolean;
+}
+
+/** Show saved captions, clickable timestamps, and the Admin refresh action. */
+export default function SermonTranscript({
+	sermon,
+	onSeek,
+}: SermonTranscriptProps) {
 	const { showToast } = useToast();
 	const user = useUser();
 	const queryClient = useQueryClient();
@@ -207,6 +218,7 @@ export default function SermonTranscript({ sermon }: { sermon: Sermon }) {
 						const sourceUrl = videoId
 							? buildYouTubeSourceUrl(videoId, segment.start)
 							: null;
+
 						return (
 							<div className="SermonDetail-transcript-cue" key={key}>
 								{sourceUrl ? (
@@ -215,6 +227,23 @@ export default function SermonTranscript({ sermon }: { sermon: Sermon }) {
 										target="_blank"
 										rel="noreferrer"
 										aria-label={`Watch from ${timestamp(segment.start)}`}
+										onClick={event => {
+											// Preserve modified clicks for external navigation.
+											if (
+												event.button !== 0 ||
+												event.ctrlKey ||
+												event.metaKey ||
+												event.shiftKey ||
+												event.altKey
+											) {
+												return;
+											}
+
+											// Keep exact fractional seconds for the embedded player.
+											if (onSeek?.(segment.start)) {
+												event.preventDefault();
+											}
+										}}
 									>
 										{timestamp(segment.start)}
 									</a>

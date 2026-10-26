@@ -168,7 +168,7 @@ describe('manual summary editing on the sermon page', () => {
 		records[1].summarySource = origin;
 		open();
 		await screen.findByRole('button', { name: 'Edit Summary Manually' });
-		expect(screen.queryByText('AI generated') !== null).toBe(origin === 'ai');
+		expect(screen.queryByText('AI Generated') !== null).toBe(origin === 'ai');
 	});
 
 	it('initializes from saved text, resets and cancels without writing', async () => {
@@ -230,11 +230,11 @@ describe('manual summary editing on the sermon page', () => {
 		records[1].summarySource = 'ai';
 		saveStatus = 409;
 		const { client } = open();
-		await screen.findByText('AI generated');
+		await screen.findByText('AI Generated');
 		await edit('Rewritten by a staff member');
 		fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 		await screen.findByRole('alert');
-		expect(screen.queryByText('AI generated')).not.toBeNull();
+		expect(screen.queryByText('AI Generated')).not.toBeNull();
 		expect(records[1].summarySource).toBe('ai');
 
 		saveStatus = 200;
@@ -243,7 +243,7 @@ describe('manual summary editing on the sermon page', () => {
 		expect(client.getQueryData<Body>(['sermon', '1'])?.summarySource).toBe(
 			'manual',
 		);
-		expect(screen.queryByText('AI generated')).toBeNull();
+		expect(screen.queryByText('AI Generated')).toBeNull();
 	});
 
 	it('prevents repeated saves and editing while the request is pending', async () => {

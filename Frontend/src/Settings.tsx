@@ -699,7 +699,7 @@ export default function Settings() {
 							<label className="Settings-checkbox">
 								<input
 									type="checkbox"
-									checked={automatedBackups}	
+									checked={automatedBackups}
 									onChange={e => setAutomatedBackups(e.target.checked)}
 								/>
 								Automated daily backups

@@ -6,9 +6,11 @@ import Button from '$/components/Button';
 import FileUploadButton from '$/components/FileUploadButton';
 import { FormField, FormRow } from '$/components/FormField';
 import Modal from '$/components/Modal';
+import SermonTag from '$/components/SermonTag';
 import { useToast } from '$/components/ToastContext';
 import { invalidateSermonData } from '$/hooks/useImportSermons';
 import { apiErrorMessage } from '$/lib/api';
+import { toCalendarDateString } from '$/lib/date';
 import type { Sermon } from '$/types/sermon';
 import { getFullName } from '$/types/speaker';
 
@@ -46,7 +48,8 @@ export default function EditSermonModal({
 			setSeries(sermon.series?.title ?? '');
 			setTags(sermon.tags.map(t => t.name).join(', '));
 			setSeriesIndex('');
-			setDate('');
+			// Shows the saved day. The date is not part of the save request yet.
+			setDate(toCalendarDateString(sermon.date));
 			setVideoLink('');
 			setNotes('');
 			setTranscript('');
@@ -193,6 +196,16 @@ export default function EditSermonModal({
 					onChange={e => setTags(e.target.value)}
 				/>
 			</FormField>
+
+			{/* Show the origin of saved tags without guessing about unsaved edits. */}
+			{sermon && sermon.tags.length > 0 && (
+				<section aria-label="Saved tag origins">
+					<p>Saved tags</p>
+					{sermon.tags.map(tag => (
+						<SermonTag key={tag.name} tag={tag} />
+					))}
+				</section>
+			)}
 
 			<FormField label="Sermon Notes">
 				<textarea

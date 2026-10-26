@@ -8,7 +8,7 @@ export interface AISearchResultPreview {
 	series: string;
 	contentType: AISearchContentType;
 	snippet: string;
-	match: number;
+	match: number; // Ranking weight, not a calibrated confidence percentage.
 	redirectTo: string;
 	thumbnailUrl?: string;
 }

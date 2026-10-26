@@ -1,4 +1,5 @@
-const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
+// Match the entire ID, including rejecting a trailing newline.
+const VIDEO_ID = /^[A-Za-z0-9_-]{11}(?![\s\S])/;
 
 const WATCH_HOSTS = new Set([
 	'youtube.com',
