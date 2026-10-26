@@ -82,13 +82,7 @@ export default function EditSermonModal({
 					.map(name => ({ name })),
 			};
 			await axios.patch(`/api/sermons/${sermon.id}`, payload);
-			await Promise.all([
-				invalidateSermonData(queryClient),
-				queryClient.invalidateQueries({
-					queryKey: ['sermon', String(sermon.id)],
-					exact: true,
-				}),
-			]);
+			await invalidateSermonData(queryClient);
 
 			onClose();
 			showToast('Sermon updated successfully', 'success');

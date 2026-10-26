@@ -77,6 +77,47 @@ it('refetches the import and sermon lists too', async () => {
 	}
 });
 
+it('refreshes sermon details once by default for imports and edits', async () => {
+	const client = createClient();
+	const entries = [
+		['sermon', '12'],
+		['sermon', 34],
+	].map(key => observe(client, key));
+
+	await invalidateSermonData(client);
+
+	for (const { queryKey, refetch } of entries) {
+		expect(refetch).toHaveBeenCalledOnce();
+		expect(client.getQueryData(queryKey)).toEqual(updated);
+	}
+});
+
+it('skips only the deleted detail while refreshing dashboard, list and other detail caches', async () => {
+	const client = createClient();
+	const deleted = [
+		['sermon', '12'],
+		['sermon', 12],
+	].map(key => observe(client, key));
+	const remaining = [
+		...dashboardKeys,
+		['sermon', '34'],
+		[IMPORT_SERMONS_KEY, 'Published', 1],
+		['paginated-sermons', { page: 1 }],
+	].map(key => observe(client, key));
+
+	await invalidateSermonData(client, { excludeDetailId: 12 });
+
+	for (const { queryKey, refetch } of deleted) {
+		expect(refetch).not.toHaveBeenCalled();
+		expect(client.getQueryState(queryKey)?.isInvalidated).toBe(false);
+		expect(client.getQueryData(queryKey)).toEqual(original);
+	}
+	for (const { queryKey, refetch } of remaining) {
+		expect(refetch).toHaveBeenCalledOnce();
+		expect(client.getQueryData(queryKey)).toEqual(updated);
+	}
+});
+
 it('leaves unrelated queries alone', async () => {
 	const client = createClient();
 	const unrelated = observe(client, ['unrelated', 'dashboard']);

@@ -36,7 +36,7 @@ export default function DeleteSermonModal({
 
 		try {
 			await axios.delete(`/api/sermons/${sermon.id}`);
-			await invalidateSermonData(queryClient);
+			await invalidateSermonData(queryClient, { excludeDetailId: sermon.id });
 
 			onClose();
 			showToast('Sermon deleted successfully', 'success');
