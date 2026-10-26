@@ -11,6 +11,7 @@ import { Card } from '$/components/Card.tsx';
 import ErrorBox from '$/components/ErrorBox.tsx';
 import Loading from '$/components/Loading.tsx';
 import MainLayout from '$/components/MainLayout';
+import ManualSummaryEditor from '$/components/ManualSummaryEditor';
 import SermonTranscript from '$/components/SermonTranscript';
 import SummaryRegenStatus from '$/components/SummaryRegenStatus.tsx';
 import Tag from '$/components/Tag.tsx';
@@ -18,7 +19,7 @@ import {
 	regenPollInterval,
 	useSummaryRegeneration,
 } from '$/hooks/useSummaryRegeneration';
-import { useIsAdmin } from '$/lib/auth';
+import { useAuth, useIsAdmin } from '$/lib/auth';
 import DeleteSermonModal from '$/modals/DeleteSermonModal.tsx';
 import EditSermonModal from '$/modals/EditSermonModal.tsx';
 import { durationToString, Sermon } from '$/types/sermon';
@@ -41,15 +42,12 @@ function isNotFound(error: unknown): boolean {
 export default function SermonDetail() {
 	const isAdmin = useIsAdmin();
 
-	const [summaryDraft, setSummaryDraft] = useState<{
-		sermonId: string;
-		text: string;
-	} | null>(null); // Checks if there is a draft summary for the current sermon
-	const [editingSermonID, setEditingSermonID] = useState<string | null>(null); // Tracks which sermon is currently being edited
-	const [isSavingSummary, setIsSavingSummary] = useState(false); // Tracks if the summary is currently being saved
+	const summarySession = useAuth(
+		state =>
+			`${state.status}:${state.account?.homeAccountId ?? ''}:${state.roles.includes('Admin')}`,
+	);
 
 	const { id } = useParams(); // reads the number of the web address, so /sermons/5 gives us 5
-	const [isEditingSummary, setIsEditingSummary] = useState(false); // Remembers if the summary edit box is open
 	const [editSermonOpen, setEditSermonOpen] = useState(false); //	Remembers if the Edit popup is open
 	const [deleteSermonOpen, setDeleteSermonOpen] = useState(false); // Remembers if the Delete popup is open
 
@@ -80,40 +78,6 @@ export default function SermonDetail() {
 
 	// Ask the server for a new AI summary. The server tracks the request, so this page, other tabs and a reload all show where it is.
 	const regen = useSummaryRegeneration(id, query.data);
-
-	const saveSummary = async () => {
-		if (!isAdmin || isSavingSummary) return;
-
-		if (summaryDraft?.sermonId !== currentSermonID) {
-			showToast('No summary draft to save.', 'error');
-			return;
-		}
-
-		setIsSavingSummary(true);
-
-		try {
-			await axios.patch(`/api/sermons/${currentSermonID}/summary`, {
-				summary: summaryDraft.text,
-			});
-
-			// Refresh the sermon data so the saved summary is displayed.
-			await query.refetch();
-
-			setSummaryDraft(null);
-			setEditingSermonID(null);
-			setIsEditingSummary(false);
-
-			showToast('Summary saved successfully.', 'success');
-		} catch (error) {
-			const message =
-				(axios.isAxiosError(error) && error.response?.data?.error) ||
-				'Could not save summary';
-
-			showToast(message, 'error');
-		} finally {
-			setIsSavingSummary(false);
-		}
-	};
 
 	//ask server for data of all sermons
 	const sermonsQuery = useQuery({
@@ -169,16 +133,6 @@ export default function SermonDetail() {
 	const sermon = query.data;
 	// We got the data of all the sermons
 	const sermons = sermonsQuery.data ?? [];
-
-	// Determine the current summary based on the draft or the sermon's original summary
-	const currentSermonID = String(sermon.id);
-
-	const currentSummary =
-		summaryDraft?.sermonId === currentSermonID
-			? summaryDraft.text
-			: (sermon.summary ?? '');
-
-	const isEditing = isEditingSummary && editingSermonID === currentSermonID;
 
 	// The server sends one long block of text. Cut it into separate paragraphs so the page can show them one under the other.
 	// If the sermon has no summary saved, we end up with nothing to show.
@@ -391,79 +345,10 @@ export default function SermonDetail() {
 							</p>
 						)}
 					</div>
-					<div className="SermonDetail-summary-edit-container">
-						{isEditing ? (
-							<div className="SermonDetail-summary-editing">
-								<textarea
-									className="SermonDetail-summary-textarea"
-									value={currentSummary}
-									disabled={!isAdmin}
-									onChange={e => {
-										setSummaryDraft({
-											sermonId: currentSermonID,
-											text: e.target.value,
-										});
-									}}
-								/>
-
-								<div className="SermonDetail-summary-actions">
-									<Button
-										type="button"
-										variant="secondary"
-										className="SermonDetail-summary-btn"
-										onClick={() => {
-											setSummaryDraft(null);
-											setEditingSermonID(null);
-											setIsEditingSummary(false);
-										}}
-									>
-										Cancel
-									</Button>
-
-									<Button
-										type="button"
-										variant="secondary"
-										className="SermonDetail-summary-btn"
-										disabled={!isAdmin}
-										onClick={() => {
-											setSummaryDraft({
-												sermonId: currentSermonID,
-												text: sermon.summary ?? '',
-											});
-										}}
-									>
-										Reset
-									</Button>
-									<Button
-										type="button"
-										variant="primary"
-										className="SermonDetail-summary-btn"
-										disabled={!isAdmin || isSavingSummary}
-										onClick={saveSummary}
-									>
-										{isSavingSummary ? 'Saving...' : 'Save'}
-									</Button>
-								</div>
-							</div>
-						) : (
-							<Button
-								type="button"
-								variant="secondary"
-								className="SermonDetail-summary-btn"
-								disabled={!isAdmin}
-								onClick={() => {
-									setSummaryDraft({
-										sermonId: currentSermonID,
-										text: sermon.summary ?? '',
-									});
-									setEditingSermonID(currentSermonID);
-									setIsEditingSummary(true);
-								}}
-							>
-								Edit Summary Manually
-							</Button>
-						)}
-					</div>
+					<ManualSummaryEditor
+						key={`${id}:${summarySession}`}
+						sermon={sermon}
+					/>
 				</Card>
 
 				{/* Metadata Section */}
