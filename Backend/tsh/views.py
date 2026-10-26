@@ -24,6 +24,7 @@ from tsh.models import (
     SyncRun,
     SyncRunState,
     Tag,
+    TagSource,
     UploadStatus,
     sermon_tag_m2m,
 )
@@ -39,6 +40,7 @@ from tsh.schemas import (
     sermon_schema,
     sermons_schema,
     speaker_schema,
+    tag_schema,
 )
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -673,6 +675,107 @@ def get_tags():
         return counted_tags_schema.dump(tags)
 
     return pagination
+
+
+def find_tag_by_name_ci(name: str) -> Tag | None:
+    """Look up a tag by case-insensitive name match, for duplicate checks."""
+    return db.session.execute(
+        db.select(Tag).filter(func.lower(Tag.name) == name.lower())
+    ).scalar_one_or_none()
+
+                                                                                # POST Tag
+@api.post("/tags")
+@require_role("Admin")
+def create_tag():
+    """Create a new manually-added tag."""
+    payload = request.get_json(silent=True)
+
+    if not isinstance(payload, dict):
+        return jsonify({"message": "Validation failed", "errors": {"_schema": ["A JSON object is required"]}}), 422
+
+    name = payload.get("name")
+    if not isinstance(name, str) or not name.strip():
+        return jsonify({"message": "Validation failed", "errors": {"name": ["Tag name is required"]}}), 422
+
+    name = name.strip()
+    if find_tag_by_name_ci(name) is not None:
+        return jsonify({"message": "Validation failed", "errors": {"name": [f'Tag "{name}" already exists']}}), 422
+
+    # Only the AI tagging pipeline creates AI-sourced tags; tags made through this
+    # admin endpoint are always MANUAL.
+    tag = Tag(name=name, source=TagSource.MANUAL, sermons=[])
+
+    try:
+        db.session.add(tag)
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception("Failed to create tag")
+        return jsonify({"message": "Failed to save tag"}), 500
+
+    return tag_schema.dump(tag), 201
+
+                                                                                # PATCH Tag
+@api.patch("/tags")
+@api.patch("/tags/<name>")
+@require_role("Admin")
+def rename_tag(name: str | None = None):
+    """Rename a tag, accepting query identifiers that cannot safely be URL path segments."""
+    if name is None:
+        name = request.args.get("name")
+    if not isinstance(name, str) or not name.strip():
+        return jsonify({"message": "Validation failed", "errors": {"name": ["Tag name is required"]}}), 422
+    tag = db.session.execute(db.select(Tag).filter_by(name=name)).scalar_one_or_none()
+    if tag is None:
+        return jsonify({"message": f'Tag "{name}" not found'}), 404
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"message": "Validation failed", "errors": {"_schema": ["A JSON object is required"]}}), 422
+
+    new_name = payload.get("newName")
+    if not isinstance(new_name, str) or not new_name.strip():
+        return jsonify({"message": "Validation failed", "errors": {"newName": ["New tag name is required"]}}), 422
+
+    new_name = new_name.strip()
+    if new_name.lower() != tag.name.lower():
+        if find_tag_by_name_ci(new_name) is not None:
+            return jsonify({"message": "Validation failed", "errors": {"newName": [f'Tag "{new_name}" already exists']}}), 422
+
+    tag.name = new_name
+
+    try:
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception("Failed to rename tag %s", name)
+        return jsonify({"message": "Failed to rename tag"}), 500
+
+    return tag_schema.dump(tag), 200
+
+                                                                                # DELETE Tag
+@api.delete("/tags")
+@api.delete("/tags/<name>")
+@require_role("Admin")
+def delete_tag(name: str | None = None):
+    """Delete a tag. Its sermon associations are removed by the cascading FK on Tag.name."""
+    if name is None:
+        name = request.args.get("name")
+    if not isinstance(name, str) or not name.strip():
+        return jsonify({"message": "Validation failed", "errors": {"name": ["Tag name is required"]}}), 422
+    tag = db.session.execute(db.select(Tag).filter_by(name=name)).scalar_one_or_none()
+    if tag is None:
+        return jsonify({"message": f'Tag "{name}" not found'}), 404
+
+    try:
+        db.session.delete(tag)
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception("Failed to delete tag %s", name)
+        return jsonify({"message": "Failed to delete tag"}), 500
+
+    return "", 204
 
 
 @api.route("/")
