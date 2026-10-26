@@ -6,7 +6,9 @@ from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy import false, func
 from sqlalchemy.orm import defer, with_expression
 from tsh import chat as chat_service
+from tsh import search as search_service
 from tsh.auth import require_role
+from tsh.embeddings import EmbeddingError
 
 # API routes for series, speakers, and sermons
 from marshmallow import ValidationError
@@ -22,6 +24,7 @@ from tsh.models import (
     SyncRun,
     SyncRunState,
     Tag,
+    TagSource,
     UploadStatus,
     sermon_tag_m2m,
 )
@@ -38,6 +41,7 @@ from tsh.schemas import (
     sermon_schema,
     sermons_schema,
     speaker_schema,
+    tag_schema,
 )
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -721,6 +725,107 @@ def get_tags():
     return pagination
 
 
+def find_tag_by_name_ci(name: str) -> Tag | None:
+    """Look up a tag by case-insensitive name match, for duplicate checks."""
+    return db.session.execute(
+        db.select(Tag).filter(func.lower(Tag.name) == name.lower())
+    ).scalar_one_or_none()
+
+                                                                                # POST Tag
+@api.post("/tags")
+@require_role("Admin")
+def create_tag():
+    """Create a new manually-added tag."""
+    payload = request.get_json(silent=True)
+
+    if not isinstance(payload, dict):
+        return jsonify({"message": "Validation failed", "errors": {"_schema": ["A JSON object is required"]}}), 422
+
+    name = payload.get("name")
+    if not isinstance(name, str) or not name.strip():
+        return jsonify({"message": "Validation failed", "errors": {"name": ["Tag name is required"]}}), 422
+
+    name = name.strip()
+    if find_tag_by_name_ci(name) is not None:
+        return jsonify({"message": "Validation failed", "errors": {"name": [f'Tag "{name}" already exists']}}), 422
+
+    # Only the AI tagging pipeline creates AI-sourced tags; tags made through this
+    # admin endpoint are always MANUAL.
+    tag = Tag(name=name, source=TagSource.MANUAL, sermons=[])
+
+    try:
+        db.session.add(tag)
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception("Failed to create tag")
+        return jsonify({"message": "Failed to save tag"}), 500
+
+    return tag_schema.dump(tag), 201
+
+                                                                                # PATCH Tag
+@api.patch("/tags")
+@api.patch("/tags/<name>")
+@require_role("Admin")
+def rename_tag(name: str | None = None):
+    """Rename a tag, accepting query identifiers that cannot safely be URL path segments."""
+    if name is None:
+        name = request.args.get("name")
+    if not isinstance(name, str) or not name.strip():
+        return jsonify({"message": "Validation failed", "errors": {"name": ["Tag name is required"]}}), 422
+    tag = db.session.execute(db.select(Tag).filter_by(name=name)).scalar_one_or_none()
+    if tag is None:
+        return jsonify({"message": f'Tag "{name}" not found'}), 404
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"message": "Validation failed", "errors": {"_schema": ["A JSON object is required"]}}), 422
+
+    new_name = payload.get("newName")
+    if not isinstance(new_name, str) or not new_name.strip():
+        return jsonify({"message": "Validation failed", "errors": {"newName": ["New tag name is required"]}}), 422
+
+    new_name = new_name.strip()
+    if new_name.lower() != tag.name.lower():
+        if find_tag_by_name_ci(new_name) is not None:
+            return jsonify({"message": "Validation failed", "errors": {"newName": [f'Tag "{new_name}" already exists']}}), 422
+
+    tag.name = new_name
+
+    try:
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception("Failed to rename tag %s", name)
+        return jsonify({"message": "Failed to rename tag"}), 500
+
+    return tag_schema.dump(tag), 200
+
+                                                                                # DELETE Tag
+@api.delete("/tags")
+@api.delete("/tags/<name>")
+@require_role("Admin")
+def delete_tag(name: str | None = None):
+    """Delete a tag. Its sermon associations are removed by the cascading FK on Tag.name."""
+    if name is None:
+        name = request.args.get("name")
+    if not isinstance(name, str) or not name.strip():
+        return jsonify({"message": "Validation failed", "errors": {"name": ["Tag name is required"]}}), 422
+    tag = db.session.execute(db.select(Tag).filter_by(name=name)).scalar_one_or_none()
+    if tag is None:
+        return jsonify({"message": f'Tag "{name}" not found'}), 404
+
+    try:
+        db.session.delete(tag)
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception("Failed to delete tag %s", name)
+        return jsonify({"message": "Failed to delete tag"}), 500
+
+    return "", 204
+
+
 @api.route("/")
 def hello_world():
     return "<p>Hello, world!</p>"
@@ -740,75 +845,21 @@ def whoami():
 @api.get("/search")
 @require_role("Internal User", "Admin")
 def search():
-    query = request.args.get("q", "").strip().lower()
-    content_type = request.args.get("type", "all").strip().lower()
-    speaker = request.args.get("speaker", "any").strip()
-    date = request.args.get("date", "any").strip()
-
-    results = [
-        {
-            "id": 1,
-            "title": "Faith Over Fear",
-            "type": "sermon",
-            "speaker": "Dave",
-            "date": "2024",
-            "summary": "A sermon about trusting God when fear and anxiety feel overwhelming.",
-            "ai_score": 0.97,
-        },
-        {
-            "id": 2,
-            "title": "Overcoming Anxiety Transcript",
-            "type": "transcript",
-            "speaker": "Dave",
-            "date": "2024",
-            "summary": "Transcript discussing anxiety, prayer, and peace.",
-            "ai_score": 0.93,
-        },
-        {
-            "id": 3,
-            "title": "Grace Notes",
-            "type": "note",
-            "speaker": "Michael",
-            "date": "2023",
-            "summary": "Staff notes focused on grace, healing, and hope.",
-            "ai_score": 0.88,
-        },
-        {
-            "id": 4,
-            "title": "Hope in Hard Times",
-            "type": "sermon",
-            "speaker": "Tim",
-            "date": "2022",
-            "summary": "A sermon on hope, resilience, and endurance through hardship.",
-            "ai_score": 0.84,
-        },
-    ]
-
-    filtered = results
-
-    if query:
-        filtered = [
-            item
-            for item in filtered
-            if query in item["title"].lower() or query in item["summary"].lower()
-        ]
-
-    if content_type != "all":
-        filtered = [item for item in filtered if item["type"] == content_type]
-
-    if speaker.lower() != "any":
-        filtered = [
-            item for item in filtered if item["speaker"].lower() == speaker.lower()
-        ]
-
-    if date.lower() != "any":
-        filtered = [item for item in filtered if item["date"] == date]
-
-    filtered.sort(key=lambda item: item["ai_score"], reverse=True)
-
-    return filtered
-
-
+    """Search real Published sermons; see docs/search.md for scores and source fields."""
+    try:
+        return jsonify(search_service.search_sermons(request.args))
+    except search_service.SearchInputError as error:
+        message = str(error)
+        return jsonify({"error": message, "message": message}), 400
+    except EmbeddingError as error:
+        # Compatibility errors are actionable configuration errors, not empty matches.
+        return jsonify({"error": "embedding_incompatible", "message": str(error)}), 503
+    except Exception as error:
+        # Providers raise several unrelated exception types. Do not leak their raw
+        # response bodies/credentials to clients or misreport an outage as no results.
+        current_app.logger.warning("Sermon search failed (%s)", type(error).__name__)
+        message = "Sermon search is unavailable right now. Please try again later."
+        return jsonify({"error": "search_unavailable", "message": message}), 503
 
 
 @api.post("/chat")
