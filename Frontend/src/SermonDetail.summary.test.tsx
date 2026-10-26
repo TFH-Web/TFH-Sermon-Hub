@@ -41,6 +41,7 @@ const body = (id: number) => ({
 	speaker: { id: 1, firstName: 'Dave', lastName: 'Patterson' },
 	status: 'Published',
 	summary: `Saved summary ${id}`,
+	summarySource: undefined as 'ai' | 'manual' | null | undefined,
 	summaryRegenState: 'idle',
 });
 type Body = ReturnType<typeof body>;
@@ -154,6 +155,18 @@ afterEach(() => {
 });
 
 describe('manual summary editing on the sermon page', () => {
+	it.each([
+		'ai',
+		'manual',
+		null,
+		undefined,
+	] as const)('labels a summary only when its saved origin is known AI (%s)', async origin => {
+		records[1].summarySource = origin;
+		open();
+		await screen.findByRole('button', { name: 'Edit Summary Manually' });
+		expect(screen.queryByText('AI generated') !== null).toBe(origin === 'ai');
+	});
+
 	it('initializes from saved text, resets and cancels without writing', async () => {
 		open();
 		expect((await edit()).value).toBe('Saved summary 1');

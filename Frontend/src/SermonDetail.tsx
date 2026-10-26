@@ -319,7 +319,9 @@ export default function SermonDetail() {
 					<div className="SermonDetail-card-header">
 						<h2 className="SermonDetail-card-title">Summary</h2>
 						<div className="SermonDetail-card-actions">
-							<Tag variant="blue">AI Generated</Tag>
+							{sermon.summary && sermon.summarySource === 'ai' && (
+								<Tag variant="blue">AI generated</Tag>
+							)}
 							<Button
 								variant="ghost"
 								className="SermonDetail-regenerate-btn"

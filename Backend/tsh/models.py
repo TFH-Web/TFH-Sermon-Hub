@@ -113,6 +113,11 @@ class UploadStatus(Enum):
     FAILED = "Failed"
 
 
+class SermonSummarySource(Enum):
+    AI = "ai"
+    MANUAL = "manual"
+
+
 class SummaryRegenState(Enum):
     """Where an admin's "Regenerate with AI" request is. IDLE means none has been made for this sermon."""
 
@@ -137,6 +142,10 @@ class Sermon(db.Model):  # ty: ignore[unsupported-base]
     )
     transcript: Mapped[str | None]
     summary: Mapped[str | None]
+    # Legacy summaries remain unknown until their origin is established.
+    summary_source: Mapped[SermonSummarySource | None] = mapped_column(
+        default=None, kw_only=True
+    )
     speaker_id: Mapped[int] = mapped_column(
         ForeignKey(Speaker.id, onupdate="CASCADE", ondelete="RESTRICT")
     )

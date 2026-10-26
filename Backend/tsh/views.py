@@ -20,6 +20,7 @@ from tsh import schemas
 from tsh.models import (
     Series,
     Sermon,
+    SermonSummarySource,
     Speaker,
     SyncRun,
     SyncRunState,
@@ -373,6 +374,9 @@ def create_sermon():
     sermon.series = series
     sermon.tags = tags
 
+    if sermon.summary and sermon.summary.strip():
+        sermon.summary_source = SermonSummarySource.MANUAL
+
     try:
         db.session.add(sermon)
         db.session.commit()
@@ -523,6 +527,11 @@ def update_sermon(id: int):
     try:
         for key, value in updates.items():
             setattr(sermon, key, value)
+        if "summary" in updates:
+            if not (sermon.summary or "").strip():
+                sermon.summary_source = None
+            elif sermon.summary_source != SermonSummarySource.AI:
+                sermon.summary_source = SermonSummarySource.MANUAL
         sermon.title = title
         sermon.speaker = speaker
         sermon.series = series

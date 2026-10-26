@@ -16,6 +16,7 @@ from tsh.models import (
     Sermon,
     SermonChunk,
     SermonChunkEmbedding,
+    SermonSummarySource,
     SummaryRegenState,
     UploadStatus,
     utcnow,
@@ -255,6 +256,7 @@ def summarize_sermon(sermon: Sermon) -> None:
     if not sermon.transcript:
         return
     sermon.summary = summarize_transcript(sermon.transcript)
+    sermon.summary_source = SermonSummarySource.AI
     save_ai_tags(sermon, suggest_tags(sermon.summary))
 
 

@@ -13,6 +13,7 @@ from tsh.models import (
     Sermon,
     SermonChunk,
     SermonChunkEmbedding,
+    SermonSummarySource,
     SummaryRegenState,
     Tag,
     TagSource,
@@ -47,6 +48,7 @@ def snapshot(sermon_id):
         "video": sermon.video_link,
         "video_id": sermon.youtube_video_id,
         "summary": sermon.summary,
+        "summary_source": sermon.summary_source,
         "transcript": sermon.transcript,
         "segments": sermon.transcript_segments,
         "status": sermon.status,
@@ -79,6 +81,7 @@ def indexed(app):
         sermon.youtube_video_id = video_id
         sermon.status = UploadStatus.PUBLISHED
         sermon.summary = f"Saved summary {sermon_id}."
+        sermon.summary_source = SermonSummarySource.AI
         sermon.transcript = f"Saved source {sermon_id}."
         sermon.transcript_segments = [
             {"start": 10.0, "end": 20.0, "text": sermon.transcript}
@@ -113,6 +116,7 @@ def test_metadata_and_manual_summary_patch_persist_without_replacing_evidence(
     for key, value in payload.items():
         assert response.json[key] == value
     assert client.get(f"/api/sermons/{target}").json["summary"] == payload["summary"]
+    assert response.json["summarySource"] == "ai"
     after = snapshot(target)
     for key in (
         "transcript",
@@ -136,6 +140,7 @@ def test_same_video_canonicalization_preserves_existing_derived_records(
         f"/api/sermons/{target}", json={"videoLink": f"https://youtu.be/{OLD_ID}?t=10"}
     )
     assert response.status_code == 200
+    assert response.json["summarySource"] == "ai"
     assert snapshot(target) == before
 
 
@@ -148,6 +153,7 @@ def test_replacing_video_clears_only_its_evidence_and_requires_explicit_reproces
     response = client.patch(
         f"/api/sermons/{target}", json={"videoLink": f"https://youtu.be/{NEW_ID}"}
     )
+    assert response.json["summarySource"] is None
     assert response.status_code == 200
     assert response.json["videoLink"] == f"https://www.youtube.com/watch?v={NEW_ID}"
     assert response.json["youtubeVideoId"] == NEW_ID
