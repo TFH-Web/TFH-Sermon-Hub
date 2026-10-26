@@ -3,6 +3,8 @@ __pycache__/
 .env
 instance/
 .coverage
+coverage.json
+coverage.xml
 htmlcov/
 
 # Devenv

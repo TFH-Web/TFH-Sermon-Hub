@@ -1,12 +1,16 @@
-import { expect } from '@playwright/test';
-import { test } from './fixtures';
+import { expect, test } from '@playwright/test';
+import { setupRoutes } from './setup';
 
-for (const { name, parameter, value, totalPages } of [
-	{ name: 'status', parameter: 'status', value: 'Published', totalPages: 1, },
-	{ name: 'topic', parameter: 'topic', value: 'grace', totalPages: 1 },
-	{ name: 'speaker', parameter: 'speaker_id', value: '1', totalPages: 1 },
-	{ name: 'series', parameter: 'series_id', value: '1', totalPages: 1 },
-	{ name: 'sort', parameter: 'sort', value: 'Oldest', totalPages: 2 },
+test.beforeEach(async ({ page }) => {
+	setupRoutes(page);
+});
+
+for (const { name, parameter, value } of [
+	{ name: 'status', parameter: 'status', value: 'Published' },
+	{ name: 'topic', parameter: 'topic', value: 'grace' },
+	{ name: 'speaker', parameter: 'speaker_id', value: '1' },
+	{ name: 'series', parameter: 'series_id', value: '1' },
+	{ name: 'sort', parameter: 'sort', value: 'Oldest' },
 ]) {
 	test(`${name} resets the actual page and persists in subsequent requests`, async ({
 		page,
@@ -14,7 +18,7 @@ for (const { name, parameter, value, totalPages } of [
 		await page.goto('/sermons');
 		await page.getByRole('button', { name: 'Next page' }).click();
 		await expect(page.getByText('Page 2 of 2')).toBeVisible();
-		await expect(page.getByText('Bold Faith', { exact: true })).toBeVisible();
+		await expect(page.getByText('Sermon 10', { exact: true })).toBeVisible();
 
 		const changedRequest = page.waitForRequest(request => {
 			const url = new URL(request.url());
@@ -34,8 +38,33 @@ for (const { name, parameter, value, totalPages } of [
 		expect(new URL((await changedRequest).url()).searchParams.get('page')).toBe(
 			'1',
 		);
-		await expect(page.getByText(`Page 1 of ${totalPages}`)).toBeVisible();
-		await expect(page.getByText('Under Grace', { exact: true })).toBeVisible();
+		await expect(page.getByText('Page 1 of 2')).toBeVisible();
+		await expect(page.getByText('Sermon 1', { exact: true })).toBeVisible();
+
+		const nextRequest = page.waitForRequest(request => {
+			const url = new URL(request.url());
+			return (
+				url.pathname === '/api/sermons' && url.searchParams.get('page') === '2'
+			);
+		});
+		await page.getByRole('button', { name: 'Next page' }).click();
+		expect(new URL((await nextRequest).url()).searchParams.get(parameter)).toBe(
+			value,
+		);
+		await expect(page.getByText('Page 2 of 2')).toBeVisible();
+		if (name === 'status' || name === 'topic') {
+			await expect(
+				page.locator(`input[name="${name}"][value="${value}"]`),
+			).toBeChecked();
+		} else {
+			await expect(
+				page
+					.locator('select')
+					.nth(name === 'speaker' ? 0 : name === 'series' ? 1 : 2),
+			).toHaveValue(value);
+		}
+		await page.getByRole('button', { name: 'Previous page' }).click();
+		await expect(page.getByText('Page 1 of 2')).toBeVisible();
 	});
 }
 
@@ -73,5 +102,5 @@ test('paged results do not replace the full library used by Dashboard', async ({
 	await page.getByRole('link', { name: 'Dashboard', exact: true }).click();
 	await expect(
 		page.locator('.StatCard').filter({ hasText: 'Total Sermons' }),
-	).toContainText('13');
+	).toContainText('10');
 });
