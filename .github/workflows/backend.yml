@@ -5,6 +5,10 @@ on:
   pull_request:
     branches: [ main, dev ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   PYTHON_VERSION: '3.13'
   POETRY_VIRTUALENVS_IN_PROJECT: 'true'
@@ -52,6 +56,11 @@ jobs:
           TENANT_ID: "ci-only-dummy-tenant-id"
           CLIENT_ID: "ci-only-dummy-client-id"
         run: poetry run pytest
+
+      - name: Test deployment utilities
+        # Deployment utilities deliberately live outside application test collection.
+        if: ${{ !cancelled() }}
+        run: poetry run pytest -q ../deploy/test_backup.py ../deploy/test_recovery_check.py ../deploy/tests/test_provision_staging.py
 
       - name: Audit locked backend dependencies
         if: ${{ !cancelled() }}

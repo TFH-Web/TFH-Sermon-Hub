@@ -1,4 +1,5 @@
 #!/usr/bin/env -S poetry run python3
+import os
 from pathlib import Path
 
 from flask_migrate import stamp, upgrade
@@ -6,6 +7,7 @@ from sqlalchemy import inspect
 
 from tsh.app import create_app
 from tsh.database import db
+from tsh.production import create_production_app
 
 MIGRATIONS = Path(__file__).parent / "migrations"
 
@@ -14,7 +16,11 @@ BASELINE = "b2f09d55781a"
 
 
 def main():
-    app = create_app("testing.cfg")
+    app = (
+        create_production_app()
+        if os.environ.get("TFH_ENV", "").strip().lower() == "production"
+        else create_app("testing.cfg")
+    )
     with app.app_context():
         tables = inspect(db.engine).get_table_names()
 
