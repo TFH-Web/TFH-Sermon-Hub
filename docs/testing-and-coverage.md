@@ -89,3 +89,35 @@ release-candidate baseline before proposing floors. A reasonable first proposal
 is a line/branch floor just below each measured total, then an increase as
 untested application areas get meaningful tests. Approval of the exact floors
 is a team decision; no value in this document is an approved gate.
+
+## First measured combined baseline
+
+Measured on 2026-10-25 against local verification commit
+`f8cb499` (`review/tfh-542-combined-20261025`): frozen release candidate
+`1653e0c`, this TFH-542 repair and the separately preserved TFH-533 search UI.
+This measurement predates the final all-PR release integration. Rerun the same
+commands on that final candidate before adopting a floor; do not interpret this
+table as evidence for untested commits or for a deployed server.
+
+The local environment was Windows, CPython 3.14.0 and Node 24.14.0. Backend
+dependencies came from a new Poetry environment using the committed lockfile;
+frontend verification used the existing compatible shared development
+dependencies, rather than an independent replay of this branch's lockfile.
+CI installs locked dependencies on Ubuntu with Python 3.13 and Node 24 and
+publishes its own measurements.
+
+| Suite | Result | Lines | Branches | Other measurements |
+| --- | --- | --- | --- | --- |
+| pytest, all `tsh` | 767 passed; 3 snapshots passed | 92.61% (2257/2437) | 83.65% (609/728) | Combined line/branch coverage 90.55% |
+| Vitest, all `src` | 279 passed | 50.19% (773/1540) | 48.54% (569/1172) | Statements 49.90%; functions 42.12% |
+| Chromium real-API core flow | 1 passed | — | — | Real import, pipeline, vector search and grounded source citation |
+
+Production build and the full frontend Biome check also passed. The backend
+run emitted existing SQLite connection `ResourceWarning`s on Python 3.14;
+these were not turned into coverage exclusions or disabled tests.
+
+For discussion after the final candidate is measured, initial **proposals** are
+backend lines 90% / branches 80%, and frontend lines 45% / branches 45%.
+These provide a little room below this first baseline while including untested
+files. They are not team-approved and are not enforced in CI. Record the team
+decision and the final-candidate measurements before enabling thresholds.
