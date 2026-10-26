@@ -11,24 +11,8 @@
 	box-shadow: 0 4px 10px -8px rgb(0 0 0 / 0.3);
 }
 
-/* A failed sermon row: a third line for its error, and a Retry button beside the badge. */
-.ImportItem--failed {
-	grid-template:
-		"icon title action" auto
-		"icon subtitle action" auto
-		"icon error action" auto / auto 1fr auto;
-}
-
-/* Keep the icon and the badge level with the title when the error runs to several lines. */
-.ImportItem--failed .ImportItem-icon {
-	align-self: start;
-}
-
-.ImportItem--failed .ImportItem-action {
-	display: flex;
-	gap: 0.5rem;
-	align-items: center;
-	align-self: start;
+.ImportItem-icon--failed {
+	color: var(--cl-error);
 }
 
 .ImportItem-icon {
@@ -39,10 +23,6 @@
 	aspect-ratio: 1;
 	background: var(--cl-surface-dim);
 	border-radius: 0.5rem;
-}
-
-.ImportItem-icon--failed {
-	color: var(--cl-error);
 }
 
 .ImportItem-title {
@@ -118,6 +98,26 @@
 .Action-badge--failed {
 	color: var(--cl-error);
 	background: var(--cl-error-container);
+}
+
+/* A failed sermon row: a third line for its error, and a Retry button beside the badge. */
+.ImportItem--failed {
+	grid-template:
+		"icon title action" auto
+		"icon subtitle action" auto
+		"icon error action" auto / auto 1fr auto;
+}
+
+/* Keep the icon and the badge level with the title when the error runs to several lines. */
+.ImportItem--failed .ImportItem-icon {
+	align-self: start;
+}
+
+.ImportItem--failed .ImportItem-action {
+	display: flex;
+	gap: 0.5rem;
+	align-items: center;
+	align-self: start;
 }
 
 @container (width <= 600px) {
