@@ -20,3 +20,8 @@ export function apiErrorMessage(error: unknown, fallback: string): string {
 	const fieldError = Object.values(body.data.errors ?? {})[0]?.[0];
 	return fieldError || body.data.message || body.data.error || fallback;
 }
+
+/** Whether the request failed because what it asked for does not exist (404), which asking again will not change. */
+export function isNotFound(error: unknown): boolean {
+	return axios.isAxiosError(error) && error.response?.status === 404;
+}

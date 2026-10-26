@@ -1,0 +1,14 @@
+/* Shown under the row when polling has stopped with the sync still going. */
+.ActiveSyncItem-stalled {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	justify-content: space-between;
+	padding: 8px 4px 0;
+	font-size: 13px;
+	color: var(--cl-on-surface-muted);
+}
+
+.ActiveSyncItem-stalled p {
+	margin: 0;
+}
