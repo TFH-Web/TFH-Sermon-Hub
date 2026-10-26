@@ -110,7 +110,7 @@ export default function SermonDetail() {
 		setIsSavingSummary(true);
 
 		try {
-			await axios.put(`/api/sermons/${currentSermonID}/summary`, {
+			await axios.patch(`/api/sermons/${currentSermonID}/summary`, {
 				summary: summaryDraft.text,
 			});
 
