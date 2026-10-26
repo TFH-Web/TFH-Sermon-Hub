@@ -86,6 +86,12 @@ export default function RecentSermonsTable({
 								</td>
 							</tr>
 						))
+					) : sermons.length === 0 ? (
+						<tr>
+							<td colSpan={5}>
+								<p className="RecentSermonsTable-status">No sermons yet.</p>
+							</td>
+						</tr>
 					) : (
 						sermons.map(s => (
 							<tr key={s.id}>

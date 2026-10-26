@@ -3,6 +3,11 @@ import type {
 	AccountInfo,
 	IPublicClientApplication,
 } from '@azure/msal-browser';
+import {
+	QueryClient,
+	QueryClientProvider,
+	QueryObserver,
+} from '@tanstack/react-query';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axios, { type AxiosAdapter, AxiosError } from 'axios';
@@ -50,6 +55,7 @@ const originalAdapter = axios.defaults.adapter;
 const originalBaseURL = axios.defaults.baseURL;
 let removeAuth: () => void;
 let adapter: ReturnType<typeof vi.fn<AxiosAdapter>>;
+const queryCleanups: Array<() => void> = [];
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -80,30 +86,41 @@ beforeEach(() => {
 
 afterEach(() => {
 	cleanup();
+	for (const dispose of queryCleanups.splice(0).reverse()) dispose();
 	removeAuth();
 	axios.defaults.adapter = originalAdapter;
 	axios.defaults.baseURL = originalBaseURL;
 	vi.restoreAllMocks();
 });
 
-function modal(kind: 'edit' | 'delete') {
+function createQueryClient() {
+	const client = new QueryClient({
+		defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+	});
+	queryCleanups.push(() => client.clear());
+	return client;
+}
+
+function modal(kind: 'edit' | 'delete', client = createQueryClient()) {
 	const onClose = vi.fn();
 	render(
-		<MemoryRouter initialEntries={['/']}>
-			<Routes>
-				<Route
-					path="/"
-					element={
-						kind === 'edit' ? (
-							<EditSermonModal isOpen onClose={onClose} sermon={sermon} />
-						) : (
-							<DeleteSermonModal isOpen onClose={onClose} sermon={sermon} />
-						)
-					}
-				/>
-				<Route path="/sermons" element={<p>Sermon list</p>} />
-			</Routes>
-		</MemoryRouter>,
+		<QueryClientProvider client={client}>
+			<MemoryRouter initialEntries={['/']}>
+				<Routes>
+					<Route
+						path="/"
+						element={
+							kind === 'edit' ? (
+								<EditSermonModal isOpen onClose={onClose} sermon={sermon} />
+							) : (
+								<DeleteSermonModal isOpen onClose={onClose} sermon={sermon} />
+							)
+						}
+					/>
+					<Route path="/sermons" element={<p>Sermon list</p>} />
+				</Routes>
+			</MemoryRouter>
+		</QueryClientProvider>,
 	);
 	return {
 		onClose,
@@ -115,6 +132,88 @@ function modal(kind: 'edit' | 'delete') {
 			),
 	};
 }
+
+function observedCaches() {
+	const client = createQueryClient();
+	const sharedKeys = [
+		['sermons', 'dashboard', { page: 1, pageSize: 5, sort: 'Newest' }],
+		['speakers', 'count'],
+		['series', 'count'],
+		['sermons'],
+		['paginated-sermons', { page: 2 }],
+		['import-sermons', 'Published', 1],
+		['paginated-speakers', { page: 2 }],
+	] as const;
+	const observe = (queryKey: readonly unknown[]) => {
+		const original = { version: 1 };
+		const updated = { version: 2 };
+		client.setQueryData(queryKey, original);
+		const refetch = vi.fn(async () => updated);
+		const observer = new QueryObserver(client, { queryKey, queryFn: refetch });
+		const unsubscribe = observer.subscribe(() => {});
+		queryCleanups.push(() => {
+			unsubscribe();
+			observer.destroy();
+		});
+		return { queryKey, refetch, original, updated };
+	};
+	return {
+		client,
+		shared: sharedKeys.map(observe),
+		detail: observe(['sermon', String(sermon.id)]),
+		unrelated: observe(['unrelated', 'dashboard']),
+	};
+}
+
+it.each([
+	'edit',
+	'delete',
+] as const)('%s refreshes nested dashboard counts and sermon-list caches only after success', async kind => {
+	const { client, shared, detail, unrelated } = observedCaches();
+	const { onClose, submit } = modal(kind, client);
+	await submit();
+	await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+	for (const entry of shared) {
+		expect(entry.refetch).toHaveBeenCalledOnce();
+		expect(client.getQueryData(entry.queryKey)).toEqual(entry.updated);
+	}
+	if (kind === 'edit') {
+		expect(detail.refetch).toHaveBeenCalledOnce();
+		expect(client.getQueryData(detail.queryKey)).toEqual(detail.updated);
+	} else {
+		expect(detail.refetch).not.toHaveBeenCalled();
+		expect(client.getQueryData(detail.queryKey)).toEqual(detail.original);
+	}
+	expect(unrelated.refetch).not.toHaveBeenCalled();
+	expect(client.getQueryData(unrelated.queryKey)).toEqual(unrelated.original);
+});
+
+it.each([
+	'edit',
+	'delete',
+] as const)('%s does not invalidate dashboard or list caches when the API rejects the change', async kind => {
+	adapter.mockImplementationOnce(async config => {
+		throw new AxiosError('Denied', 'ERR_BAD_REQUEST', config, undefined, {
+			data: { error: 'This change was rejected.' },
+			config,
+			status: 403,
+			statusText: 'Forbidden',
+			headers: {},
+		});
+	});
+	const { client, shared, detail, unrelated } = observedCaches();
+	const { onClose, submit } = modal(kind, client);
+	await submit();
+	expect((await screen.findByRole('alert')).textContent).toContain(
+		'This change was rejected.',
+	);
+	expect(onClose).not.toHaveBeenCalled();
+	for (const entry of [...shared, detail, unrelated]) {
+		expect(entry.refetch).not.toHaveBeenCalled();
+		expect(client.getQueryData(entry.queryKey)).toEqual(entry.original);
+		expect(client.getQueryState(entry.queryKey)?.isInvalidated).toBe(false);
+	}
+});
 
 it.each([
 	'edit',

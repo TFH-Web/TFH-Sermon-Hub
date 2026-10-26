@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { sermons } from './data';
 import { setupRoutes } from './setup';
 
 test.beforeEach(async ({ page }) => {
@@ -94,13 +95,43 @@ for (const resource of ['speakers', 'series', 'tags']) {
 	});
 }
 
-test('paged results do not replace the full library used by Dashboard', async ({
+test('Dashboard keeps full totals separate from paged sermon results', async ({
 	page,
 }) => {
 	await page.goto('/sermons');
 	await expect(page.getByText('Page 1 of 2')).toBeVisible();
+	// Keep the legacy list fixture unchanged; only the destination dashboard gets
+	// a bounded response with a full-library total larger than either page's items.
+	await page.route(
+		url => url.pathname === '/api/sermons',
+		route =>
+			route.fulfill({
+				json: {
+					items: [...sermons]
+						.sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id)
+						.slice(0, 5),
+					total: 450,
+					page: 1,
+					pageSize: 5,
+					totalPages: 90,
+				},
+			}),
+	);
+	const dashboardRequest = page.waitForRequest(
+		request => new URL(request.url()).pathname === '/api/sermons',
+	);
 	await page.getByRole('link', { name: 'Dashboard', exact: true }).click();
+	expect(
+		Object.fromEntries(new URL((await dashboardRequest).url()).searchParams),
+	).toEqual({ page: '1', pageSize: '5', sort: 'Newest' });
 	await expect(
 		page.locator('.StatCard').filter({ hasText: 'Total Sermons' }),
-	).toContainText('10');
+	).toContainText('450');
+	await expect(page.getByRole('rowheader')).toHaveText([
+		'Sermon 10',
+		'Sermon 9',
+		'Sermon 8',
+		'Sermon 7',
+		'Sermon 6',
+	]);
 });
