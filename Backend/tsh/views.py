@@ -336,12 +336,14 @@ def create_sermon():
     # Build trusted nested data from database records, not client-supplied
     # speaker names, series titles, or tag source values.
     normalized = dict(payload)
+    normalized.pop("id", None)
     normalized.pop("speakers", None)
     normalized.pop("speaker", None)
     normalized.pop("series", None)
     normalized.pop("tags", None)
 
-    normalized["status"] = "draft"
+    normalized["speaker"] = speaker_schema.dump(speaker)
+    normalized["status"] = UploadStatus.DRAFT.value
     if video:
         # The saved link is always the canonical one built from the id, never the text that was sent.
         normalized["videoLink"], normalized["youtubeVideoId"] = video
