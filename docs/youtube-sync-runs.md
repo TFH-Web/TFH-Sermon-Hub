@@ -54,7 +54,8 @@ The `report` object keeps its snake_case keys, the same shape a sync has always
 returned: `series_created`, `sermons_created`, `sermons_updated`,
 `sermons_unchanged`, `skipped_playlists`, `skipped_private`,
 `skipped_not_ready`, `skipped_too_long`, `multiple_series`, `unknown_speakers`,
-`multiple_speakers` and `queue_failures`. So `sermonsCreated` on the run and
+`multiple_speakers`, `queue_failures`, `caption_pause` and `caption_deferred`. So
+`sermonsCreated` on the run and
 `report.sermons_created` hold the same number.
 
 ### Error text
@@ -64,6 +65,26 @@ returned: `series_created`, `sermons_created`, `sermons_updated`,
 | `queue: ` | The job could not be queued, for example `queue: Connection refused` when Redis is down. The run never started. |
 | `worker: ` | The run was given up on as lost, for example `worker: no result within 20 minutes`. See Stale runs. |
 | anything else | The import itself failed, with its own message, for example `videos: HTTP 500: backendError` or `YOUTUBE_API_KEY is not set`. |
+
+## Paused captions
+
+`succeeded` still means the sermons were saved and their caption jobs started. When
+captions cannot be downloaded right now, the report also says so:
+
+| Key | Meaning |
+| --- | --- |
+| `caption_pause` | `null`, or one line saying why: the daily quota is used up and when it resumes, the YouTube sign-in expired, or `CAPTIONS_ENABLED` is off. |
+| `caption_deferred` | How many new sermons were left without captions for that reason. |
+
+Deferred sermons are saved, not lost, and are not in `queue_failures`. Once the pause
+ends, use Retry on the Import / Upload page, or `backfill-captions`
+(see [YouTube captions](youtube-captions.md)).
+
+The values are a snapshot from when the sync ended. Without `REDIS_URL` the captions have
+already been tried, so `caption_deferred` is exact and a sign-in failure is included. With
+the worker the caption jobs run after the sync has finished, so `caption_pause` only knows
+the quota block and `CAPTIONS_ENABLED` as they were then, and `caption_deferred` is 0. A
+quota or sign-in failure that happens afterwards is on each sermon's `processingError`.
 
 ## Start a sync
 
@@ -115,7 +136,9 @@ when it has finished.
     "multiple_series": [],
     "unknown_speakers": [],
     "multiple_speakers": [],
-    "queue_failures": []
+    "queue_failures": [],
+    "caption_pause": null,
+    "caption_deferred": 0
   }
 }
 ```
@@ -209,7 +232,9 @@ Returns the run with its full report.
     "multiple_series": [],
     "unknown_speakers": [],
     "multiple_speakers": [],
-    "queue_failures": []
+    "queue_failures": [],
+    "caption_pause": null,
+    "caption_deferred": 0
   },
   "error": null
 }
@@ -358,6 +383,10 @@ Check the status code first, then `state`:
 
 A sync is finished only when its state is `succeeded` or `failed`. Both
 `queued` and `running` mean it is still going.
+
+On a `succeeded` run, show `report.caption_pause` as a notice next to the counts
+when it is not `null`, and `report.caption_deferred` as the number of sermons waiting
+for captions. It is a notice, not an error: the run is not `failed`.
 
 ### Polling a queued sync
 
