@@ -5,6 +5,10 @@ on:
   pull_request:
     branches: [ main, dev ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   PYTHON_VERSION: '3.13'
   POETRY_VIRTUALENVS_IN_PROJECT: 'true'
