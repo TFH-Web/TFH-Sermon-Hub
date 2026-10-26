@@ -244,18 +244,26 @@ def reembed_command() -> None:
     click.echo(f"re-embedded {total} chunks in {len(sermon_ids)} sermons with {embeddings.EMBEDDING_MODEL}")
 
 
-def summarize_sermon(sermon: Sermon) -> None:
+def summarize_sermon(sermon: Sermon, *, expected_run_id: str | None = None) -> None:
     """Write the AI summary for the sermon. TFH-461
     Neither commits: _run_step commits on success and rolls back on failure, so a 
     sermon never keeps a summary whose tagging failed halfway through.
 
-    Does nothing without a transcript. fetch_transcript owns that failure and reports
-    it; raising here too would put a second error on every sermon it could not fetch.
+    With expected_run_id, compute provider results before acquiring a conditional
+    write fence, then hold it through summary/tag persistence and lifecycle completion.
+    A superseded request raises _SummaryRegenerationSuperseded before writing results.
+    The caller owns commit/rollback; this function never commits.
     """
     if not sermon.transcript:
+        if expected_run_id is not None:
+            _fence_summary_regeneration(sermon.id, expected_run_id)
         return
-    sermon.summary = summarize_transcript(sermon.transcript)
-    save_ai_tags(sermon, suggest_tags(sermon.summary))
+    summary = summarize_transcript(sermon.transcript)
+    tags = suggest_tags(summary)
+    if expected_run_id is not None:
+        _fence_summary_regeneration(sermon.id, expected_run_id)
+    sermon.summary = summary
+    save_ai_tags(sermon, tags)
 
 
 
@@ -347,6 +355,54 @@ REGEN_STALE_AFTER = timedelta(seconds=JOB_TIMEOUT + 300)
 _REGEN_FREE = (SummaryRegenState.IDLE, SummaryRegenState.COMPLETED, SummaryRegenState.FAILED)
 
 
+class _SummaryRegenerationSuperseded(Exception):
+    """The request was replaced, unpublished or removed while the provider was running."""
+
+
+def _fence_summary_regeneration(sermon_id: int, run_id: str) -> None:
+    """Acquire the current request's write lock without flushing pending ORM values.
+
+    This must stay in the transaction that writes the summary, tags and lifecycle.
+    An UPDATE, not a SELECT, prevents another claim from committing between the
+    ownership check and these writes. Callers roll back if ownership was lost.
+    """
+    with db.session.no_autoflush:
+        result = db.session.execute(
+            update(Sermon)
+            .where(
+                Sermon.id == sermon_id,
+                Sermon.summary_regen_run_id == run_id,
+                Sermon.summary_regen_state == SummaryRegenState.RUNNING,
+                Sermon.status == UploadStatus.PUBLISHED,
+            )
+            .values(summary_regen_run_id=run_id)
+            .execution_options(synchronize_session=False)
+        )
+    if result.rowcount != 1:
+        raise _SummaryRegenerationSuperseded()
+
+
+def _fail_unpublished_regeneration(sermon_id: int, run_id: str) -> None:
+    """Finish only this request if its sermon became unpublished; preserve content."""
+    with db.session.no_autoflush:
+        db.session.execute(
+            update(Sermon)
+            .where(
+                Sermon.id == sermon_id,
+                Sermon.summary_regen_run_id == run_id,
+                Sermon.summary_regen_state.in_((SummaryRegenState.QUEUED, SummaryRegenState.RUNNING)),
+                Sermon.status != UploadStatus.PUBLISHED,
+            )
+            .values(
+                summary_regen_state=SummaryRegenState.FAILED,
+                summary_regen_error="The sermon is no longer published",
+                summary_regen_finished_at=utcnow(),
+            )
+            .execution_options(synchronize_session=False)
+        )
+    db.session.commit()
+
+
 def claim_summary_regeneration(sermon_id: int) -> str | None:
     """Mark the sermon's summary QUEUED for a new request and return that request's id, or None if refused.
 
@@ -420,16 +476,59 @@ def regenerate_summary(sermon_id: int, run_id: str | None = None) -> None:
     # The summary needs the transcript, which only a PUBLISHED sermon is sure to have.
     if sermon.status != UploadStatus.PUBLISHED:
         if tracked:
-            sermon.summary_regen_state = SummaryRegenState.FAILED
-            sermon.summary_regen_error = "The sermon is no longer published"
-            sermon.summary_regen_finished_at = utcnow()
-            db.session.commit()
+            _fail_unpublished_regeneration(sermon_id, run_id)
         return
 
     if tracked:
-        sermon.summary_regen_state = SummaryRegenState.RUNNING
-        sermon.summary_regen_started_at = utcnow()
+        # A delivered job may be replayed. Only one QUEUED -> RUNNING transition wins.
+        with db.session.no_autoflush:
+            started = db.session.execute(
+                update(Sermon)
+                .where(
+                    Sermon.id == sermon_id,
+                    Sermon.summary_regen_run_id == run_id,
+                    Sermon.summary_regen_state == SummaryRegenState.QUEUED,
+                    Sermon.status == UploadStatus.PUBLISHED,
+                )
+                .values(summary_regen_state=SummaryRegenState.RUNNING, summary_regen_started_at=utcnow())
+                .execution_options(synchronize_session=False)
+            )
         db.session.commit()
+        if started.rowcount != 1:
+            return
+        db.session.refresh(sermon)
+
+        error = None
+        try:
+            summarize_sermon(sermon, expected_run_id=run_id)
+        except _SummaryRegenerationSuperseded:
+            db.session.rollback()
+            _fail_unpublished_regeneration(sermon_id, run_id)
+            return
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.exception("Sermon %s failed at summarize_sermon", sermon_id)
+            error = f"summarize_sermon: {str(exc) or type(exc).__name__}"
+            # A provider/tagging failure may arrive after a newer request completed.
+            # Fence its error too; failure must never damage the newer result.
+            try:
+                _fence_summary_regeneration(sermon_id, run_id)
+            except _SummaryRegenerationSuperseded:
+                db.session.rollback()
+                _fail_unpublished_regeneration(sermon_id, run_id)
+                return
+            sermon = db.session.get(Sermon, sermon_id)
+
+        if error:
+            sermon.processing_error = error
+        elif (sermon.processing_error or "").startswith("summarize_sermon:"):
+            sermon.processing_error = None
+        sermon.summary_regen_state = SummaryRegenState.FAILED if error else SummaryRegenState.COMPLETED
+        sermon.summary_regen_error = error.removeprefix("summarize_sermon: ") if error else None
+        sermon.summary_regen_finished_at = utcnow()
+        # The successful write fence is still held: content, tags and result commit together.
+        db.session.commit()
+        return
 
     error = _run_step("summarize_sermon", summarize_sermon, sermon_id)
     sermon = db.session.get(Sermon, sermon_id)
@@ -439,11 +538,6 @@ def regenerate_summary(sermon_id: int, run_id: str | None = None) -> None:
         sermon.processing_error = error
     elif (sermon.processing_error or "").startswith("summarize_sermon:"):
         sermon.processing_error = None
-    # Look again: another request may have taken over while the summary was being written.
-    if tracked and sermon.summary_regen_run_id == run_id:
-        sermon.summary_regen_state = SummaryRegenState.FAILED if error else SummaryRegenState.COMPLETED
-        sermon.summary_regen_error = error.removeprefix("summarize_sermon: ") if error else None
-        sermon.summary_regen_finished_at = utcnow()
     db.session.commit()
 
 
