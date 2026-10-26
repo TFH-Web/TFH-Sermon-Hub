@@ -1,11 +1,13 @@
 import './DeleteSermonModal.css';
 import { Icon } from '@iconify-icon/react';
+import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import Button from '$/components/Button';
 import Modal from '$/components/Modal';
 import { useToast } from '$/components/ToastContext';
+import { invalidateSermonData } from '$/hooks/useImportSermons';
 import { apiErrorMessage } from '$/lib/api';
 import type { Sermon } from '../types/sermon';
 
@@ -21,6 +23,7 @@ export default function DeleteSermonModal({
 	sermon,
 }: DeleteSermonModalProps) {
 	const { showToast } = useToast();
+	const queryClient = useQueryClient();
 	const navigate = useNavigate();
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -33,6 +36,7 @@ export default function DeleteSermonModal({
 
 		try {
 			await axios.delete(`/api/sermons/${sermon.id}`);
+			await invalidateSermonData(queryClient, { excludeDetailId: sermon.id });
 
 			onClose();
 			showToast('Sermon deleted successfully', 'success');

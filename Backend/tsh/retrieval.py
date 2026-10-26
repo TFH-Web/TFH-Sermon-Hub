@@ -21,7 +21,7 @@ from tsh.models import (
     UploadStatus,
 )
 from tsh.search_ranking import MAX_DISTANCE, KeywordQuery, blend_score, normalize_text
-from tsh.youtube_import import VIDEO_ID, parse_video_id
+from tsh.youtube_links import VIDEO_ID, parse_video_id
 
 # How many chunks a question can draw on before the context budget trims them.
 CANDIDATE_LIMIT = 8

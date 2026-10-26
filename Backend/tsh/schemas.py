@@ -177,6 +177,8 @@ class SermonSchema(CamelCaseSchema):
 
     @post_load
     def make_sermon(self, data, **kwargs) -> Sermon:
+        data.setdefault("id", None)
+        data.setdefault("tags", [])
         data.setdefault("transcript", None)
         data.setdefault("summary", None)
         data.setdefault("series", None)

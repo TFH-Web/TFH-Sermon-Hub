@@ -88,6 +88,8 @@ def create_app(
 
     from tsh.youtube_import import import_youtube_command
     app.cli.add_command(import_youtube_command)
+    from tsh.video_link_report import check_video_links_command
+    app.cli.add_command(check_video_links_command)
     from tsh.caption_backfill import backfill_captions_command
     app.cli.add_command(backfill_captions_command)
     from tsh.pipeline import reembed_command
