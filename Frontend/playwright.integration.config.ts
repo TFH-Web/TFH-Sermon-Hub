@@ -9,6 +9,7 @@ export default defineConfig({
 	forbidOnly: !!process.env.CI,
 	retries: 0,
 	timeout: 60_000,
+	globalTimeout: process.env.CI ? 10 * 60_000 : undefined,
 	outputDir: 'test-results/integration',
 	reporter: [
 		['list'],

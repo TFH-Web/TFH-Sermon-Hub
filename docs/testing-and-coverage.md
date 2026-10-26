@@ -121,3 +121,32 @@ backend lines 90% / branches 80%, and frontend lines 45% / branches 45%.
 These provide a little room below this first baseline while including untested
 files. They are not team-approved and are not enforced in CI. Record the team
 decision and the final-candidate measurements before enabling thresholds.
+
+## Browser CI setup time
+
+In [run 40263397199](https://github.com/TFH-Web/TFH-Sermon-Hub/actions/runs/40263397199),
+the Playwright job started at 03:18:51 and the test run began at 03:44:09:
+**25 minutes 18 seconds elapsed before tests started**. That is setup time,
+not evidence that the browser tests themselves needed 25 minutes.
+
+Both browser jobs now use `mcr.microsoft.com/playwright:v1.60.0-noble`, matching
+the locked Playwright 1.60.0 package. Microsoft's registry returned HTTP 200
+for this tag's manifest when checked on 2026-10-25. The image includes browser
+binaries and operating-system libraries, so CI no longer downloads/installs
+them with `playwright install --with-deps`. This follows the official
+[container CI example](https://playwright.dev/docs/ci#via-containers) and
+[Docker guidance](https://playwright.dev/docs/docker), including `--ipc=host`.
+The integration job still installs Python 3.13, Poetry and the locked backend
+dependencies inside the Ubuntu Noble container.
+
+The mocked suite retains Chromium, Firefox and WebKit, with two CI workers
+and one retry. Its tests own separate browser contexts and route-local data;
+they do not share the real-API fixture database. The real-API suite retains
+one worker and its isolated database. Both jobs have a 15-minute limit and
+a 10-minute Playwright run limit to leave time for reports. Failures still
+fail CI. Superseded runs are cancelled per workflow and pull request/ref.
+
+Removing repeated browser/OS installation should reduce setup time; image
+pulls and dependency installation still take time. A fresh container CI run
+must confirm the actual improvement and runtime compatibility. No measured
+speedup is claimed yet, and no feature tests or browser projects are skipped.
