@@ -88,6 +88,11 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
+      - name: Pull backend
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: Backend
+
       - name: Install Python
         uses: actions/setup-python@v6
         id: setup-python
@@ -104,7 +109,7 @@ jobs:
           path: Backend/.venv
           key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
 
-      - name: Install dependencies
+      - name: Install backend dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
         working-directory: ./Backend
