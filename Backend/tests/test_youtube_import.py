@@ -561,6 +561,21 @@ def test_import_video(client: FlaskClient, channel: FakeChannel):
     assert again.json["id"] == res.json["id"]
 
 
+def test_import_with_captions_off_still_imports_every_sermon(app: Flask, channel: FakeChannel):
+    """Metadata imports don't depend on captions: same sermons, no queue failures, none published."""
+    app.config["CAPTIONS_ENABLED"] = "false"
+    report = import_channel().as_dict()
+
+    assert report["sermons_created"] == 11
+    assert report["queue_failures"] == []
+    guide = sermon_for("vGuide00001")
+    assert guide.title == "The Guide"
+    assert guide.status == UploadStatus.DRAFT
+    assert guide.transcript is None
+    assert "captions are turned off" in guide.processing_error
+    assert count(Sermon, Sermon.status == UploadStatus.PUBLISHED, Sermon.youtube_video_id.is_not(None)) == 0
+
+
 def test_import_video_then_sync_links_series(client: FlaskClient, channel: FakeChannel):
     """A series created by a single-video import gets its playlist id from the next sync, without a copy."""
     client.post("/api/import/youtube/video", json={"url": "https://youtu.be/vGuide00001"})

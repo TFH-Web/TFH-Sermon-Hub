@@ -207,6 +207,34 @@ def test_transport_errors_do_not_expose_their_exception_context(configured, monk
     assert all(secret not in str(raised.value) for secret in SECRETS)
 
 
+@pytest.mark.parametrize(("error", "category"), [
+    (RefreshError("test-refresh-token", {"error": "invalid_grant"}), "invalid_grant"),
+    (RefreshError("test-client-secret", {"error": "invalid_client"}), "token refresh failed"),
+])
+def test_expired_or_failed_renewal_asks_for_a_new_refresh_token(configured, monkeypatch, error, category):
+    """An expired, revoked or unrenewable sign-in gets the agreed message with safe renewal steps."""
+    monkeypatch.setattr(captions, "AuthorizedSession", lambda *args, **kwargs: FakeSession([error]))
+    with pytest.raises(captions.CaptionAuthError) as raised:
+        captions.get_transcript(VIDEO_ID)
+    message = str(raised.value)
+    assert message.startswith("YouTube sign-in expired, refresh the token")
+    assert f"({category})" in message
+    assert "YOUTUBE_OAUTH_REFRESH_TOKEN" in message
+    assert raised.value.__suppress_context__
+    assert all(secret not in message for secret in SECRETS)
+
+
+@pytest.mark.parametrize(("status", "reason"), [(403, "forbidden"), (401, "authError")])
+def test_permission_denial_is_not_reported_as_an_expired_sign_in(configured, monkeypatch, status, reason):
+    """A refused request with a working sign-in points at channel permissions, not at the refresh token."""
+    session = FakeSession([response(status, {"error": {"errors": [{"reason": reason}]}})])
+    monkeypatch.setattr(captions, "AuthorizedSession", lambda *args, **kwargs: session)
+    with pytest.raises(captions.CaptionError, match="permission denied") as raised:
+        captions.get_transcript(VIDEO_ID)
+    assert not isinstance(raised.value, captions.CaptionAuthError)
+    assert "sign-in expired" not in str(raised.value)
+
+
 @pytest.mark.parametrize("body", [None, {}, {"items": {}}, {"items": []}])
 def test_empty_or_invalid_list_fails_without_download(configured, monkeypatch, body):
     """A bad list or no tracks fails before spending download quota."""
