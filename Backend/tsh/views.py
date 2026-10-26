@@ -29,7 +29,12 @@ from tsh.models import (
     sermon_tag_m2m,
 )
 from tsh.pagination import paginate
-from tsh.pipeline import regenerate_summary, start_processing
+from tsh.pipeline import (
+    claim_summary_regeneration,
+    regenerate_summary,
+    release_summary_regeneration,
+    start_processing,
+)
 from tsh.queue import enqueue
 from tsh.youtube_import import VideoImportError, active_sync_run, import_video, start_sync
 from tsh.youtube_links import InvalidVideoLink, parse_video_id, resolve_video
@@ -565,25 +570,35 @@ def reprocess_sermon(id: int):
 @api.post("/sermons/<int:id>/regenerate-summary")
 @require_role("Admin")
 def regenerate_sermon_summary(id: int):
-    """Queue a new AI summary and tags for one sermon, for the "Regenerate with AI" button.
+    """Regenerate the AI summary for a sermon, if it is published and not already regenerating. 
 
-    Returns 202 with the sermon. Without REDIS_URL the job has already run, so the summary is the new one;
-    with Redis the old summary stays until the worker finishes.
+    The request is tracked on the sermon: summaryRegenState goes queued, running, then completed or failed
+    (with summaryRegenError), so any tab or a reloaded page can read it back from the sermon.
+    Returns 202 with the sermon. Without REDIS_URL the job has already run, so the state is final;
+    with Redis it is "queued" and the old summary stays until the worker finishes.
     Sends 401 without a valid token, 403 for non-Admins, 404 if the sermon does not exist,
-    409 if the sermon is not PUBLISHED (nothing is queued), and 503 if Redis cannot be reached.
+    409 if the sermon is not PUBLISHED or a regeneration is already queued or running (nothing is queued),
+    and 503 if Redis cannot be reached.
     """
     sermon = db.get_or_404(Sermon, id, description=f"Sermon with id {id} not found")
     # regenerate_summary skips unpublished sermons because they may not have a transcript yet.
     # Refusing here tells the admin why, instead of accepting a job that would do nothing.
-    if sermon.status != UploadStatus.PUBLISHED:
-        message = "Only published sermons can regenerate their summary"
+    run_id = claim_summary_regeneration(sermon.id)
+    if run_id is None:
+        db.session.refresh(sermon)
+        if sermon.status != UploadStatus.PUBLISHED:
+            message = "Only published sermons can regenerate their summary"
+        else:
+            message = "A summary is already being regenerated for this sermon"
         return jsonify({"error": message, "message": message}), 409
     try:
-        enqueue(regenerate_summary, sermon.id)
+        enqueue(regenerate_summary, sermon.id, run_id)
     except (RedisConnectionError, RedisTimeoutError):
         current_app.logger.exception("Could not queue summary for sermon %s", id)
+        release_summary_regeneration(sermon.id, run_id)
         message = "The job queue is unavailable. Please try again later."
         return jsonify({"error": message, "message": message}), 503
+    db.session.refresh(sermon)
     return sermon_schema.dump(sermon), 202
 
 

@@ -113,6 +113,16 @@ class UploadStatus(Enum):
     FAILED = "Failed"
 
 
+class SummaryRegenState(Enum):
+    """Where an admin's "Regenerate with AI" request is. IDLE means none has been made for this sermon."""
+
+    IDLE = "idle"
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
 class Sermon(db.Model):  # ty: ignore[unsupported-base]
     id: Mapped[intpk]
     # YouTube video titles can be up to 100 chars, with room to spare
@@ -156,6 +166,20 @@ class Sermon(db.Model):  # ty: ignore[unsupported-base]
     transcript_segments: Mapped[list[TranscriptSegment] | None] = mapped_column(
         JSON, default=None, repr=False
     )
+        # Summary regeneration lives here, not in the browser, so every tab and a reloaded page see the same thing.
+    summary_regen_state: Mapped[SummaryRegenState] = mapped_column(
+        SAEnum(SummaryRegenState, create_constraint=True, validate_strings=True),
+        default=SummaryRegenState.IDLE,
+        server_default=SummaryRegenState.IDLE.name,
+        repr=False,
+    )
+    # Why the last request failed, if it did.
+    summary_regen_error: Mapped[str | None] = mapped_column(Text, default=None, repr=False)
+    # Names the current request. A job that finds a different id here is out of date and does nothing.
+    summary_regen_run_id: Mapped[str | None] = mapped_column(String(32), default=None, repr=False)
+    summary_regen_requested_at: Mapped[datetime | None] = mapped_column(default=None, repr=False)
+    summary_regen_started_at: Mapped[datetime | None] = mapped_column(default=None, repr=False)
+    summary_regen_finished_at: Mapped[datetime | None] = mapped_column(default=None, repr=False)
 
 
 class SermonChunk(db.Model):  # ty: ignore[unsupported-base]
