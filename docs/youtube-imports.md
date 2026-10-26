@@ -88,6 +88,11 @@ limit, and titles with no recognisable speaker. A failed sync shows why instead.
 Every sync is saved, so after a reload or after leaving the page it is listed in
 Sync History on the Import History tab, and clicking its title opens the same report.
 
+If captions cannot be downloaded when the sync ends (quota used up, sign-in
+expired, or captions turned off), the report says so in `caption_pause` and counts the
+sermons left waiting in `caption_deferred`. See
+[YouTube sync runs](youtube-sync-runs.md).
+
 Syncing again is safe. Videos already imported are matched by their YouTube id,
 and only their length, date and link are updated. Titles, descriptions, speakers,
 tags, transcripts and summaries edited by an admin are left alone.

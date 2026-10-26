@@ -2,10 +2,11 @@
 # Every test that turns captions off also fails if anything reaches YouTube.
 import pytest
 import requests
+from sqlalchemy import delete
 
-from tsh import captions, create_app, pipeline
+from tsh import captions, create_app, embeddings, pipeline
 from tsh.database import db
-from tsh.models import Sermon, UploadStatus
+from tsh.models import Sermon, SermonChunk, SermonChunkEmbedding, UploadStatus
 
 VIDEO_ID = "F_OiCiZ3Y3Y"
 SEGMENTS = [
@@ -118,6 +119,111 @@ def test_saved_transcript_is_kept_and_still_publishes(app, sermon, no_network, m
     assert sermon.transcript == SAVED_TEXT
     assert sermon.transcript_segments == SEGMENTS
     assert embedded == [sermon.id]
+
+
+def test_text_only_transcript_is_preserved_but_not_published(app, sermon, no_network, monkeypatch):
+    """Without timings or an index, cached text cannot supply timestamped search results."""
+    sermon.transcript = SAVED_TEXT
+    before = (sermon.summary, list(sermon.tags), sermon.processed_at)
+    db.session.commit()
+    app.config["CAPTIONS_ENABLED"] = "false"
+    monkeypatch.setattr(pipeline, "embed_chunks", lambda s: pytest.fail("no timed captions to embed"))
+    monkeypatch.setattr(pipeline, "summarize_sermon", lambda s: pytest.fail("deferred before summary"))
+
+    pipeline.start_processing(sermon)
+
+    db.session.expire_all()
+    assert sermon.status == UploadStatus.DRAFT
+    assert "no usable timed captions or compatible search index" in sermon.processing_error
+    assert "reprocess" in sermon.processing_error
+    assert sermon.transcript == SAVED_TEXT
+    assert sermon.transcript_segments is None
+    assert (sermon.summary, list(sermon.tags), sermon.processed_at) == before
+    assert db.session.scalar(db.select(db.func.count()).select_from(SermonChunk)) == 0
+
+
+def test_cached_timed_captions_rebuild_search_index_without_downloads(app, sermon, no_network):
+    """The real embed step still indexes saved cues when caption downloads are disabled."""
+    sermon.transcript = SAVED_TEXT
+    sermon.transcript_segments = SEGMENTS
+    db.session.commit()
+    app.config["CAPTIONS_ENABLED"] = "false"
+
+    pipeline.start_processing(sermon)
+
+    db.session.expire_all()
+    assert sermon.status == UploadStatus.PUBLISHED
+    assert sermon.processing_error is None
+    assert sermon.transcript == SAVED_TEXT
+    assert sermon.transcript_segments == SEGMENTS
+    chunks = db.session.scalars(
+        db.select(SermonChunk).join(SermonChunkEmbedding).where(SermonChunk.sermon_id == sermon.id)
+    ).all()
+    assert chunks
+    assert all(chunk.embedding_model == embeddings.EMBEDDING_MODEL for chunk in chunks)
+    assert chunks[0].start == SEGMENTS[0]["start"]
+
+
+def test_current_cached_index_survives_missing_cues(app, sermon, no_network, monkeypatch):
+    """An already usable index remains publishable without downloading or re-embedding."""
+    sermon.transcript = SAVED_TEXT
+    sermon.transcript_segments = SEGMENTS
+    pipeline.embed_chunks(sermon)
+    before = db.session.execute(
+        db.select(SermonChunk.id, SermonChunk.hash, SermonChunkEmbedding.embedding)
+        .join(SermonChunkEmbedding).where(SermonChunk.sermon_id == sermon.id)
+    ).all()
+    sermon.transcript_segments = None
+    db.session.commit()
+    app.config["CAPTIONS_ENABLED"] = "false"
+    monkeypatch.setattr("ollama.embed", lambda **kw: pytest.fail("cached vectors were re-embedded"))
+
+    pipeline.start_processing(sermon)
+
+    db.session.expire_all()
+    assert sermon.status == UploadStatus.PUBLISHED
+    assert sermon.processing_error is None
+    assert sermon.transcript == SAVED_TEXT
+    assert sermon.transcript_segments is None
+    after = db.session.execute(
+        db.select(SermonChunk.id, SermonChunk.hash, SermonChunkEmbedding.embedding)
+        .join(SermonChunkEmbedding).where(SermonChunk.sermon_id == sermon.id)
+    ).all()
+    assert after == before
+
+
+@pytest.mark.parametrize("problem", ["missing_vector", "old_model", "stale", "dimension"])
+def test_incompatible_cached_index_stays_retryable(app, sermon, no_network, monkeypatch, problem):
+    """Unavailable/mismatched vectors are kept for deliberate repair instead of falsely publishing."""
+    sermon.transcript = SAVED_TEXT
+    sermon.transcript_segments = SEGMENTS
+    pipeline.embed_chunks(sermon)
+    chunk = db.session.scalar(db.select(SermonChunk).where(SermonChunk.sermon_id == sermon.id))
+    if problem == "missing_vector":
+        db.session.execute(
+            delete(SermonChunkEmbedding)
+            .where(SermonChunkEmbedding.sermon_chunk_id == chunk.id)
+            .execution_options(synchronize_session=False)
+        )
+    elif problem == "old_model":
+        chunk.embedding_model = "previous-model"
+    elif problem == "stale":
+        chunk.stale = True
+    else:
+        monkeypatch.setattr(embeddings, "EMBEDDING_DIM", 384)
+    sermon.transcript_segments = None
+    db.session.commit()
+    before = (chunk.id, chunk.hash, chunk.text, chunk.embedding_model, chunk.stale)
+    app.config["CAPTIONS_ENABLED"] = "false"
+    monkeypatch.setattr("ollama.embed", lambda **kw: pytest.fail("deferred cache was re-embedded"))
+
+    pipeline.start_processing(sermon)
+
+    db.session.expire_all()
+    assert sermon.status == UploadStatus.DRAFT
+    assert "compatible search index" in sermon.processing_error
+    assert sermon.transcript == SAVED_TEXT
+    assert (chunk.id, chunk.hash, chunk.text, chunk.embedding_model, chunk.stale) == before
 
 
 def test_reprocess_endpoint_with_captions_off(app, client, sermon, no_network):

@@ -135,6 +135,8 @@ def test_import_report(app: Flask, channel: FakeChannel):
             "Joseph Zwanziger & James Cooper"
         ],
         "queue_failures": [],
+        "caption_pause": None,
+        "caption_deferred": 0,
     }
 
 

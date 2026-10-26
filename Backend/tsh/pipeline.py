@@ -2,6 +2,7 @@
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from math import isfinite
 from uuid import uuid4
 
 import click
@@ -42,7 +43,7 @@ def fetch_transcript(sermon: Sermon) -> None:
 
     The pipeline commits both together. Chunking receives the persisted segments on the sermon.
     """
-    # Captions off: keep what is saved. process_sermon already held back sermons with nothing saved
+    # Captions off: keep what is saved. process_sermon already checked cache usability.
     if not captions.captions_enabled():
         return
     # The importer also queues this pipeline, so importing its URL parser here avoids a cycle.
@@ -293,6 +294,51 @@ def start_processing(sermon: Sermon) -> None:
         raise
 
 
+def _has_usable_cached_captions(sermon: Sermon) -> bool:
+    """Saved timed captions can rebuild the index; otherwise require a usable saved index.
+
+    A legacy text-only transcript is not enough to publish: embed_chunks deliberately
+    does nothing without timed segments. Inspect scalar metadata without loading vectors
+    or calling a provider, and leave cached data untouched when recovery is deferred.
+    """
+    def timed_text(text, start, end) -> bool:
+        return (
+            isinstance(text, str)
+            and bool(text.strip())
+            and all(
+                isinstance(value, (int, float)) and not isinstance(value, bool) and isfinite(value)
+                for value in (start, end)
+            )
+            and 0 <= start <= end
+        )
+
+    if any(
+        isinstance(segment, dict)
+        and timed_text(segment.get("text"), segment.get("start"), segment.get("end"))
+        for segment in (sermon.transcript_segments or [])
+    ):
+        return True
+
+    try:
+        embeddings.check_schema_dimension()
+    except embeddings.EmbeddingError:
+        return False
+    chunks = db.session.execute(
+        select(
+            SermonChunk.text, SermonChunk.start, SermonChunk.end, SermonChunk.embedding_model,
+            SermonChunkEmbedding.sermon_chunk_id,
+        )
+        .outerjoin(SermonChunkEmbedding)
+        .where(SermonChunk.sermon_id == sermon.id, SermonChunk.stale.is_(False))
+    ).all()
+    return bool(chunks) and all(
+        chunk.sermon_chunk_id is not None
+        and chunk.embedding_model == embeddings.EMBEDDING_MODEL
+        and timed_text(chunk.text, chunk.start, chunk.end)
+        for chunk in chunks
+    )
+
+
 def process_sermon(sermon_id: int) -> None:
     """Run every pipeline step for one sermon and save the result on it.
 
@@ -314,11 +360,19 @@ def process_sermon(sermon_id: int) -> None:
     sermon.processing_error = None
     db.session.commit()
 
-    # Captions off and nothing saved: there is no transcript to build on, so hold it as a draft.
-    # A sermon that already has a transcript carries on, so saved captions are never thrown away.
-    if not captions.captions_enabled() and not (sermon.transcript or "").strip():
+    # Captions off: preserve cached data, but do not publish text-only legacy records
+    # when neither source timings nor a compatible existing search index is available.
+    has_transcript = bool((sermon.transcript or "").strip())
+    if not captions.captions_enabled() and (
+        not has_transcript or not _has_usable_cached_captions(sermon)
+    ):
         sermon.status = UploadStatus.DRAFT
         sermon.processing_error = "fetch_transcript: " + captions.DISABLED_MESSAGE
+        if has_transcript:
+            sermon.processing_error += (
+                "; saved transcript has no usable timed captions or compatible search index; "
+                "restore timed captions and reprocess, or repair/re-embed the cached index"
+            )
         db.session.commit()
         return
 

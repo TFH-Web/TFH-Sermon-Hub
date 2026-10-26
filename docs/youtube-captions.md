@@ -51,7 +51,15 @@ attention. After the cause is resolved, rerun to continue; already saved caption
 are skipped. To retry other failed sermons, add `--failed-only`.
 
 The command runs synchronously even when Redis is configured so it can inspect
-each result before starting another. It does not schedule future batches.
+each result before starting another. It does not schedule future batches: nothing
+runs again until an admin runs it.
+
+The last line of a run is `attempted: N; succeeded: S; failed: F; remaining: R`.
+`remaining` is how many eligible sermons this run did not reach, so a run that ends
+at the limit (or at a quota or sign-in stop) says how much is left, and a limit stop
+prints `Limit reached` as a reminder to run it again. If the quota breaker (below) is
+open when the command starts, it prints `Paused:` with the resume time, exits 0 and
+changes no sermon. `--dry-run` shows the same warning as a `Note:`.
 
 ## Daily quota breaker
 
