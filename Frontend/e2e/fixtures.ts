@@ -24,7 +24,7 @@ export const test = base.extend<{ forEachWorker: void; forEachTest: void }>({
 	// @ts-expect-error
 	forEachWorker: [
 		// biome-ignore lint/correctness/noEmptyPattern: playwright complains if we don't destructure here
-		async ({ }, use) => {
+		async ({}, use) => {
 			const workerIndex = test.info().workerIndex;
 			const port = BASE_PORT + workerIndex;
 			const databaseURI = `sqlite:///ci${workerIndex}.db`;
