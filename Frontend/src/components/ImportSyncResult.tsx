@@ -1,6 +1,6 @@
-// Show what a "Sync from YouTube" run returned: the queued job, or the import report.
+// Show what a finished "Sync from YouTube" run reported: its counts and the lists of anything skipped or needing attention.
 import './ImportSyncResult.css';
-import type { SyncResult } from '$/types/import';
+import type { ImportReport } from '$/types/import';
 
 const COUNTS = [
 	['series_created', 'Series created'],
@@ -21,18 +21,8 @@ const LISTS = [
 	['queue_failures', 'Could not be queued'],
 ] as const;
 
-/** Render a sync result: a job id for a queued run, or the counts and any non-empty lists for a finished one. */
-export default function ImportSyncResult({ result }: { result: SyncResult }) {
-	// A queued sync has no report yet, and there is no endpoint to read it once the worker finishes.
-	if (result.queued) {
-		return (
-			<p className="ImportSyncResult" role="status">
-				Sync queued. Job id: {result.jobId}
-			</p>
-		);
-	}
-
-	const { report } = result;
+/** Render a sync's report: the counts, and any lists that are not empty. */
+export default function ImportSyncResult({ report }: { report: ImportReport }) {
 	return (
 		<section className="ImportSyncResult" aria-label="Sync result">
 			<h4 className="ImportSyncResult-title">Sync finished</h4>
