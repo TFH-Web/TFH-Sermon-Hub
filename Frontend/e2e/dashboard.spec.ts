@@ -109,3 +109,31 @@ test('recent sermons are listed', async ({ page }) => {
 		'Sermon 6',
 	]);
 });
+
+// What the dashboard listed before: made-up imports and activity entries.
+const sampleText = [
+	'Batch Import YouTube Library',
+	'Sermon Notes 2024 Archive',
+	'Vimeo Import Legacy Content',
+	'Under Grace',
+	'Walking in Freedom',
+	'Bold Faith',
+	'Email sent',
+];
+
+test('activity cards show unavailable states instead of sample data', async ({
+	page,
+}) => {
+	await page.goto('/');
+
+	await expect(
+		page.getByText('Import activity not available yet'),
+	).toBeVisible();
+	await expect(
+		page.getByText('Activity history not available yet'),
+	).toBeVisible();
+	// Only look for the sample entries once the page has settled, or their absence proves nothing.
+	for (const text of sampleText) {
+		await expect(page.getByText(text)).toHaveCount(0);
+	}
+});

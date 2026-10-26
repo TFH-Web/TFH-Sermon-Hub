@@ -1,15 +1,5 @@
 import z from 'zod';
 
-export interface ImportJob {
-	id: string;
-	title: string;
-	subtitle: string;
-	icon: string;
-	status: 'active' | 'complete' | 'failed';
-	progress?: number;
-	errorMessage?: string;
-}
-
 // What a YouTube channel sync did: ImportReport.as_dict() in Backend/tsh/youtube_import.py.
 // The keys are snake_case because the report is sent as is, not through a camel-casing schema.
 export const ImportReport = z.object({
