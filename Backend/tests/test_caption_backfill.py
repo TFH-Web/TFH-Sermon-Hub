@@ -110,7 +110,7 @@ def test_default_backfill_skips_other_failures_and_processing_jobs(
     db.session.commit()
     result = runner.invoke(args=["backfill-captions", "--limit", "6"])
     assert result.exit_code == 0
-    assert len(calls) == 4
+    assert len(calls) == 6
     assert sermons[0].youtube_video_id not in calls
     assert sermons[1].youtube_video_id not in calls
 

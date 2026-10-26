@@ -30,12 +30,12 @@ def all_series(client: FlaskClient) -> dict[str, dict]:
 def test_series_pagination(client: FlaskClient):
     pages = [client.get(f"/api/series?page={n}&per_page=2").json for n in (1, 2, 3)]
 
-    assert [p["total"] for p in pages] == [5, 5, 5]
-    assert [len(p["items"]) for p in pages] == [2, 2, 1]
+    assert [p["total"] for p in pages] == [14, 14, 14]
+    assert [len(p["items"]) for p in pages] == [2, 2, 2]
 
     # Every series appears exactly once across the pages
     ids = [s["id"] for p in pages for s in p["items"]]
-    assert len(ids) == len(set(ids)) == 5
+    assert len(ids) == len(set(ids)) == 6
 
 
 def test_series_stats_ignore_page(client: FlaskClient):
@@ -224,7 +224,7 @@ def test_sermons_legacy_array_preserved(client: FlaskClient):
     res = client.get("/api/sermons")
     assert res.status_code == 200
     assert isinstance(res.json, list)
-    assert len(res.json) == 6
+    assert len(res.json) == 13
 
     # Filters also work on legacy unpaginated requests
     res_filtered = client.get("/api/sermons?status=Draft")
@@ -241,7 +241,7 @@ def test_sermons_filtering_individual(client: FlaskClient):
     # Status
     res = client.get("/api/sermons?status=Published&page=1")
     assert res.status_code == 200
-    assert res.json["total"] == 2
+    assert res.json["total"] == 9
     assert all(s["status"] == "Published" for s in res.json["items"])
 
     # Topic / Tag (identified by name, case-insensitive)
@@ -260,11 +260,11 @@ def test_sermons_filtering_individual(client: FlaskClient):
     # Speaker
     res_speaker = client.get("/api/sermons?speaker_id=1&page=1")
     assert res_speaker.status_code == 200
-    assert res_speaker.json["total"] == 2
+    assert res_speaker.json["total"] == 9
 
     res_speaker_name = client.get("/api/sermons?speaker=Dave%20Patterson&page=1")
     assert res_speaker_name.status_code == 200
-    assert res_speaker_name.json["total"] == 2
+    assert res_speaker_name.json["total"] == 9
 
     # Series
     res_series = client.get("/api/sermons?series_id=1&page=1")

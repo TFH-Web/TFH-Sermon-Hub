@@ -71,14 +71,84 @@
         ]),
         'title': 'New Ground',
       }),
+      dict({
+        'firstDate': None,
+        'id': 6,
+        'lastDate': None,
+        'sermonCount': 0,
+        'speakers': list([
+        ]),
+        'title': 'Series 1',
+      }),
+      dict({
+        'firstDate': None,
+        'id': 7,
+        'lastDate': None,
+        'sermonCount': 0,
+        'speakers': list([
+        ]),
+        'title': 'Series 2',
+      }),
+      dict({
+        'firstDate': None,
+        'id': 8,
+        'lastDate': None,
+        'sermonCount': 0,
+        'speakers': list([
+        ]),
+        'title': 'Series 3',
+      }),
+      dict({
+        'firstDate': None,
+        'id': 9,
+        'lastDate': None,
+        'sermonCount': 0,
+        'speakers': list([
+        ]),
+        'title': 'Series 4',
+      }),
+      dict({
+        'firstDate': None,
+        'id': 10,
+        'lastDate': None,
+        'sermonCount': 0,
+        'speakers': list([
+        ]),
+        'title': 'Series 5',
+      }),
+      dict({
+        'firstDate': None,
+        'id': 11,
+        'lastDate': None,
+        'sermonCount': 0,
+        'speakers': list([
+        ]),
+        'title': 'Series 6',
+      }),
+      dict({
+        'firstDate': None,
+        'id': 12,
+        'lastDate': None,
+        'sermonCount': 0,
+        'speakers': list([
+        ]),
+        'title': 'Series 7',
+      }),
     ]),
     'page': 1,
     'perPage': 12,
-    'total': 5,
+    'total': 14,
   })
 # ---
 # name: test_sermons
   list([
+    Sermon(id=13, title='Sermon 7', video_link='https://youtu.be/JQSUGFQO5FU', duration=6767, date=datetime.date(2027, 1, 7), description='Lorem ipsum dolor sit amet', tags=[], transcript=None, summary=None, speaker_id=1, speaker=Speaker(id=1, first_name='Dave', last_name='Patterson', role='Lead Speaker', sermon_count=None), series_id=None, series=None, status=<UploadStatus.PUBLISHED: 'Published'>, storage_key=None, audio_key=None, processing_error=None, processed_at=None, youtube_video_id=None),
+    Sermon(id=12, title='Sermon 6', video_link='https://youtu.be/JQSUGFQO5FU', duration=6767, date=datetime.date(2027, 1, 6), description='Lorem ipsum dolor sit amet', tags=[], transcript=None, summary=None, speaker_id=1, speaker=Speaker(id=1, first_name='Dave', last_name='Patterson', role='Lead Speaker', sermon_count=None), series_id=None, series=None, status=<UploadStatus.PUBLISHED: 'Published'>, storage_key=None, audio_key=None, processing_error=None, processed_at=None, youtube_video_id=None),
+    Sermon(id=11, title='Sermon 5', video_link='https://youtu.be/JQSUGFQO5FU', duration=6767, date=datetime.date(2027, 1, 5), description='Lorem ipsum dolor sit amet', tags=[], transcript=None, summary=None, speaker_id=1, speaker=Speaker(id=1, first_name='Dave', last_name='Patterson', role='Lead Speaker', sermon_count=None), series_id=None, series=None, status=<UploadStatus.PUBLISHED: 'Published'>, storage_key=None, audio_key=None, processing_error=None, processed_at=None, youtube_video_id=None),
+    Sermon(id=10, title='Sermon 4', video_link='https://youtu.be/JQSUGFQO5FU', duration=6767, date=datetime.date(2027, 1, 4), description='Lorem ipsum dolor sit amet', tags=[], transcript=None, summary=None, speaker_id=1, speaker=Speaker(id=1, first_name='Dave', last_name='Patterson', role='Lead Speaker', sermon_count=None), series_id=None, series=None, status=<UploadStatus.PUBLISHED: 'Published'>, storage_key=None, audio_key=None, processing_error=None, processed_at=None, youtube_video_id=None),
+    Sermon(id=9, title='Sermon 3', video_link='https://youtu.be/JQSUGFQO5FU', duration=6767, date=datetime.date(2027, 1, 3), description='Lorem ipsum dolor sit amet', tags=[], transcript=None, summary=None, speaker_id=1, speaker=Speaker(id=1, first_name='Dave', last_name='Patterson', role='Lead Speaker', sermon_count=None), series_id=None, series=None, status=<UploadStatus.PUBLISHED: 'Published'>, storage_key=None, audio_key=None, processing_error=None, processed_at=None, youtube_video_id=None),
+    Sermon(id=8, title='Sermon 2', video_link='https://youtu.be/JQSUGFQO5FU', duration=6767, date=datetime.date(2027, 1, 2), description='Lorem ipsum dolor sit amet', tags=[], transcript=None, summary=None, speaker_id=1, speaker=Speaker(id=1, first_name='Dave', last_name='Patterson', role='Lead Speaker', sermon_count=None), series_id=None, series=None, status=<UploadStatus.PUBLISHED: 'Published'>, storage_key=None, audio_key=None, processing_error=None, processed_at=None, youtube_video_id=None),
+    Sermon(id=7, title='Sermon 1', video_link='https://youtu.be/JQSUGFQO5FU', duration=6767, date=datetime.date(2027, 1, 1), description='Lorem ipsum dolor sit amet', tags=[], transcript=None, summary=None, speaker_id=1, speaker=Speaker(id=1, first_name='Dave', last_name='Patterson', role='Lead Speaker', sermon_count=None), series_id=None, series=None, status=<UploadStatus.PUBLISHED: 'Published'>, storage_key=None, audio_key=None, processing_error=None, processed_at=None, youtube_video_id=None),
     Sermon(id=1, title='Under Grace', video_link='https://youtu.be/JQSUGFQO5FU', duration=2538, date=datetime.date(2026, 2, 23), description="Exploring the transformative power of grace and how it shapes our everyday decisions, relationships, and connection to God's purpose for our lives.", tags=[Tag(name='faith', source=<TagSource.AI: 'ai'>, sermons=[...], count=None), Tag(name='grace', source=<TagSource.AI: 'ai'>, sermons=[...], count=None)], transcript=None, summary='Pastor Dave Patterson explores grace as the foundation of Christian living. The sermon covers three main points: grace cannot be earned, grace transforms identity, and grace empowers believers to fulfill their purpose. Drawing from Ephesians 2:8-9, Patterson emphasizes that understanding grace should change how we relate to God and each other.', speaker_id=1, speaker=Speaker(id=1, first_name='Dave', last_name='Patterson', role='Lead Speaker', sermon_count=None), series_id=1, series=Series(id=1, title='Live Your Best Life', youtube_playlist_id=None), status=<UploadStatus.PUBLISHED: 'Published'>, storage_key=None, audio_key=None, processing_error=None, processed_at=None, youtube_video_id=None),
     Sermon(id=2, title='Walking in Freedom', video_link='https://youtu.be/BROKENLINKTEST', duration=2304, date=datetime.date(2026, 2, 16), description='Lorem ipsum dolor sit amet', tags=[Tag(name='faith', source=<TagSource.AI: 'ai'>, sermons=[...], count=None), Tag(name='healing', source=<TagSource.AI: 'ai'>, sermons=[...], count=None)], transcript=None, summary=None, speaker_id=1, speaker=Speaker(id=1, first_name='Dave', last_name='Patterson', role='Lead Speaker', sermon_count=None), series_id=1, series=Series(id=1, title='Live Your Best Life', youtube_playlist_id=None), status=<UploadStatus.PUBLISHED: 'Published'>, storage_key=None, audio_key=None, processing_error=None, processed_at=None, youtube_video_id=None),
     Sermon(id=3, title='Anchored in Hope', video_link='https://www.youtube.com/watch?v=PxTdE09QjH0', duration=2650, date=datetime.date(2026, 2, 9), description='Lorem ipsum dolor sit amet', tags=[Tag(name='healing', source=<TagSource.AI: 'ai'>, sermons=[...], count=None), Tag(name='hope', source=<TagSource.AI: 'ai'>, sermons=[...], count=None)], transcript=None, summary=None, speaker_id=2, speaker=Speaker(id=2, first_name='Jon', last_name='Laurenzo', role='Guest Speaker', sermon_count=None), series_id=None, series=None, status=<UploadStatus.PROCESSING: 'Processing'>, storage_key=None, audio_key=None, processing_error=None, processed_at=None, youtube_video_id=None),
