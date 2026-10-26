@@ -17,6 +17,7 @@ import SermonTag from '$/components/SermonTag';
 import SermonTranscript from '$/components/SermonTranscript';
 import SummaryRegenStatus from '$/components/SummaryRegenStatus.tsx';
 import Tag from '$/components/Tag.tsx';
+import { useSermonOptions } from '$/hooks/useSermonOptions';
 import {
 	regenPollInterval,
 	useSummaryRegeneration,
@@ -72,6 +73,8 @@ function SermonDetailContent({
 
 	const { id } = useParams(); // reads the number of the web address, so /sermons/5 gives us 5
 	const [editSermonOpen, setEditSermonOpen] = useState(false); //	Remembers if the Edit popup is open
+	// The speakers and series the Edit popup chooses from. They are only asked for once it is opened.
+	const { speakers, series } = useSermonOptions(editSermonOpen);
 	const [deleteSermonOpen, setDeleteSermonOpen] = useState(false); // Remembers if the Delete popup is open
 
 	const playerRef = useRef<YouTubePlayer | null>(null); //creates reference for youtube player
@@ -495,6 +498,8 @@ function SermonDetailContent({
 				isOpen={editSermonOpen}
 				onClose={() => setEditSermonOpen(false)}
 				sermon={sermon}
+				speakers={speakers}
+				series={series}
 			/>
 
 			<DeleteSermonModal

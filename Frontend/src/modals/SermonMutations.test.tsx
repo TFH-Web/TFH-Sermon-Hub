@@ -236,6 +236,10 @@ it.each([
 	if (kind === 'edit')
 		expect(JSON.parse(config.data)).toEqual({
 			title: 'Hope',
+			speaker: { id: 1 },
+			series: null,
+			date: '2026-10-15',
+			description: 'A sermon about hope',
 			tags: [{ name: 'hope' }],
 		});
 	else expect(screen.getByText('Sermon list')).toBeTruthy();

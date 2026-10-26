@@ -54,6 +54,11 @@ is sent. After the import, the modal shows Sermon Title, Speaker, Series, Date a
 Description from the video as a read-only preview of what was saved, and Open
 sermon goes to the sermon's own page.
 
+To correct what the import guessed, such as a speaker it could not match, an admin
+opens that page and presses Edit. The Edit Sermon modal changes the title,
+speaker, series, date, description and tags. A later sync refreshes the sermon's
+date, so an edited date can be reverted by it; see "Syncing again" below.
+
 The import is refused, with the reason shown under the link, when the video is
 private, deleted or missing, is still streaming, or is longer than
 `YOUTUBE_MAX_MINUTES`. Importing a video a second time changes nothing and says
