@@ -1,5 +1,4 @@
 #!/usr/bin/env -S poetry run python3
-import sys
 from pathlib import Path
 
 from flask_migrate import downgrade
@@ -9,11 +8,10 @@ from tsh.app import create_app
 from tsh.database import db
 
 
-def main(config_path: str, database_uri: str | None = None):
+def main():
     from tsh.models import Series, Sermon, Speaker, Tag, sermon_tag_m2m  # noqa: F401
 
-    settings = {"SQLALCHEMY_DATABASE_URI": database_uri} if database_uri else None
-    app = create_app(config_path, settings)
+    app = create_app("testing.cfg")
     with app.app_context():
         if "alembic_version" in inspect(db.engine).get_table_names():
             downgrade(
@@ -25,7 +23,5 @@ def main(config_path: str, database_uri: str | None = None):
 
 
 if __name__ == "__main__":
-    config_path = sys.argv[1] if len(sys.argv) >= 2 else "testing.cfg"
-    database_uri = sys.argv[2] if len(sys.argv) >= 3 else None
-    main(config_path, database_uri)
+    main()
     print("Dropped all tables.")

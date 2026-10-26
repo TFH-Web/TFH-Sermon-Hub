@@ -1,5 +1,4 @@
 #!/usr/bin/env -S poetry run python3
-import sys
 from pathlib import Path
 
 from flask_migrate import stamp, upgrade
@@ -14,9 +13,8 @@ MIGRATIONS = Path(__file__).parent / "migrations"
 BASELINE = "b2f09d55781a"
 
 
-def main(config_path: str, database_uri: str | None = None):
-    settings = {"SQLALCHEMY_DATABASE_URI": database_uri} if database_uri else None
-    app = create_app(config_path, settings)
+def main():
+    app = create_app("testing.cfg")
     with app.app_context():
         tables = inspect(db.engine).get_table_names()
 
@@ -31,7 +29,5 @@ def main(config_path: str, database_uri: str | None = None):
 
 
 if __name__ == "__main__":
-    config_path = sys.argv[1] if len(sys.argv) >= 2 else "testing.cfg"
-    database_uri = sys.argv[2] if len(sys.argv) >= 3 else None
-    main(config_path, database_uri)
+    main()
     print("Database is up to date.")
