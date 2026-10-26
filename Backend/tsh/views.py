@@ -33,8 +33,14 @@ from tsh.pipeline import (
     start_processing,
 )
 from tsh.queue import enqueue
+from tsh.sermon_edits import (
+    EDITABLE_FIELDS,
+    delete_derived_chunks,
+    derived_edit_conflict,
+    invalidate_video_source,
+)
 from tsh.youtube_import import VideoImportError, active_sync_run, import_video, start_sync
-from tsh.youtube_links import InvalidVideoLink, parse_video_id, resolve_video
+from tsh.youtube_links import InvalidVideoLink, is_video_id, parse_video_id, resolve_video
 from tsh.schemas import (
     counted_speakers_schema,
     counted_tags_schema,
@@ -376,7 +382,7 @@ def create_sermon():
 @api.patch("/sermons/<int:id>")
 @require_role("Admin")
 def update_sermon(id: int):
-    """Partially update an existing sermon."""
+    """Update editable metadata; a changed video invalidates evidence in the same transaction."""
     sermon = db.session.get(Sermon, id)
 
     # Return early if the sermon does not exist
@@ -388,6 +394,14 @@ def update_sermon(id: int):
     # Ensure the request contains a JSON object
     if not isinstance(payload, dict):
         return jsonify({"message": "Validation failed","errors": {"_schema": ["A JSON object is required"]},}), 422
+
+    unsupported = set(payload) - EDITABLE_FIELDS
+    if unsupported:
+        errors = {
+            key: ["Server-owned or unsupported field; use the processing endpoints for transcript and derived data."]
+            for key in sorted(unsupported)
+        }
+        return jsonify({"error": "Validation failed", "message": "Validation failed", "errors": errors}), 422
 
     # Same link rule as create. Checked before any field is changed, so a bad link leaves the sermon as it was.
     video = None
@@ -405,8 +419,8 @@ def update_sermon(id: int):
     if "title" in payload:
         title_data = payload["title"]
 
-        if not isinstance(title_data, str):
-            errors["title"] = ["A valid title is required"]
+        if not isinstance(title_data, str) or not title_data.strip() or len(title_data) > 200:
+            errors["title"] = ["Title must be nonblank text of at most 200 characters"]
         else:
             title = title_data
 
@@ -476,29 +490,43 @@ def update_sermon(id: int):
         scalar_data.pop(key, None)
 
     try:
-        if scalar_data:
-            updates = sermon_schema.load(scalar_data, partial=True)
-
-            for key in scalar_data:
-                if hasattr(updates, key):
-                    setattr(sermon, key, getattr(updates, key))
-
+        # Partial loads return validated internal-name dictionaries, never Sermon objects.
+        updates = sermon_schema.load(scalar_data, partial=True) if scalar_data else {}
     except ValidationError as err:
         return jsonify({
             "message": "Validation failed",
             "errors": err.messages,
         }), 422
 
-    # Apply the resolved relationships.
-    sermon.title = title
-    sermon.speaker = speaker
-    sermon.series = series
-    sermon.tags = tags
+    if "duration" in updates and updates["duration"] < 0:
+        return jsonify({"error": "Validation failed", "message": "Validation failed", "errors": {"duration": ["Duration must not be negative"]}}), 422
+    if "description" in updates and not updates["description"].strip():
+        return jsonify({"error": "Validation failed", "message": "Validation failed", "errors": {"description": ["Description must not be blank"]}}), 422
 
-    if video:
-        sermon.video_link, sermon.youtube_video_id = video
+    previous_video_id = (
+        sermon.youtube_video_id if is_video_id(sermon.youtube_video_id)
+        else parse_video_id(sermon.video_link)
+    )
+    source_changed = video is not None and video[1] != previous_video_id
+    if source_changed and "summary" in payload:
+        message = "Save the video replacement before editing its summary."
+        return jsonify({"error": message, "message": message}), 422
+    if source_changed or "summary" in payload:
+        conflict = derived_edit_conflict(sermon)
+        if conflict:
+            return jsonify({"error": conflict, "message": conflict}), 409
 
     try:
+        for key, value in updates.items():
+            setattr(sermon, key, value)
+        sermon.title = title
+        sermon.speaker = speaker
+        sermon.series = series
+        sermon.tags = tags
+        if video:
+            sermon.video_link, sermon.youtube_video_id = video
+        if source_changed:
+            invalidate_video_source(sermon)
         db.session.commit()
     except SQLAlchemyError:
         db.session.rollback()
@@ -517,6 +545,7 @@ def delete_sermon(id: int):
         return jsonify({"message": f"Sermon with id {id} not found"}), 404
 
     try:
+        delete_derived_chunks(sermon.id)
         db.session.delete(sermon)
         db.session.commit()
     except SQLAlchemyError:
