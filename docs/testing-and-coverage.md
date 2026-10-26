@@ -82,6 +82,8 @@ retain `pytest-coverage` and `vitest-coverage` artifacts for 30 days, including
 on test failure when reports exist. The empty separate coverage job is removed.
 The normal feature browser job and the separate real-API browser job retain
 reports, traces, screenshots and videos from failures for 14 days.
+The feature browser job downloads the build job's small `dist` artifact for
+the production sidebar CSS regression; dependencies are installed separately.
 
 No coverage threshold has been agreed by the team, so these jobs enforce test
 success and report coverage without inventing a minimum. Record the measured

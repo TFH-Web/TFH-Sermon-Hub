@@ -85,6 +85,7 @@ jobs:
 
   playwright:
     name: Run Playwright tests
+    needs: build
     timeout-minutes: 15
     runs-on: ubuntu-latest
     container:
@@ -99,6 +100,11 @@ jobs:
           cache: npm
           cache-dependency-path: Frontend/package-lock.json
       - run: npm ci
+      - name: Download production CSS for sidebar regression
+        uses: actions/download-artifact@v6
+        with:
+          name: Frontend
+          path: Frontend/dist/
       - name: Run existing mocked feature tests
         run: npm run e2e
       - uses: actions/upload-artifact@v6

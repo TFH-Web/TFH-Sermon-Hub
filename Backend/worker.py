@@ -1,10 +1,13 @@
 #!/usr/bin/env -S poetry run python3
 # Runs the RQ worker that processes sermon jobs from the Redis queue.
+import os
+
 from flask import Flask
 from redis import Redis
 from rq import Queue, Worker
 
 from tsh.app import create_app
+from tsh.production import create_production_app
 from tsh.queue import QUEUE_NAME
 
 
@@ -24,7 +27,11 @@ class FlaskWorker(Worker):
 
 
 def main():
-    app = create_app("testing.cfg")
+    app = (
+        create_production_app()
+        if os.environ.get("TFH_ENV", "").strip().lower() == "production"
+        else create_app("testing.cfg")
+    )
     redis_url = app.config["REDIS_URL"]
     if not redis_url:
         raise SystemExit(
