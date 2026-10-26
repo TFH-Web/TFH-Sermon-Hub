@@ -18,8 +18,9 @@ before submitting a new manual summary for it.
 
 `summarySource` is server-owned (`ai`, `manual`, or null for unknown legacy
 origin). Successful generation records `ai` with the saved summary and tags.
-Manual text edits keep an existing `ai` origin, otherwise nonblank saved text
-becomes `manual`. Clearing the summary or replacing its video clears its origin;
+Explicit nonblank manual summary saves record `manual`, including edits to a
+previously generated summary. Omitting the summary preserves its saved origin.
+Clearing the summary or replacing its video clears its origin;
 failed saves or generation leave the saved origin intact. The detail page labels
 only a nonempty summary with known `ai` origin as “AI generated”; old text is
 never retroactively assumed to be generated.
