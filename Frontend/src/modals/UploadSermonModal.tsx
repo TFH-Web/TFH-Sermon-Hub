@@ -10,6 +10,7 @@ import Modal from '$/components/Modal';
 import { useToast } from '$/components/ToastContext';
 import { invalidateSermonData } from '$/hooks/useImportSermons';
 import { apiErrorMessage } from '$/lib/api';
+import { toCalendarDateString } from '$/lib/date';
 import { normalizeYouTubeUrl, youtubeLinkError } from '$/lib/youtube';
 import { linkTo, Sermon } from '$/types/sermon';
 import { getFullName } from '$/types/speaker';
@@ -212,11 +213,11 @@ export default function UploadSermonModal({
 								/>
 							</FormField>
 							<FormField label="Date">
-								{/* A sermon's date has no time and is read as midnight UTC, so take the day from the UTC string. */}
+								{/* Preserve the saved calendar day in every time zone. */}
 								<input
 									type="date"
 									aria-label="Date"
-									value={imported.date.toISOString().slice(0, 10)}
+									value={toCalendarDateString(imported.date)}
 									readOnly
 								/>
 							</FormField>

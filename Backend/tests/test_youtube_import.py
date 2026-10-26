@@ -11,7 +11,14 @@ from rq import Queue
 
 from tsh import pipeline, youtube, youtube_import
 from tsh.database import db
-from tsh.models import Series, Sermon, Speaker, SyncRun, UploadStatus
+from tsh.models import (
+    Series,
+    Sermon,
+    SermonSummarySource,
+    Speaker,
+    SyncRun,
+    UploadStatus,
+)
 from tsh.queue import QUEUE_NAME
 from tsh.youtube_import import import_channel
 from tsh.youtube_links import parse_video_id
@@ -281,6 +288,34 @@ def test_rerun_keeps_admin_edits(app: Flask, channel: FakeChannel):
     assert sermon.speaker == other
     assert sermon.duration == 40 * 60
     assert sermon.date == date(2026, 9, 13)
+
+
+@pytest.mark.parametrize(
+    "source", [SermonSummarySource.AI, SermonSummarySource.MANUAL, None]
+)
+def test_rerun_keeps_summary_and_its_origin(app: Flask, channel: FakeChannel, source):
+    """A re-run does not touch a saved summary or its origin, including an older summary that has no origin."""
+    import_channel()
+    sermon = sermon_for("vGuide00001")
+    sermon.summary = "Saved summary"
+    sermon.summary_source = source
+    db.session.commit()
+
+    channel.videos["vGuide00001"].update(duration="PT40M", published_at="2026-09-13T17:00:00Z")
+    report = import_channel()
+
+    # The sermon really was synced again, so the check below is not passing because nothing ran.
+    assert report.sermons_updated == 1
+    sermon = sermon_for("vGuide00001")
+    assert (sermon.summary, sermon.summary_source) == ("Saved summary", source)
+
+
+def test_import_does_not_invent_a_summary_origin(app: Flask, channel: FakeChannel):
+    """A new import has no summary yet, so it has no origin either."""
+    import_channel()
+
+    sermon = sermon_for("vGuide00001")
+    assert (sermon.summary, sermon.summary_source) == (None, None)
 
 
 def test_rerun_fills_missing_series(app: Flask, channel: FakeChannel):

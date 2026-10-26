@@ -2,7 +2,7 @@ from datetime import date, datetime
 import pytest
 from marshmallow import ValidationError
 
-from tsh.models import Series, Speaker, Tag, TagSource, UploadStatus, Sermon
+from tsh.models import Series, Speaker, Tag, TagSource, UploadStatus, Sermon, SermonSummarySource
 from tsh.schemas import (
     camelcase,
     series_schema,
@@ -251,6 +251,7 @@ def test_sermon_schema_load():
         "processedAt": "2026-10-01T12:30:00",
         "youtubeVideoId": None,
         "transcriptSegments": None,
+        "summarySource": None,
     })
     processed_sermon = sermon_schema.load(data)
     assert processed_sermon.processed_at == datetime(2026, 10, 1, 12, 30)
@@ -269,6 +270,50 @@ def test_sermon_schema_load():
     with pytest.raises(ValidationError) as exc_info:
         sermon_schema.load(data)
     assert "processedAt" in exc_info.value.messages
+
+
+def sermon_data(**overrides):
+    return {
+        "id": 1,
+        "title": "Bold Faith",
+        "videoLink": "https://youtu.be/test",
+        "duration": 2500,
+        "date": "2026-01-19",
+        "description": "A sermon about faith",
+        "tags": [],
+        "speaker": {
+            "id": 1,
+            "firstName": "Dave",
+            "lastName": "Patterson",
+            "role": "Lead Speaker",
+        },
+        "series": None,
+        "status": "Published",
+        "summary": "Test summary",
+        **overrides,
+    }
+
+
+@pytest.mark.parametrize(
+    ("value", "source"),
+    [
+        ("ai", SermonSummarySource.AI),
+        ("manual", SermonSummarySource.MANUAL),
+        (None, None),
+    ],
+)
+def test_sermon_schema_summary_source(value, source):
+    """Origin is server-owned; responses expose the stored value."""
+    sermon = sermon_schema.load(sermon_data(summarySource=value))
+    assert sermon.summary_source is None
+    sermon.summary_source = source
+    assert sermon_schema.dump(sermon)["summarySource"] == value
+
+
+@pytest.mark.parametrize("value", ["human", "AI", ""])
+def test_sermon_schema_ignores_client_summary_source(value):
+    sermon = sermon_schema.load(sermon_data(summarySource=value))
+    assert sermon.summary_source is None
 
 
 def test_sermon_schema_load_null_series():

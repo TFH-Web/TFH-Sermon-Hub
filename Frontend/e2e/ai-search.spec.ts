@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
+import { sermons } from './data';
 
 // Example API result used by the tests.
 const result = {
@@ -61,9 +62,9 @@ test('submits filters and displays highlighted search results', async ({
 	const card = page.locator('.AISearchPreviewCard');
 	await expect(card.getByRole('heading', { name: result.title })).toBeVisible();
 	await expect(card).toContainText(result.speaker);
-	await expect(card).toContainText(result.date);
+	await expect(card).toContainText('Sep 27, 2026'); // Display the intended calendar day in the formatted date.
 	await expect(card).toContainText(result.series);
-	await expect(card).toContainText('97% match');
+	await expect(card).not.toContainText('% match'); // Retrieval scores must not appear as confidence percentages.
 	await expect(card.locator('mark')).toHaveText('anxiety');
 });
 
@@ -208,4 +209,329 @@ test('shows a request error and recovers when Retry is clicked', async ({
 	// Successful retry should replace the error with returned results.
 	await expect(page.getByRole('heading', { name: result.title })).toBeVisible();
 	await expect(page.locator('.ErrorBox')).toHaveCount(0);
+});
+
+// Return predictable pages for URL and browser-history tests.
+async function mockPagedSearch(page: Page) {
+	await page.route(isSearch, route => {
+		const url = new URL(route.request().url());
+		const currentPage = Number(url.searchParams.get('page') ?? 1);
+		const query = url.searchParams.get('q') ?? '';
+
+		return route.fulfill({
+			json: {
+				items: [
+					{
+						...result,
+						title: `${query} page ${currentPage}`,
+					},
+				],
+				page: currentPage,
+				pageSize: 6,
+				total: 7,
+				totalPages: 2,
+			},
+		});
+	});
+}
+
+test('direct search URLs restore filters and page after reload', async ({
+	page,
+}) => {
+	await mockPagedSearch(page);
+
+	const search = new URLSearchParams({
+		q: 'anxiety',
+		type: 'sermon',
+		speaker: 'Dave Patterson',
+		date: '7d',
+		page: '2',
+	});
+
+	await page.goto(`/ai-search?${search}`);
+
+	for (const reload of [false, true]) {
+		if (reload) {
+			await page.reload();
+		}
+
+		await expect(page.getByPlaceholder(inputPlaceholder)).toHaveValue(
+			'anxiety',
+		);
+		await expect(page.locator('.SearchFilters-select')).toHaveValue(
+			'Dave Patterson',
+		);
+		await expect(page.locator('.SearchFilters-pill--active')).toHaveText(
+			'Sermons',
+		);
+		await expect(page.locator('.SearchDateDropdown-trigger')).toContainText(
+			'7 Days',
+		);
+		await expect(page.getByText('Page 2 of 2')).toBeVisible();
+		await expect(
+			page.getByRole('heading', { name: 'anxiety page 2' }),
+		).toBeVisible();
+	}
+});
+
+test('filter changes reset pages and Back/Forward restore search state', async ({
+	page,
+}) => {
+	await mockPagedSearch(page);
+	await page.goto('/ai-search?q=anxiety&page=1');
+
+	await expect(page.getByText('Page 1 of 2')).toBeVisible();
+	await page.getByRole('button', { name: 'Next page' }).click();
+	await expect(page.getByText('Page 2 of 2')).toBeVisible();
+
+	await page
+		.locator('.SearchFilters-pills')
+		.getByRole('button', { name: 'Transcripts', exact: true })
+		.click();
+
+	await expect(page.getByText('Page 1 of 2')).toBeVisible();
+	expect(new URL(page.url()).searchParams.get('type')).toBe('transcript');
+	expect(new URL(page.url()).searchParams.get('page')).toBe('1');
+
+	// Back restores the previous page and filter.
+	await page.goBack();
+	await expect(page.getByText('Page 2 of 2')).toBeVisible();
+	await expect(page.locator('.SearchFilters-pill--active')).toHaveText('All');
+
+	await page.goForward();
+	await expect(page.getByText('Page 1 of 2')).toBeVisible();
+	await expect(page.locator('.SearchFilters-pill--active')).toHaveText(
+		'Transcripts',
+	);
+
+	// A different submitted query also starts at page one.
+	await page.getByPlaceholder(inputPlaceholder).fill('hope');
+	await page.getByRole('button', { name: 'Search', exact: true }).click();
+
+	await expect(
+		page.getByRole('heading', { name: 'hope page 1' }),
+	).toBeVisible();
+	expect(new URL(page.url()).searchParams.get('q')).toBe('hope');
+	expect(new URL(page.url()).searchParams.get('page')).toBe('1');
+});
+
+// Both search URLs should show the same results and preserve filters.
+for (const path of ['/ai-search', '/ai-search/results']) {
+	test(`${path} preserves the search when opening a direct link`, async ({
+		page,
+	}) => {
+		await mockPagedSearch(page);
+
+		const search = new URLSearchParams({
+			q: 'hope',
+			type: 'sermon',
+			speaker: 'Dave Patterson',
+			date: '7d',
+			page: '2',
+		});
+
+		await page.goto(`${path}?${search}`);
+
+		// The older route redirects to the shared search page.
+		await expect(page).toHaveURL(/\/ai-search\?/);
+		await expect(
+			page.getByRole('heading', { name: 'hope page 2' }),
+		).toBeVisible();
+
+		// The query, filters, and page survive navigation.
+		const url = new URL(page.url());
+		for (const [key, value] of search) {
+			expect(url.searchParams.get(key)).toBe(value);
+		}
+	});
+}
+
+test('a delayed old search cannot replace newer results', async ({ page }) => {
+	await mockPagedSearch(page);
+
+	let releaseOld!: () => void;
+	const oldResponseGate = new Promise<void>(resolve => {
+		releaseOld = resolve;
+	});
+
+	let finishOld!: () => void;
+	const oldResponseFinished = new Promise<void>(resolve => {
+		finishOld = resolve;
+	});
+
+	// Hold the first search while allowing newer searches to finish.
+	await page.route(isSearch, async route => {
+		const url = new URL(route.request().url());
+
+		if (url.searchParams.get('q') !== 'slow') {
+			await route.fallback();
+			return;
+		}
+
+		await oldResponseGate;
+
+		try {
+			await route.fulfill({
+				json: [{ ...result, title: 'Outdated search result' }],
+			});
+		} catch {
+			// A newer search may have already cancelled this request.
+		} finally {
+			finishOld();
+		}
+	});
+
+	const oldRequest = page.waitForRequest(request => {
+		const url = new URL(request.url());
+		return isSearch(url) && url.searchParams.get('q') === 'slow';
+	});
+
+	await page.goto('/ai-search?q=slow');
+	await oldRequest;
+
+	try {
+		// Submit a new search before the old response arrives.
+		await page.getByPlaceholder(inputPlaceholder).fill('hope');
+		await page.getByRole('button', { name: 'Search', exact: true }).click();
+
+		await expect(
+			page.getByRole('heading', { name: 'hope page 1' }),
+		).toBeVisible();
+	} finally {
+		releaseOld();
+	}
+
+	await oldResponseFinished;
+
+	// The newer results remain after the older request finishes.
+	await expect(
+		page.getByRole('heading', { name: 'hope page 1' }),
+	).toBeVisible();
+	await expect(
+		page.getByRole('heading', { name: 'Outdated search result' }),
+	).toHaveCount(0);
+});
+
+// Exercise the final TFH-462 source contract through both entry routes.
+for (const path of ['/ai-search', '/ai-search/results']) {
+	for (const source of [
+		{
+			name: 'fractional source',
+			start: 75.5,
+			chunk: 481,
+			video: 'F_OiCiZ3Y3Y',
+			query: '?t=75.5',
+		},
+		{
+			name: 'zero-second source',
+			start: 0,
+			chunk: 481,
+			video: 'F_OiCiZ3Y3Y',
+			query: '?t=0',
+		},
+		{
+			name: 'metadata-only result',
+			start: null,
+			chunk: null,
+			video: 'F_OiCiZ3Y3Y',
+			query: '',
+		},
+		{
+			name: 'unavailable video source',
+			start: 75.5,
+			chunk: 481,
+			video: null,
+			query: '',
+		},
+	]) {
+		test(`${path} opens ${source.name} without inventing a timestamp`, async ({
+			page,
+		}) => {
+			await page.route('https://www.youtube.com/**', route => route.abort());
+			await page.route(isSearch, route =>
+				route.fulfill({
+					json: {
+						items: [
+							{
+								...result,
+								chunk_id: source.chunk,
+								start_sec: source.start,
+								end_sec: source.start === null ? null : 91.25,
+								youtube_video_id: source.video,
+								video_link: source.video
+									? `https://www.youtube.com/watch?v=${source.video}`
+									: null,
+							},
+						],
+						total: 1,
+						page: 1,
+						pageSize: 6,
+						totalPages: 1,
+					},
+				}),
+			);
+			await page.route('**/api/sermons**', route => {
+				const pathname = new URL(route.request().url()).pathname;
+				const sermon = {
+					...sermons[0],
+					id: 42,
+					title: result.title,
+					videoLink: 'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y',
+				};
+				if (pathname === '/api/sermons')
+					return route.fulfill({ json: [sermon] });
+				if (pathname === '/api/sermons/42')
+					return route.fulfill({ json: sermon });
+				if (pathname === '/api/sermons/42/transcript')
+					return route.fulfill({ json: { transcript: null, segments: [] } });
+				return route.abort();
+			});
+			await page.goto(`${path}?q=grace`);
+			await page.locator('.AISearchPreviewCard-open').click();
+			await expect(page).toHaveURL(
+				`http://localhost:5173/sermons/42${source.query}`,
+			);
+			await expect(
+				page.getByRole('heading', {
+					name: result.title,
+					level: 1,
+					exact: true,
+				}),
+			).toBeVisible();
+		});
+	}
+}
+
+test('opening chat from a timed search result sends only the sermon ID', async ({
+	page,
+}) => {
+	await page.route(isSearch, route =>
+		route.fulfill({
+			json: {
+				items: [
+					{
+						...result,
+						chunk_id: 481,
+						start_sec: 75.5,
+						end_sec: 91.25,
+						youtube_video_id: 'F_OiCiZ3Y3Y',
+						video_link: 'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y',
+					},
+				],
+				total: 1,
+				page: 1,
+				pageSize: 6,
+				totalPages: 1,
+			},
+		}),
+	);
+	await page.goto('/ai-search?q=grace');
+	await page
+		.getByRole('button', {
+			name: `Open AI chat for ${result.title}`,
+			exact: true,
+		})
+		.click();
+	await expect(page).toHaveURL(/\/ai-chat\?/);
+	expect(new URL(page.url()).searchParams.get('sermonId')).toBe('42');
 });

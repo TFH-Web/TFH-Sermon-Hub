@@ -1,5 +1,5 @@
 import './RecentSermonsTable.css';
-import { formatDate } from '$/lib/date';
+import { formatCalendarDate } from '$/lib/date';
 import { linkTo, type Sermon, statusVariant } from '$/types/sermon';
 import { getFullName } from '$/types/speaker';
 import Button from './Button';
@@ -106,7 +106,7 @@ export default function RecentSermonsTable({
 								</td>
 								<td>
 									<a href={linkTo(s)}>
-										{formatDate(s.date, { month: 'short', day: 'numeric' })}
+										{formatCalendarDate(s.date, 'monthDay')}
 									</a>
 								</td>
 								<td>

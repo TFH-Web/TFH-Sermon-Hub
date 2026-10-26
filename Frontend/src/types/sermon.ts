@@ -1,5 +1,6 @@
 import z from 'zod';
 import type { TagVariant } from '$/components/Tag';
+import { CalendarDate } from '$/lib/date';
 import { paginated } from './pagination';
 import { Series } from './series';
 import { Speaker } from './speaker';
@@ -24,10 +25,10 @@ export type SummaryRegenState = z.infer<typeof SummaryRegenState>;
 export const Sermon = z.object({
 	id: z.number(),
 	title: z.string().nonempty(),
-	videoLink: z.string(), // Legacy text remains readable; validated builders alone may create links.
+	videoLink: z.string(), // Keep legacy text readable; shared builders decide whether it is safe to link.
 	youtubeVideoId: z.string().nullish(), // Keep the stored ID so the frontend can check it against the link.
 	duration: z.number().nonnegative(),
-	date: z.coerce.date(),
+	date: CalendarDate,
 	description: z.string().nonempty(),
 	tags: Tag.array(),
 	transcript: z.string().nullish(),

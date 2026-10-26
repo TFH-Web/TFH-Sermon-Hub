@@ -1,6 +1,7 @@
 import './SermonCard.css';
 import { Icon } from '@iconify-icon/react';
 import clsx from 'clsx';
+import { formatCalendarDate, toCalendarDateString } from '$/lib/date';
 import {
 	createOverlayInfo,
 	durationToDateTime,
@@ -10,6 +11,7 @@ import {
 } from '$/types/sermon';
 import { getFullName } from '$/types/speaker';
 import Container from './Container';
+import SermonTag from './SermonTag';
 import Tag from './Tag';
 
 export interface SermonCardProps {
@@ -30,8 +32,11 @@ export default function SermonCard({ className, sermon }: SermonCardProps) {
 
 			<div className="SermonCard-info">
 				<p className="SermonCard-speaker">{getFullName(sermon.speaker)}</p>
-				<time className="SermonCard-date" dateTime={sermon.date.toISOString()}>
-					{formatDate(sermon.date)}
+				<time
+					className="SermonCard-date"
+					dateTime={toCalendarDateString(sermon.date)}
+				>
+					{formatCalendarDate(sermon.date)}
 				</time>
 			</div>
 
@@ -63,24 +68,11 @@ export default function SermonCard({ className, sermon }: SermonCardProps) {
 			</div>
 
 			<div className="SermonCard-tags">
-				{sermon.tags
-					.map(t => t.name)
-					.map(tag => (
-						<Tag key={tag} variant="solid">
-							{tag}
-						</Tag>
-					))}
+				{/* Preserve each tag's saved origin when displaying it. */}
+				{sermon.tags.map(tag => (
+					<SermonTag key={tag.name} tag={tag} />
+				))}
 			</div>
 		</Container>
 	);
-}
-
-function formatDate(date: Date): string {
-	const formatter = Intl.DateTimeFormat('en-US', {
-		month: 'short',
-		day: 'numeric',
-		year: 'numeric',
-		timeZone: 'UTC',
-	});
-	return formatter.format(date);
 }

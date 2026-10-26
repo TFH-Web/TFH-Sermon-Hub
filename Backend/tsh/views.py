@@ -608,7 +608,7 @@ def reprocess_sermon(id: int):
 @api.post("/sermons/<int:id>/regenerate-summary")
 @require_role("Admin")
 def regenerate_sermon_summary(id: int):
-    """Regenerate the AI summary for a sermon, if it is published and not already regenerating. 
+    """Regenerate the AI summary for a sermon, if it is published and not already regenerating.
 
     The request is tracked on the sermon: summaryRegenState goes queued, running, then completed or failed
     (with summaryRegenError), so any tab or a reloaded page can read it back from the sermon.

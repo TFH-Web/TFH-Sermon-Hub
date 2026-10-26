@@ -521,6 +521,7 @@ def _create_sermon(
         **_synced_fields(video, duration),
         transcript=None,
         summary=None,
+        summary_source=None,
         speaker_id=None,
         series_id=None,
         speaker=speaker,

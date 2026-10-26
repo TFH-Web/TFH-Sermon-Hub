@@ -194,3 +194,656 @@ test('queued completion refreshes the transcript after the sermon status changes
 		page.getByRole('button', { name: 'Refresh captions', exact: true }),
 	).toBeEnabled();
 });
+
+// Use a controlled player without making real YouTube requests.
+async function mockVideoPlayer(page: Page, autoReady = true) {
+	await page.addInitScript(autoReady => {
+		let canStart = autoReady;
+		const waiting: Array<() => void> = [];
+
+		// Let a test decide when the player finishes loading.
+		window.addEventListener('test-player-ready', () => {
+			canStart = true;
+
+			for (const ready of waiting.splice(0)) {
+				ready();
+			}
+		});
+
+		Object.assign(window, {
+			YT: {
+				Player: class {
+					private iframe: HTMLIFrameElement;
+
+					constructor(
+						container: HTMLElement,
+						options: {
+							playerVars?: {
+								start?: number;
+							};
+							events: {
+								onReady: (event: { target: unknown }) => void;
+								onError?: (event: { target: unknown; data: number }) => void;
+							};
+						},
+					) {
+						this.iframe = document.createElement('iframe');
+						this.iframe.dataset.testid = 'test-video-player';
+
+						// Record the initial position supplied by the page.
+						this.iframe.dataset.startTime = String(
+							options.playerVars?.start ?? 0,
+						);
+						container.replaceChildren(this.iframe);
+						// Let tests simulate an unavailable video.
+						this.iframe.addEventListener('test-player-error', () => {
+							options.events.onError?.({ target: this, data: 100 });
+						});
+
+						const ready = () => {
+							options.events.onReady({ target: this });
+						};
+
+						// Automatically load, or wait for the test's signal.
+						if (canStart) {
+							setTimeout(ready, 0);
+						} else {
+							waiting.push(ready);
+						}
+					}
+
+					getIframe() {
+						return this.iframe;
+					}
+
+					seekTo(seconds: number) {
+						// Record the exact requested timestamp.
+						this.iframe.dataset.seekTime = String(seconds);
+					}
+
+					playVideo() {
+						this.iframe.dataset.playing = 'true';
+					}
+
+					destroy() {
+						this.iframe.remove();
+					}
+				},
+			},
+		});
+	}, autoReady);
+}
+
+// Check mouse and keyboard activation using the same caption data.
+for (const activation of ['click', 'Enter'] as const) {
+	test(`timestamp seeks the embedded video using ${activation}`, async ({
+		page,
+	}) => {
+		await mockVideoPlayer(page);
+		await captionRoutes(page);
+		await page.goto('/sermons/1');
+
+		await page.getByRole('button', { name: 'Timestamps', exact: true }).click();
+
+		const cue = page.getByRole('link', { name: 'Watch from 0:01' });
+		const player = page.getByTestId('test-video-player');
+
+		if (activation === 'click') {
+			await cue.click();
+		} else {
+			await cue.focus();
+			await cue.press('Enter');
+		}
+
+		// Seek to the actual cue start, including fractional seconds.
+		await expect(player).toHaveAttribute('data-seek-time', '1.25');
+		await expect(player).toHaveAttribute('data-playing', 'true');
+
+		// The source link remains available for external navigation.
+		await expect(cue).toHaveAttribute(
+			'href',
+			'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y&t=1s',
+		);
+		expect(page.context().pages()).toHaveLength(1);
+	});
+}
+
+// Source links should set the initial position and preserve exact seek times.
+for (const seconds of ['30.5', '0']) {
+	test(`source link starts the video at ${seconds} seconds`, async ({
+		page,
+	}) => {
+		await mockVideoPlayer(page);
+		await captionRoutes(page);
+
+		await page.goto(`/sermons/1?t=${seconds}`);
+
+		const player = page.getByTestId('test-video-player');
+
+		// YouTube's initial start setting uses whole seconds.
+		await expect(player).toHaveAttribute(
+			'data-start-time',
+			String(Math.floor(Number(seconds))),
+		);
+
+		// The ready callback keeps the exact timestamp.
+		await expect(player).toHaveAttribute('data-seek-time', seconds);
+		await expect(player).toHaveAttribute('data-playing', 'true');
+	});
+}
+
+test('invalid source timestamp does not request a seek', async ({ page }) => {
+	await mockVideoPlayer(page);
+	await captionRoutes(page);
+
+	await page.goto('/sermons/1?t=invalid');
+
+	const player = page.getByTestId('test-video-player');
+
+	await expect(player).toBeVisible();
+	await expect(player).toHaveAttribute('data-start-time', '0');
+	await expect(player).not.toHaveAttribute('data-seek-time');
+});
+
+test('switching sermons clears the previous source timestamp', async ({
+	page,
+}) => {
+	await mockVideoPlayer(page);
+	const state = await captionRoutes(page);
+
+	// Provide a second sermon for navigation without reloading the app.
+	const secondSermon = {
+		...state.sermon,
+		id: 2,
+		title: 'Second timestamp test sermon',
+	};
+
+	await page.route('**/api/sermons/2', route =>
+		route.fulfill({ json: secondSermon }),
+	);
+
+	await page.route('**/api/sermons/2/transcript', route =>
+		route.fulfill({
+			json: {
+				transcript: secondSermon.transcript,
+				segments: state.segments,
+			},
+		}),
+	);
+
+	await page.goto('/sermons/1?t=30.5');
+
+	const player = page.getByTestId('test-video-player');
+
+	// Confirm the first sermon received its requested timestamp.
+	await expect(player).toHaveAttribute('data-seek-time', '30.5');
+
+	// Change the route without refreshing the browser.
+	await page.evaluate(() => {
+		window.history.pushState({}, '', '/sermons/2');
+		window.dispatchEvent(new PopStateEvent('popstate'));
+	});
+
+	await expect(
+		page.getByRole('heading', {
+			name: secondSermon.title,
+			level: 1,
+			exact: true,
+		}),
+	).toBeVisible();
+
+	// Confirm the replacement player belongs to the second sermon.
+	await expect(player).toHaveAttribute('title', secondSermon.title);
+
+	// The old sermon's requested timestamp must not carry over.
+	await expect(player).toHaveAttribute('data-start-time', '0');
+	await expect(player).not.toHaveAttribute('data-seek-time');
+});
+
+test('the latest timestamp click waits until the player is ready', async ({
+	page,
+}) => {
+	// Keep the player loading while the user selects timestamps.
+	await mockVideoPlayer(page, false);
+	await captionRoutes(page);
+	await page.goto('/sermons/1');
+
+	const player = page.getByTestId('test-video-player');
+	await expect(player).toBeVisible();
+
+	await page.getByRole('button', { name: 'Timestamps', exact: true }).click();
+
+	// A later click should replace the earlier waiting timestamp.
+	await page.getByRole('link', { name: 'Watch from 0:01' }).click();
+	await page.getByRole('link', { name: 'Watch from 0:03' }).click();
+
+	await expect(player).not.toHaveAttribute('data-seek-time');
+	expect(page.context().pages()).toHaveLength(1);
+
+	// Finish loading and check that the latest exact timestamp is used.
+	await page.evaluate(() => {
+		window.dispatchEvent(new Event('test-player-ready'));
+	});
+
+	await expect(player).toHaveAttribute('data-seek-time', '3.5');
+	await expect(player).toHaveAttribute('data-playing', 'true');
+});
+
+// Provide another sermon for player-reset tests.
+async function captionRoutesWithSecondSermon(page: Page) {
+	const state = await captionRoutes(page);
+	const secondSermon = {
+		...state.sermon,
+		id: 2,
+		title: 'Second timestamp test sermon',
+	};
+
+	await page.route('**/api/sermons/2', route =>
+		route.fulfill({ json: secondSermon }),
+	);
+
+	await page.route('**/api/sermons/2/transcript', route =>
+		route.fulfill({
+			json: {
+				transcript: secondSermon.transcript,
+				segments: state.segments,
+			},
+		}),
+	);
+
+	return secondSermon;
+}
+
+test('unavailable videos retain the external fallback and errors reset on navigation', async ({
+	page,
+	context,
+}) => {
+	await mockVideoPlayer(page);
+	const secondSermon = await captionRoutesWithSecondSermon(page);
+
+	// Keep the external-link check independent of YouTube availability.
+	await context.route('https://www.youtube.com/watch?**', route =>
+		route.fulfill({
+			contentType: 'text/html',
+			body: '<html><title>Source video fallback</title></html>',
+		}),
+	);
+
+	await page.goto('/sermons/1');
+	const player = page.getByTestId('test-video-player');
+
+	// Wait for the current player before simulating its failure.
+	await expect(player).toHaveAttribute('title', 'Caption test sermon');
+	await player.dispatchEvent('test-player-error');
+
+	const errorMessage =
+		'This video could not be loaded. It may be unavailable or embedding may be disabled.';
+
+	await expect(page.getByText(errorMessage, { exact: true })).toBeVisible();
+
+	await page.getByRole('button', { name: 'Timestamps', exact: true }).click();
+
+	// A failed embedded player should allow the source link to open.
+	const popupPromise = page.waitForEvent('popup');
+	await page.getByRole('link', { name: 'Watch from 0:01' }).click();
+	const popup = await popupPromise;
+
+	await expect(popup).toHaveURL(
+		'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y&t=1s',
+	);
+	await popup.close();
+
+	// Switching sermons must clear the previous video's error.
+	await page.evaluate(() => {
+		window.history.pushState({}, '', '/sermons/2');
+		window.dispatchEvent(new PopStateEvent('popstate'));
+	});
+
+	await expect(player).toHaveAttribute('title', secondSermon.title);
+	await expect(page.getByText(errorMessage, { exact: true })).toHaveCount(0);
+
+	// The replacement player should still respond to transcript clicks.
+	await page.getByRole('button', { name: 'Timestamps', exact: true }).click();
+	await page.getByRole('link', { name: 'Watch from 0:03' }).click();
+
+	await expect(player).toHaveAttribute('data-seek-time', '3.5');
+});
+
+test('switching sermons discards a timestamp waiting for player readiness', async ({
+	page,
+}) => {
+	await mockVideoPlayer(page, false);
+	const secondSermon = await captionRoutesWithSecondSermon(page);
+
+	await page.goto('/sermons/1?t=30.5');
+	const player = page.getByTestId('test-video-player');
+
+	await expect(player).toBeVisible();
+
+	// Leave the first sermon before its player finishes loading.
+	await page.evaluate(() => {
+		window.history.pushState({}, '', '/sermons/2');
+		window.dispatchEvent(new PopStateEvent('popstate'));
+	});
+
+	await expect(
+		page.getByRole('heading', {
+			name: secondSermon.title,
+			level: 1,
+			exact: true,
+		}),
+	).toBeVisible();
+
+	// Release any waiting players, including the replacement player.
+	await page.evaluate(() => {
+		window.dispatchEvent(new Event('test-player-ready'));
+	});
+
+	await expect(player).toHaveAttribute('title', secondSermon.title);
+	await expect(player).toHaveAttribute('data-start-time', '0');
+	await expect(player).not.toHaveAttribute('data-seek-time');
+});
+
+test('editing shows saved tag origins without labeling unsaved changes', async ({
+	page,
+}) => {
+	const state = await captionRoutes(page);
+	state.sermon.tags = [
+		{ name: 'grace', source: 'ai', count: 1 },
+		{ name: 'faith', source: 'manual', count: 1 },
+	];
+
+	await page.goto('/sermons/1');
+	await page.getByRole('button', { name: 'Edit', exact: true }).click();
+
+	const dialog = page.getByRole('dialog');
+	const savedTags = dialog.getByRole('region', {
+		name: 'Saved tag origins',
+	});
+
+	// Only the saved AI tag receives an AI label.
+	await expect(savedTags).toContainText('grace · AI Generated');
+	await expect(savedTags).toContainText('faith');
+	await expect(savedTags).not.toContainText('faith · AI Generated');
+
+	// Editing the input must not invent a saved origin for new text.
+	await dialog.getByPlaceholder('grace, faith, hope').fill('new-unsaved-tag');
+
+	await expect(savedTags).not.toContainText('new-unsaved-tag');
+
+	// Cancelling leaves the displayed saved tags unchanged.
+	await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+	await expect(dialog).toHaveCount(0);
+
+	const detailTags = page.locator('.SermonDetail-tags');
+	await expect(detailTags).toContainText('grace · AI Generated');
+	await expect(detailTags).toContainText('faith');
+	await expect(detailTags).not.toContainText('new-unsaved-tag');
+});
+
+// Invalid links and mismatched IDs must not produce playable or clickable links.
+for (const scenario of [
+	{
+		name: 'invalid saved video link',
+		videoLink: 'https://www.youtube.com.evil.example/watch?v=F_OiCiZ3Y3Y',
+		youtubeVideoId: null,
+	},
+	{
+		name: 'stored ID disagrees with the saved link',
+		videoLink: 'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y',
+		youtubeVideoId: 'abcdefghijk',
+	},
+	{
+		name: 'legacy JavaScript URL',
+		videoLink: 'javascript:alert(1)',
+		youtubeVideoId: null,
+	},
+	{
+		name: 'legacy malformed URL',
+		videoLink: 'not a video URL',
+		youtubeVideoId: null,
+	},
+]) {
+	test(`${scenario.name} displays a safe unavailable state`, async ({
+		page,
+	}) => {
+		await mockVideoPlayer(page);
+		const state = await captionRoutes(page);
+
+		Object.assign(state.sermon, {
+			videoLink: scenario.videoLink,
+			youtubeVideoId: scenario.youtubeVideoId,
+		});
+
+		await page.goto('/sermons/1');
+
+		// The page stays readable without creating a video player.
+		await expect(page.locator('.SermonDetail-player')).toContainText(
+			'Invalid YouTube video link',
+		);
+		await expect(page.getByTestId('test-video-player')).toHaveCount(0);
+		await expect(
+			page.getByRole('link', { name: 'Watch', exact: true }),
+		).toHaveCount(0);
+
+		// Metadata must not expose the unsafe or mismatched address.
+		await expect(page.locator('.SermonDetail-metadata-link')).toHaveCount(0);
+		await expect(page.locator('.SermonDetail-metadata')).toContainText(
+			'Video unavailable',
+		);
+
+		await page.getByRole('button', { name: 'Timestamps', exact: true }).click();
+
+		const transcript = page.getByRole('region', {
+			name: 'Sermon transcript',
+		});
+
+		// Keep caption text and times, but remove source links.
+		await expect(transcript).toContainText('Welcome to church.');
+		await expect(transcript).toContainText('God is good.');
+		await expect(transcript.getByRole('link')).toHaveCount(0);
+		await expect(
+			transcript.getByTitle('Video unavailable', { exact: true }),
+		).toHaveCount(2);
+	});
+}
+
+test('an older record without a stored ID still plays and seeks', async ({
+	page,
+}) => {
+	await mockVideoPlayer(page);
+	const state = await captionRoutes(page);
+
+	// This older record has a supported short link and no stored ID.
+	state.sermon.videoLink = 'https://youtu.be/F_OiCiZ3Y3Y?si=legacy';
+
+	await page.goto('/sermons/1');
+
+	const player = page.getByTestId('test-video-player');
+	await expect(player).toBeVisible();
+
+	// Display a canonical link built from the validated ID.
+	const watchUrl = 'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y';
+
+	await expect(
+		page.getByRole('link', { name: 'Watch', exact: true }),
+	).toHaveAttribute('href', watchUrl);
+	await expect(page.locator('.SermonDetail-metadata-link')).toHaveAttribute(
+		'href',
+		watchUrl,
+	);
+
+	await page.getByRole('button', { name: 'Timestamps', exact: true }).click();
+
+	const cue = page.getByRole('link', { name: 'Watch from 0:01' });
+	await expect(cue).toHaveAttribute('href', `${watchUrl}&t=1s`);
+
+	// Embedded seeking keeps the original fractional timestamp.
+	await cue.click();
+	await expect(player).toHaveAttribute('data-seek-time', '1.25');
+	await expect(player).toHaveAttribute('data-playing', 'true');
+	expect(page.context().pages()).toHaveLength(1);
+});
+
+// Summary labels follow saved origin metadata, including while editing.
+for (const scenario of [
+	{ name: 'AI', source: 'ai', expectedLabels: 1 },
+	{ name: 'manual', source: 'manual', expectedLabels: 0 },
+	{ name: 'unknown', source: null, expectedLabels: 0 },
+	{ name: 'missing', source: undefined, expectedLabels: 0 },
+]) {
+	test(`${scenario.name} summary origin displays truthfully while editing`, async ({
+		page,
+	}) => {
+		await mockVideoPlayer(page);
+		const state = await captionRoutes(page);
+
+		Object.assign(state.sermon, {
+			summary: 'A saved summary about grace.',
+			summarySource: scenario.source,
+		});
+
+		await page.goto('/sermons/1');
+
+		// Scope the check to summaries, excluding unrelated AI tag labels.
+		const summary = page.locator('.SermonDetail-summary');
+		const label = summary.getByText('AI Generated', { exact: true });
+
+		await expect(summary).toContainText('A saved summary about grace.');
+		await expect(label).toHaveCount(scenario.expectedLabels);
+
+		await summary
+			.getByRole('button', { name: 'Edit Summary Manually', exact: true })
+			.click();
+
+		const editor = summary.getByRole('textbox');
+		await expect(editor).toHaveValue('A saved summary about grace.');
+
+		// Unsaved typing must not change the saved origin label.
+		await editor.fill('An unsaved summary edit.');
+		await expect(label).toHaveCount(scenario.expectedLabels);
+
+		// A reload restores the saved content and its original label.
+		await page.reload();
+
+		await expect(summary).toContainText('A saved summary about grace.');
+		await expect(summary).not.toContainText('An unsaved summary edit.');
+		await expect(label).toHaveCount(scenario.expectedLabels);
+	});
+}
+
+test('an empty summary does not display an AI origin label', async ({
+	page,
+}) => {
+	await mockVideoPlayer(page);
+	const state = await captionRoutes(page);
+
+	Object.assign(state.sermon, {
+		summary: '',
+		summarySource: 'ai',
+	});
+
+	await page.goto('/sermons/1');
+
+	const summary = page.locator('.SermonDetail-summary');
+
+	await expect(summary).toContainText('No summary yet.');
+	await expect(summary.getByText('AI Generated', { exact: true })).toHaveCount(
+		0,
+	);
+});
+
+test('cancelling a summary edit preserves saved content and origin', async ({
+	page,
+}) => {
+	await mockVideoPlayer(page);
+	const state = await captionRoutes(page);
+
+	Object.assign(state.sermon, {
+		summary: 'Previously saved AI summary.',
+		summarySource: 'ai',
+	});
+
+	let saveRequests = 0;
+
+	page.on('request', request => {
+		if (
+			new URL(request.url()).pathname === '/api/sermons/1' &&
+			request.method() === 'PATCH'
+		) {
+			saveRequests += 1;
+		}
+	});
+
+	await page.goto('/sermons/1');
+
+	const summary = page.locator('.SermonDetail-summary');
+	const label = summary.getByText('AI Generated', { exact: true });
+
+	await expect(label).toBeVisible();
+
+	await summary
+		.getByRole('button', { name: 'Edit Summary Manually', exact: true })
+		.click();
+
+	await summary.getByRole('textbox').fill('An edit that should be discarded.');
+	await summary.getByRole('button', { name: 'Cancel', exact: true }).click();
+
+	// Cancel must not send a save request or change the saved origin.
+	await expect(summary.getByRole('textbox')).toHaveCount(0);
+	await expect(summary).toContainText('Previously saved AI summary.');
+	await expect(summary).not.toContainText('An edit that should be discarded.');
+	await expect(label).toBeVisible();
+	expect(saveRequests).toBe(0);
+});
+
+test('a failed summary save preserves saved content and origin', async ({
+	page,
+}) => {
+	await mockVideoPlayer(page);
+	const state = await captionRoutes(page);
+
+	Object.assign(state.sermon, {
+		summary: 'Previously saved AI summary.',
+		summarySource: 'ai',
+	});
+
+	// Reject only the save; existing mocked GET requests still work.
+	await page.route('**/api/sermons/1', async route => {
+		if (route.request().method() !== 'PATCH') {
+			await route.fallback();
+			return;
+		}
+
+		await route.fulfill({
+			status: 500,
+			json: { error: 'Test summary save failure' },
+		});
+	});
+
+	await page.goto('/sermons/1');
+
+	const summary = page.locator('.SermonDetail-summary');
+	const label = summary.getByText('AI Generated', { exact: true });
+
+	await summary
+		.getByRole('button', { name: 'Edit Summary Manually', exact: true })
+		.click();
+
+	await summary.getByRole('textbox').fill('An edit that cannot be saved.');
+	await summary.getByRole('button', { name: 'Save', exact: true }).click();
+
+	await expect(
+		page.getByText('Test summary save failure', { exact: true }),
+	).toBeVisible();
+
+	// Failed saves must not replace the saved summary or its label.
+	await expect(summary).toContainText('Previously saved AI summary.');
+	await expect(label).toBeVisible();
+
+	await page.reload();
+
+	await expect(summary).toContainText('Previously saved AI summary.');
+	await expect(summary).not.toContainText('An edit that cannot be saved.');
+	await expect(label).toBeVisible();
+});

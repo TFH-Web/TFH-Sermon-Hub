@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 // Use the shared result type for cards displaying API search results.
 import type { AISearchVisibleResult } from '$/lib/aiSearch';
+import { formatCalendarDateString } from '$/lib/date';
 
 import type { AISearchResultPreview } from '$/types/aiSearch';
 import './AISearchPreviewCard.css';
@@ -80,9 +81,8 @@ export default function AISearchPreviewCard({
 
 	function handleChatClick(e: MouseEvent<HTMLButtonElement>) {
 		e.stopPropagation();
-		const sermonId = result.redirectTo.split('/').pop();
 		const params = new URLSearchParams({
-			...(sermonId ? { sermonId } : {}),
+			sermonId: result.sermonId,
 			title: result.title,
 			speaker: result.speaker,
 			date: result.date,
@@ -109,7 +109,8 @@ export default function AISearchPreviewCard({
 					<h2 className="AISearchPreviewCard-title">{result.title}</h2>
 
 					<p className="AISearchPreviewCard-meta">
-						{result.speaker} • {result.date} • {result.series}
+						{result.speaker} • {formatCalendarDateString(result.date)} •{' '}
+						{result.series}
 					</p>
 
 					<p className="AISearchPreviewCard-snippet">
@@ -122,10 +123,6 @@ export default function AISearchPreviewCard({
 					</p>
 
 					<div className="AISearchPreviewCard-tags">
-						<span className="AISearchPreviewCard-tag AISearchPreviewCard-tag--match">
-							{result.match}% match
-						</span>
-
 						<span className="AISearchPreviewCard-tag">
 							{result.contentType}
 						</span>
