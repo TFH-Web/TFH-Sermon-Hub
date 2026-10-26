@@ -130,6 +130,7 @@ def assert_preserved(app):
         assert sermon.title == "Test sermon"
         assert sermon.transcript == "Transcript"
         assert sermon.summary == "Summary"
+        assert sermon.summary_source is None
         assert sermon.speaker.last_name == "Speaker"
         assert sermon.series.title == "Test series"
         assert [tag.name for tag in sermon.tags] == ["faith"]
@@ -265,3 +266,22 @@ def test_legacy_down_then_up_recreates_schema(migration_app):
     with migration_app.app_context():
         populate(migration_app)
     assert migration_app.test_client().get("/api/sermons/1").status_code == 200
+
+
+@pytest.mark.parametrize("old_head", ["c47e9a02d6b1", "c6f028a7d913"])
+def test_summary_origin_and_regeneration_branches_upgrade_to_one_head(migration_app, old_head):
+    seed_baseline(migration_app)
+    with migration_app.app_context():
+        upgrade(directory=str(up.MIGRATIONS), revision=old_head)
+        if old_head == "c6f028a7d913":
+            with db.engine.begin() as connection:
+                connection.execute(text("UPDATE sermon SET summary_source='MANUAL' WHERE id=1"))
+        upgrade(directory=str(up.MIGRATIONS))
+        with db.engine.connect() as connection:
+            assert MigrationContext.configure(connection).get_current_heads() == ("e602c47a1025",)
+        sermon = db.session.get(Sermon, 1)
+        assert sermon.summary == "Summary"
+        assert sermon.summary_regen_state.value == "idle"
+        assert (sermon.summary_source.value if sermon.summary_source else None) == (
+            "manual" if old_head == "c6f028a7d913" else None
+        )

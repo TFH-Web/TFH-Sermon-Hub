@@ -41,6 +41,7 @@ const body = (id: number) => ({
 	speaker: { id: 1, firstName: 'Dave', lastName: 'Patterson' },
 	status: 'Published',
 	summary: `Saved summary ${id}`,
+	summarySource: undefined as 'ai' | 'manual' | null | undefined,
 	summaryRegenState: 'idle',
 });
 type Body = ReturnType<typeof body>;
@@ -87,7 +88,11 @@ const adapter: AxiosAdapter = async config => {
 			);
 		}
 		const id = Number(config.url?.split('/').at(-1));
-		records[id] = { ...records[id], summary: payload.summary };
+		records[id] = {
+			...records[id],
+			summary: payload.summary,
+			summarySource: payload.summary?.trim() ? 'manual' : null,
+		};
 		return reply(config, 200, records[id]);
 	}
 	if (config.url === '/api/sermons') {
@@ -154,6 +159,18 @@ afterEach(() => {
 });
 
 describe('manual summary editing on the sermon page', () => {
+	it.each([
+		'ai',
+		'manual',
+		null,
+		undefined,
+	] as const)('labels a summary only when its saved origin is known AI (%s)', async origin => {
+		records[1].summarySource = origin;
+		open();
+		await screen.findByRole('button', { name: 'Edit Summary Manually' });
+		expect(screen.queryByText('AI generated') !== null).toBe(origin === 'ai');
+	});
+
 	it('initializes from saved text, resets and cancels without writing', async () => {
 		open();
 		expect((await edit()).value).toBe('Saved summary 1');
@@ -207,6 +224,26 @@ describe('manual summary editing on the sermon page', () => {
 		await waitFor(() => expect(screen.queryByRole('textbox')).toBeNull());
 		expect(requests).toHaveLength(2);
 		expect(records[1].summary).toBe('Keep this draft');
+	});
+
+	it('removes the AI label only after a rewritten summary is saved successfully', async () => {
+		records[1].summarySource = 'ai';
+		saveStatus = 409;
+		const { client } = open();
+		await screen.findByText('AI generated');
+		await edit('Rewritten by a staff member');
+		fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+		await screen.findByRole('alert');
+		expect(screen.queryByText('AI generated')).not.toBeNull();
+		expect(records[1].summarySource).toBe('ai');
+
+		saveStatus = 200;
+		fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+		await waitFor(() => expect(screen.queryByRole('textbox')).toBeNull());
+		expect(client.getQueryData<Body>(['sermon', '1'])?.summarySource).toBe(
+			'manual',
+		);
+		expect(screen.queryByText('AI generated')).toBeNull();
 	});
 
 	it('prevents repeated saves and editing while the request is pending', async () => {

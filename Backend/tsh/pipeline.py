@@ -17,6 +17,7 @@ from tsh.models import (
     Sermon,
     SermonChunk,
     SermonChunkEmbedding,
+    SermonSummarySource,
     SummaryRegenState,
     UploadStatus,
     utcnow,
@@ -264,6 +265,7 @@ def summarize_sermon(sermon: Sermon, *, expected_run_id: str | None = None) -> N
     if expected_run_id is not None:
         _fence_summary_regeneration(sermon.id, expected_run_id)
     sermon.summary = summary
+    sermon.summary_source = SermonSummarySource.AI
     save_ai_tags(sermon, tags)
 
 

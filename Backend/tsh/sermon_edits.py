@@ -59,6 +59,7 @@ def invalidate_video_source(sermon: Sermon) -> None:
     sermon.transcript = None
     sermon.transcript_segments = None
     sermon.summary = None
+    sermon.summary_source = None
     sermon.tags = [tag for tag in sermon.tags if tag.source != TagSource.AI]
     sermon.storage_key = None
     sermon.audio_key = None

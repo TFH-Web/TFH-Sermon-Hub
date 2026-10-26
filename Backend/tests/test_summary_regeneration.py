@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from tests.test_ai_enrichment import NEW_TAG, fake_llm, patch_llm, published_sermon, reload
 from tsh import llm, pipeline, views
 from tsh.database import db
-from tsh.models import Sermon, SummaryRegenState, Tag, TagSource, UploadStatus, utcnow
+from tsh.models import Sermon, SermonSummarySource, SummaryRegenState, Tag, TagSource, UploadStatus, utcnow
 from tsh.schemas import sermon_schema
 
 URL = "/api/sermons/{}/regenerate-summary"
@@ -251,6 +251,7 @@ def replace_request_from_another_session(sermon_id: int) -> None:
         newer.summary_regen_state = SummaryRegenState.COMPLETED
         newer.summary_regen_finished_at = utcnow()
         newer.summary = "Newer successfully completed summary."
+        newer.summary_source = SermonSummarySource.MANUAL
         newer.processing_error = "newer request's processing note"
         newer.tags = [Tag(name="newer-result", source=TagSource.AI, sermons=[])]
         writer.commit()
@@ -279,6 +280,7 @@ def test_replaced_worker_preserves_newer_content_tags_and_errors(
     assert saved.summary_regen_run_id == "b" * 32
     assert saved.summary_regen_state == SummaryRegenState.COMPLETED
     assert saved.summary == "Newer successfully completed summary."
+    assert saved.summary_source == SermonSummarySource.MANUAL
     assert saved.processing_error == "newer request's processing note"
     assert saved.summary_regen_error is None
     assert {tag.name for tag in saved.tags} == {"newer-result"}
@@ -287,6 +289,7 @@ def test_replaced_worker_preserves_newer_content_tags_and_errors(
 
 def test_tracked_tagging_failure_rolls_back_summary_and_tag_rows(app, client, monkeypatch, delayed):
     sermon = published_sermon()
+    sermon.summary_source = SermonSummarySource.MANUAL
     original = Tag(name="kept-manual", source=TagSource.MANUAL, sermons=[])
     sermon.tags = [original]
     db.session.commit()
@@ -306,6 +309,7 @@ def test_tracked_tagging_failure_rolls_back_summary_and_tag_rows(app, client, mo
     assert saved.summary_regen_state == SummaryRegenState.FAILED
     assert saved.summary_regen_error == "tag persistence failed"
     assert saved.summary == "Old summary."
+    assert saved.summary_source == SermonSummarySource.MANUAL
     assert {tag.name for tag in saved.tags} == {"kept-manual"}
     assert db.session.get(Tag, "failed-suggestion") is None
 
