@@ -16,3 +16,8 @@ const msalConfig: Configuration = {
 };
 
 export const msalInstance = new PublicClientApplication(msalConfig);
+
+// Our exposed delegated API scope, not Graph/openid/profile.
+export const apiScopes: string[] = (import.meta.env.VITE_API_SCOPE || '')
+	.split(/\s+/)
+	.filter(Boolean);

@@ -5,27 +5,46 @@ from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy import false, func
 from sqlalchemy.orm import defer, with_expression
+from tsh import chat as chat_service
+from tsh import search as search_service
 from tsh.auth import require_role
+from tsh.embeddings import EmbeddingError
 
 # API routes for series, speakers, and sermons
-from datetime import date
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.exceptions import RequestEntityTooLarge
 
 from tsh.database import db
+from tsh import schemas
 from tsh.models import (
     Series,
     Sermon,
+    SermonSummarySource,
     Speaker,
+    SyncRun,
+    SyncRunState,
     Tag,
+    TagSource,
     UploadStatus,
     sermon_tag_m2m,
 )
 from tsh.pagination import paginate
-from tsh.pipeline import regenerate_summary, start_processing
+from tsh.pipeline import (
+    claim_summary_regeneration,
+    regenerate_summary,
+    release_summary_regeneration,
+    start_processing,
+)
 from tsh.queue import enqueue
-from tsh.youtube import YouTubeError
-from tsh.youtube_import import VideoImportError, import_channel, import_video, parse_video_id
+from tsh.sermon_edits import (
+    EDITABLE_FIELDS,
+    delete_derived_chunks,
+    derived_edit_conflict,
+    invalidate_video_source,
+)
+from tsh.youtube_import import VideoImportError, active_sync_run, import_video, start_sync
+from tsh.youtube_links import InvalidVideoLink, is_video_id, parse_video_id, resolve_video
 from tsh.schemas import (
     counted_speakers_schema,
     counted_tags_schema,
@@ -34,7 +53,7 @@ from tsh.schemas import (
     sermon_schema,
     sermons_schema,
     speaker_schema,
-    tags_schema,
+    tag_schema,
 )
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -237,15 +256,44 @@ def get_sermons():
 
     return pagination
 
-                                                                                # Post Sermon
+
+def invalid_video_response(error: InvalidVideoLink):
+    """The 400 sent when a sermon's video link or id is not a safe YouTube video."""
+    return jsonify({"error": "Invalid video link", "message": str(error)}), 400
+
+
+def video_in_use(video_id: str, sermon_id: int | None = None):
+    """The 409 to send if another sermon already has this YouTube video id, else None."""
+    query = db.select(Sermon.id).where(Sermon.youtube_video_id == video_id)
+    if sermon_id is not None:
+        query = query.where(Sermon.id != sermon_id)
+    if db.session.scalar(query) is None:
+        return None
+    message = "Another sermon already uses this YouTube video"
+    return jsonify({"error": "Video already used", "message": message}), 409
+
+
+# Post Sermon
+
+
 @api.post("/sermons")
-@require_role("Internal User", "Admin")
+@require_role("Admin")
 def create_sermon():
     """Create a new sermon from validated data and existing related records."""
     payload = request.get_json(silent=True)
 
     if not isinstance(payload, dict):
         return jsonify({"message": "Validation failed", "errors": {"_schema": ["A JSON object is required"]}}), 422
+
+    # One strict link rule for create, edit and import. Checked before anything else, so a bad link saves nothing.
+    video = None
+    if "videoLink" in payload or "youtubeVideoId" in payload:
+        try:
+            video = resolve_video(payload.get("videoLink"), payload.get("youtubeVideoId"))
+        except InvalidVideoLink as e:
+            return invalid_video_response(e)
+        if (taken := video_in_use(video[1])) is not None:
+            return taken
 
     # Require references to existing records
     errors = {}
@@ -304,12 +352,17 @@ def create_sermon():
     # Build trusted nested data from database records, not client-supplied
     # speaker names, series titles, or tag source values.
     normalized = dict(payload)
+    normalized.pop("id", None)
     normalized.pop("speakers", None)
     normalized.pop("speaker", None)
     normalized.pop("series", None)
     normalized.pop("tags", None)
 
-    normalized["status"] = "draft"
+    normalized["speaker"] = speaker_schema.dump(speaker)
+    normalized["status"] = UploadStatus.DRAFT.value
+    if video:
+        # The saved link is always the canonical one built from the id, never the text that was sent.
+        normalized["videoLink"], normalized["youtubeVideoId"] = video
 
     try:
         sermon = sermon_schema.load(normalized)
@@ -320,6 +373,9 @@ def create_sermon():
     sermon.speaker = speaker
     sermon.series = series
     sermon.tags = tags
+
+    if sermon.summary and sermon.summary.strip():
+        sermon.summary_source = SermonSummarySource.MANUAL
 
     try:
         db.session.add(sermon)
@@ -334,7 +390,7 @@ def create_sermon():
 @api.patch("/sermons/<int:id>")
 @require_role("Admin")
 def update_sermon(id: int):
-    """Partially update an existing sermon."""
+    """Update editable metadata; a changed video invalidates evidence in the same transaction."""
     sermon = db.session.get(Sermon, id)
 
     # Return early if the sermon does not exist
@@ -347,7 +403,34 @@ def update_sermon(id: int):
     if not isinstance(payload, dict):
         return jsonify({"message": "Validation failed","errors": {"_schema": ["A JSON object is required"]},}), 422
 
+    unsupported = set(payload) - EDITABLE_FIELDS
+    if unsupported:
+        errors = {
+            key: ["Server-owned or unsupported field; use the processing endpoints for transcript and derived data."]
+            for key in sorted(unsupported)
+        }
+        return jsonify({"error": "Validation failed", "message": "Validation failed", "errors": errors}), 422
+
+    # Same link rule as create. Checked before any field is changed, so a bad link leaves the sermon as it was.
+    video = None
+    if "videoLink" in payload or "youtubeVideoId" in payload:
+        try:
+            video = resolve_video(payload.get("videoLink"), payload.get("youtubeVideoId"))
+        except InvalidVideoLink as e:
+            return invalid_video_response(e)
+        if (taken := video_in_use(video[1], sermon.id)) is not None:
+            return taken
+
     errors = {}
+
+    title = sermon.title
+    if "title" in payload:
+        title_data = payload["title"]
+
+        if not isinstance(title_data, str) or not title_data.strip() or len(title_data) > 200:
+            errors["title"] = ["Title must be nonblank text of at most 200 characters"]
+        else:
+            title = title_data
 
     # Resolve speaker if client supplied
     speaker = sermon.speaker
@@ -411,29 +494,52 @@ def update_sermon(id: int):
     # Remove relationship fields before validating regular sermon fields
     # Marshmallow validates dates, status, and other schema-defined fields.
     scalar_data = dict(payload)
-    for key in ("speaker", "speakers", "series", "tags", "id"):
+    for key in ("speaker", "speakers", "series", "tags", "id", "title", "videoLink", "youtubeVideoId"):
         scalar_data.pop(key, None)
 
     try:
-        if scalar_data:
-            updates = sermon_schema.load(scalar_data, partial=True)
-
-            for key in scalar_data:
-                if hasattr(updates, key):
-                    setattr(sermon, key, getattr(updates, key))
-
+        # Partial loads return validated internal-name dictionaries, never Sermon objects.
+        updates = sermon_schema.load(scalar_data, partial=True) if scalar_data else {}
     except ValidationError as err:
         return jsonify({
             "message": "Validation failed",
             "errors": err.messages,
         }), 422
 
-    # Apply the resolved relationships.
-    sermon.speaker = speaker
-    sermon.series = series
-    sermon.tags = tags
+    if "duration" in updates and updates["duration"] < 0:
+        return jsonify({"error": "Validation failed", "message": "Validation failed", "errors": {"duration": ["Duration must not be negative"]}}), 422
+    if "description" in updates and not updates["description"].strip():
+        return jsonify({"error": "Validation failed", "message": "Validation failed", "errors": {"description": ["Description must not be blank"]}}), 422
+
+    previous_video_id = (
+        sermon.youtube_video_id if is_video_id(sermon.youtube_video_id)
+        else parse_video_id(sermon.video_link)
+    )
+    source_changed = video is not None and video[1] != previous_video_id
+    if source_changed and "summary" in payload:
+        message = "Save the video replacement before editing its summary."
+        return jsonify({"error": message, "message": message}), 422
+    if source_changed or "summary" in payload:
+        conflict = derived_edit_conflict(sermon)
+        if conflict:
+            return jsonify({"error": conflict, "message": conflict}), 409
 
     try:
+        for key, value in updates.items():
+            setattr(sermon, key, value)
+        if "summary" in updates:
+            if not (sermon.summary or "").strip():
+                sermon.summary_source = None
+            else:
+                sermon.summary_source = SermonSummarySource.MANUAL
+        sermon.title = title
+        sermon.speaker = speaker
+        sermon.series = series
+        sermon.tags = tags
+        if video:
+            sermon.video_link, sermon.youtube_video_id = video
+        if source_changed:
+            invalidate_video_source(sermon)
         db.session.commit()
     except SQLAlchemyError:
         db.session.rollback()
@@ -452,6 +558,7 @@ def delete_sermon(id: int):
         return jsonify({"message": f"Sermon with id {id} not found"}), 404
 
     try:
+        delete_derived_chunks(sermon.id)
         db.session.delete(sermon)
         db.session.commit()
     except SQLAlchemyError:
@@ -501,25 +608,35 @@ def reprocess_sermon(id: int):
 @api.post("/sermons/<int:id>/regenerate-summary")
 @require_role("Admin")
 def regenerate_sermon_summary(id: int):
-    """Queue a new AI summary and tags for one sermon, for the "Regenerate with AI" button.
+    """Regenerate the AI summary for a sermon, if it is published and not already regenerating. 
 
-    Returns 202 with the sermon. Without REDIS_URL the job has already run, so the summary is the new one;
-    with Redis the old summary stays until the worker finishes.
+    The request is tracked on the sermon: summaryRegenState goes queued, running, then completed or failed
+    (with summaryRegenError), so any tab or a reloaded page can read it back from the sermon.
+    Returns 202 with the sermon. Without REDIS_URL the job has already run, so the state is final;
+    with Redis it is "queued" and the old summary stays until the worker finishes.
     Sends 401 without a valid token, 403 for non-Admins, 404 if the sermon does not exist,
-    409 if the sermon is not PUBLISHED (nothing is queued), and 503 if Redis cannot be reached.
+    409 if the sermon is not PUBLISHED or a regeneration is already queued or running (nothing is queued),
+    and 503 if Redis cannot be reached.
     """
     sermon = db.get_or_404(Sermon, id, description=f"Sermon with id {id} not found")
     # regenerate_summary skips unpublished sermons because they may not have a transcript yet.
     # Refusing here tells the admin why, instead of accepting a job that would do nothing.
-    if sermon.status != UploadStatus.PUBLISHED:
-        message = "Only published sermons can regenerate their summary"
+    run_id = claim_summary_regeneration(sermon.id)
+    if run_id is None:
+        db.session.refresh(sermon)
+        if sermon.status != UploadStatus.PUBLISHED:
+            message = "Only published sermons can regenerate their summary"
+        else:
+            message = "A summary is already being regenerated for this sermon"
         return jsonify({"error": message, "message": message}), 409
     try:
-        enqueue(regenerate_summary, sermon.id)
+        enqueue(regenerate_summary, sermon.id, run_id)
     except (RedisConnectionError, RedisTimeoutError):
         current_app.logger.exception("Could not queue summary for sermon %s", id)
+        release_summary_regeneration(sermon.id, run_id)
         message = "The job queue is unavailable. Please try again later."
         return jsonify({"error": message, "message": message}), 503
+    db.session.refresh(sermon)
     return sermon_schema.dump(sermon), 202
 
 
@@ -553,30 +670,71 @@ def import_youtube():
 
     An optional body limits it to videos dated in a range, ends included: {"from": "2026-09-01", "to": "2026-09-30"}.
     Either date can be left out. See import_channel for which date is compared.
-    Returns 202 with {"queued": true, "jobId": ...} when the import was sent to the worker, or
-    200 with {"queued": false, "report": {...}} when it already ran inline (no REDIS_URL). See ImportReport for the fields.
+    Every submission is saved as a new SyncRun, and each response carries its "runId" and "state".
+    Returns 202 with {"queued": true, "jobId": ..., "runId": ..., "state": "queued"} when the import was sent to
+    the worker, or 200 with {"queued": false, "report": {...}, "runId": ..., "state": "succeeded"} when it already
+    ran inline (no REDIS_URL). See ImportReport for the report fields, and GET /import/youtube/runs/<id> to follow a run.
     Sends 400 if a date cannot be read or "from" is after "to", 401 without a valid token, 403 for non-Admins,
-    502 if YouTube fails during an inline run, and 503 if Redis cannot be reached.
+    409 with the active run's "runId" if a sync is already queued or running, 502 if an inline run fails,
+    and 503 if Redis cannot be reached. The 502 and 503 bodies also carry the failed run's "runId".
     """
     try:
         date_from, date_to = read_date_range(request.get_json(silent=True))
     except ValueError as e:
         return jsonify({"error": str(e), "message": str(e)}), 400
 
+    active = active_sync_run()
+    if active is not None:
+        message = f"A YouTube sync is already {active.state.value}. Wait for run {active.id} to finish."
+        return jsonify({"error": message, "message": message, "runId": active.id}), 409
+
+    run = SyncRun(id=None, date_from=date_from, date_to=date_to)
     try:
-        result = enqueue(import_channel, date_from, date_to)
+        job = start_sync(run)
     except (RedisConnectionError, RedisTimeoutError):
         current_app.logger.exception("Could not queue the YouTube import")
         message = "The job queue is unavailable. Please try again later."
-        return jsonify({"error": message, "message": message}), 503
-    except YouTubeError as e:
-        current_app.logger.exception("YouTube import failed")
-        message = f"YouTube import failed: {e}"
-        return jsonify({"error": message, "message": message}), 502
+        return jsonify({"error": message, "message": message, "runId": run.id, "state": run.state.value}), 503
 
     if current_app.config["REDIS_URL"]:
-        return jsonify({"queued": True, "jobId": result.id}), 202
-    return jsonify({"queued": False, "report": result.as_dict()}), 200
+        return jsonify({"queued": True, "jobId": job.id, "runId": run.id, "state": run.state.value}), 202
+
+    # Inline, run_sync has already finished, and it loaded this same run object, so its outcome is already here.
+    if run.state != SyncRunState.SUCCEEDED:
+        message = f"YouTube import failed: {run.error}"
+        return jsonify({"error": message, "message": message, "runId": run.id, "state": run.state.value}), 502
+    return jsonify({"queued": False, "report": run.report, "runId": run.id, "state": run.state.value}), 200
+
+
+@api.get("/import/youtube/runs")
+@require_role("Admin")
+def get_sync_runs():
+    """List YouTube sync runs, newest first, with their counts but not their full reports.
+
+    With ?page= (and optionally pageSize), returns the paginated envelope from paginate under the "runs" key.
+    Without it, returns a plain list of the 20 most recent runs, since runs are never deleted and the list only grows.
+    Reconciles lost workers before returning their persisted status.
+    Sends 400 for a bad page or pageSize, 401 without a valid token, and 403 for non-Admins.
+    """
+    active_sync_run()
+    query = db.select(SyncRun).options(defer(SyncRun.report)).order_by(SyncRun.id.desc())
+    pagination = paginate(query, request, schemas.sync_runs_schema, "runs", default_page_size=20)
+    if pagination is None:
+        return schemas.sync_runs_schema.dump(db.session.scalars(query.limit(20)))
+    return pagination
+
+
+@api.get("/import/youtube/runs/<int:id>")
+@require_role("Admin")
+def get_sync_run(id: int):
+    """Return one YouTube sync run with its full report (null until it succeeds).
+
+    Reconciles lost workers so polling reaches a terminal state even if no new sync is submitted.
+    Sends 401 without a valid token, 403 for non-Admins, and 404 with JSON error and message if there is no such run.
+    """
+    active_sync_run()
+    run = db.get_or_404(SyncRun, id, description=f"Sync run with id {id} not found")
+    return schemas.sync_run_schema.dump(run)
 
 
 @api.post("/import/youtube/video")
@@ -630,6 +788,107 @@ def get_tags():
     return pagination
 
 
+def find_tag_by_name_ci(name: str) -> Tag | None:
+    """Look up a tag by case-insensitive name match, for duplicate checks."""
+    return db.session.execute(
+        db.select(Tag).filter(func.lower(Tag.name) == name.lower())
+    ).scalar_one_or_none()
+
+                                                                                # POST Tag
+@api.post("/tags")
+@require_role("Admin")
+def create_tag():
+    """Create a new manually-added tag."""
+    payload = request.get_json(silent=True)
+
+    if not isinstance(payload, dict):
+        return jsonify({"message": "Validation failed", "errors": {"_schema": ["A JSON object is required"]}}), 422
+
+    name = payload.get("name")
+    if not isinstance(name, str) or not name.strip():
+        return jsonify({"message": "Validation failed", "errors": {"name": ["Tag name is required"]}}), 422
+
+    name = name.strip()
+    if find_tag_by_name_ci(name) is not None:
+        return jsonify({"message": "Validation failed", "errors": {"name": [f'Tag "{name}" already exists']}}), 422
+
+    # Only the AI tagging pipeline creates AI-sourced tags; tags made through this
+    # admin endpoint are always MANUAL.
+    tag = Tag(name=name, source=TagSource.MANUAL, sermons=[])
+
+    try:
+        db.session.add(tag)
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception("Failed to create tag")
+        return jsonify({"message": "Failed to save tag"}), 500
+
+    return tag_schema.dump(tag), 201
+
+                                                                                # PATCH Tag
+@api.patch("/tags")
+@api.patch("/tags/<name>")
+@require_role("Admin")
+def rename_tag(name: str | None = None):
+    """Rename a tag, accepting query identifiers that cannot safely be URL path segments."""
+    if name is None:
+        name = request.args.get("name")
+    if not isinstance(name, str) or not name.strip():
+        return jsonify({"message": "Validation failed", "errors": {"name": ["Tag name is required"]}}), 422
+    tag = db.session.execute(db.select(Tag).filter_by(name=name)).scalar_one_or_none()
+    if tag is None:
+        return jsonify({"message": f'Tag "{name}" not found'}), 404
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"message": "Validation failed", "errors": {"_schema": ["A JSON object is required"]}}), 422
+
+    new_name = payload.get("newName")
+    if not isinstance(new_name, str) or not new_name.strip():
+        return jsonify({"message": "Validation failed", "errors": {"newName": ["New tag name is required"]}}), 422
+
+    new_name = new_name.strip()
+    if new_name.lower() != tag.name.lower():
+        if find_tag_by_name_ci(new_name) is not None:
+            return jsonify({"message": "Validation failed", "errors": {"newName": [f'Tag "{new_name}" already exists']}}), 422
+
+    tag.name = new_name
+
+    try:
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception("Failed to rename tag %s", name)
+        return jsonify({"message": "Failed to rename tag"}), 500
+
+    return tag_schema.dump(tag), 200
+
+                                                                                # DELETE Tag
+@api.delete("/tags")
+@api.delete("/tags/<name>")
+@require_role("Admin")
+def delete_tag(name: str | None = None):
+    """Delete a tag. Its sermon associations are removed by the cascading FK on Tag.name."""
+    if name is None:
+        name = request.args.get("name")
+    if not isinstance(name, str) or not name.strip():
+        return jsonify({"message": "Validation failed", "errors": {"name": ["Tag name is required"]}}), 422
+    tag = db.session.execute(db.select(Tag).filter_by(name=name)).scalar_one_or_none()
+    if tag is None:
+        return jsonify({"message": f'Tag "{name}" not found'}), 404
+
+    try:
+        db.session.delete(tag)
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception("Failed to delete tag %s", name)
+        return jsonify({"message": "Failed to delete tag"}), 500
+
+    return "", 204
+
+
 @api.route("/")
 def hello_world():
     return "<p>Hello, world!</p>"
@@ -641,7 +900,7 @@ def health():
 
 
 @api.get("/whoami")
-@require_role("Internal User")
+@require_role("Internal User", "Admin")
 def whoami():
     return jsonify({"roles": g.current_user_role})
 
@@ -649,72 +908,59 @@ def whoami():
 @api.get("/search")
 @require_role("Internal User", "Admin")
 def search():
-    query = request.args.get("q", "").strip().lower()
-    content_type = request.args.get("type", "all").strip().lower()
-    speaker = request.args.get("speaker", "any").strip()
-    date = request.args.get("date", "any").strip()
-
-    results = [
-        {
-            "id": 1,
-            "title": "Faith Over Fear",
-            "type": "sermon",
-            "speaker": "Dave",
-            "date": "2024",
-            "summary": "A sermon about trusting God when fear and anxiety feel overwhelming.",
-            "ai_score": 0.97,
-        },
-        {
-            "id": 2,
-            "title": "Overcoming Anxiety Transcript",
-            "type": "transcript",
-            "speaker": "Dave",
-            "date": "2024",
-            "summary": "Transcript discussing anxiety, prayer, and peace.",
-            "ai_score": 0.93,
-        },
-        {
-            "id": 3,
-            "title": "Grace Notes",
-            "type": "note",
-            "speaker": "Michael",
-            "date": "2023",
-            "summary": "Staff notes focused on grace, healing, and hope.",
-            "ai_score": 0.88,
-        },
-        {
-            "id": 4,
-            "title": "Hope in Hard Times",
-            "type": "sermon",
-            "speaker": "Tim",
-            "date": "2022",
-            "summary": "A sermon on hope, resilience, and endurance through hardship.",
-            "ai_score": 0.84,
-        },
-    ]
-
-    filtered = results
-
-    if query:
-        filtered = [
-            item
-            for item in filtered
-            if query in item["title"].lower() or query in item["summary"].lower()
-        ]
-
-    if content_type != "all":
-        filtered = [item for item in filtered if item["type"] == content_type]
-
-    if speaker.lower() != "any":
-        filtered = [
-            item for item in filtered if item["speaker"].lower() == speaker.lower()
-        ]
-
-    if date.lower() != "any":
-        filtered = [item for item in filtered if item["date"] == date]
-
-    filtered.sort(key=lambda item: item["ai_score"], reverse=True)
-
-    return filtered
+    """Search real Published sermons; see docs/search.md for scores and source fields."""
+    try:
+        return jsonify(search_service.search_sermons(request.args))
+    except search_service.SearchInputError as error:
+        message = str(error)
+        return jsonify({"error": message, "message": message}), 400
+    except EmbeddingError as error:
+        # Compatibility errors are actionable configuration errors, not empty matches.
+        return jsonify({"error": "embedding_incompatible", "message": str(error)}), 503
+    except Exception as error:
+        # Providers raise several unrelated exception types. Do not leak their raw
+        # response bodies/credentials to clients or misreport an outage as no results.
+        current_app.logger.warning("Sermon search failed (%s)", type(error).__name__)
+        message = "Sermon search is unavailable right now. Please try again later."
+        return jsonify({"error": "search_unavailable", "message": message}), 503
 
 
+@api.post("/chat")
+@require_role("Internal User", "InternalUser", "Admin")
+def chat():
+    """Answer a question from published TFH sermons only, with timestamped sources.
+
+    Body: {"message": str, "sermonId": int | null, "history": [{"role": "user" | "assistant", "content": str}]}.
+    See docs/ai-chat.md for the limits and the response. Returns 200 with the answer, or
+    the fixed unsupported answer when published sermons do not support one.
+    Sends 400 with per-field "errors" for an invalid body, 401 without a valid token,
+    403 for other roles, 413 if the body is larger than chat.MAX_REQUEST_BYTES, 502 if
+    the AI model fails, and 503 if the question cannot be embedded or searched.
+    """
+    limit = chat_service.MAX_REQUEST_BYTES
+    # Cap the bytes actually read, not just the header, so a chunked body without
+    # Content-Length is limited too. Werkzeug stops a chunked stream at the cap without an
+    # error, so read one byte past it to tell an oversized body from one that fits.
+    request.max_content_length = limit + 1
+    try:
+        too_large = len(request.get_data(cache=True)) > limit
+    except RequestEntityTooLarge:
+        too_large = True
+    if too_large:
+        message = f"Request body must be at most {limit} bytes."
+        return jsonify({"error": message, "message": message}), 413
+    try:
+        data = chat_service.parse_chat_request(request.get_json(silent=True))
+    except ValidationError as err:
+        message = "Invalid chat request."
+        return jsonify({"error": message, "message": message, "errors": err.messages}), 400
+    try:
+        return jsonify(chat_service.answer_question(data["message"], data["sermon_id"], data["history"]))
+    except chat_service.SearchUnavailable:
+        current_app.logger.exception("Chat could not search sermons")
+        message = "Sermon search is unavailable right now. Please try again later."
+        return jsonify({"error": message, "message": message}), 503
+    except chat_service.AnswerUnavailable:
+        current_app.logger.exception("Chat model failed")
+        message = "The AI model could not answer right now. Please try again later."
+        return jsonify({"error": message, "message": message}), 502

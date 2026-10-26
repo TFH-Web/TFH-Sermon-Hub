@@ -8,9 +8,10 @@
 		"build": "tsc -b && vite build",
 		"lint": "biome check --write",
 		"preview": "vite preview",
-		"test": "vitest run",
+		"test": "vitest run --coverage",
 		"test:watch": "vitest",
 		"e2e": "playwright test",
+		"e2e:integration": "playwright test --config playwright.integration.config.ts",
 		"e2e:ui": "playwright test --ui"
 	},
 	"dependencies": {
@@ -29,23 +30,26 @@
 		"react-router-dom": "^7.14.0",
 		"react-youtube": "^10.1.0",
 		"sanitize.css": "^13.0.0",
-		"zod": "^4.5.4",
+		"zod": "^4.6.6",
 		"zustand": "^5.0.12"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.9",
 		"@eslint/js": "^9.39.4",
 		"@playwright/test": "1.60.0",
+		"@testing-library/react": "^16.3.3",
+		"@testing-library/user-event": "^14.6.8",
 		"@types/imurmurhash": "^0.1.4",
 		"@types/node": "^24.12.0",
 		"@types/react": "^19.2.14",
 		"@types/react-dom": "^19.2.3",
 		"@vitejs/plugin-react": "^6.0.1",
-		"@vitest/coverage-v8": "4.1.11",
+		"@vitest/coverage-v8": "4.1.12",
 		"globals": "^17.4.0",
+		"jsdom": "^29.1.1",
 		"typescript": "~5.9.3",
 		"vite": "^8.0.1",
-		"vitest": "4.1.11"
+		"vitest": "4.1.12"
 	},
 	"allowScripts": {
 		"fsevents@2.3.3": true,

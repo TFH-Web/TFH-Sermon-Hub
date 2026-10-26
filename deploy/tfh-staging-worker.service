@@ -1,0 +1,32 @@
+[Unit]
+Description=TFH private staging sermon queue worker
+After=network.target redis-server.service
+Wants=redis-server.service
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=exec
+User=tfh-staging
+Group=tfh-staging
+WorkingDirectory=/opt/tfh-staging/current/Backend
+EnvironmentFile=/etc/tfh-staging/.env
+Environment=TFH_ENV=production PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+Environment=HOME=/var/lib/tfh-staging XDG_CACHE_HOME=/var/lib/tfh-staging/cache
+ExecStart=/opt/tfh-staging/current/Backend/.venv/bin/python worker.py
+Restart=always
+RestartSec=5
+# RQ needs time to finish an active job on a normal stop. Check the queue before deploys.
+TimeoutStopSec=600
+KillSignal=SIGTERM
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/tfh-staging
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

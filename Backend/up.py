@@ -1,4 +1,6 @@
 #!/usr/bin/env -S poetry run python3
+import os
+import sys
 from pathlib import Path
 
 from flask_migrate import stamp, upgrade
@@ -6,6 +8,7 @@ from sqlalchemy import inspect
 
 from tsh.app import create_app
 from tsh.database import db
+from tsh.production import create_production_app
 
 MIGRATIONS = Path(__file__).parent / "migrations"
 
@@ -13,8 +16,13 @@ MIGRATIONS = Path(__file__).parent / "migrations"
 BASELINE = "b2f09d55781a"
 
 
-def main():
-    app = create_app("testing.cfg")
+def main(config_path: str = "testing.cfg", database_uri: str | None = None):
+    settings = {"SQLALCHEMY_DATABASE_URI": database_uri} if database_uri else None
+    if os.environ.get("TFH_ENV", "").strip().lower() == "production":
+        app = create_production_app()
+    else:
+        # Preserve the original one-argument factory call for default invocations.
+        app = create_app(config_path) if settings is None else create_app(config_path, settings)
     with app.app_context():
         tables = inspect(db.engine).get_table_names()
 
@@ -29,5 +37,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    config_path = sys.argv[1] if len(sys.argv) >= 2 else "testing.cfg"
+    database_uri = sys.argv[2] if len(sys.argv) >= 3 else None
+    main(config_path, database_uri)
     print("Database is up to date.")

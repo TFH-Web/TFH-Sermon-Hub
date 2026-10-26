@@ -5,8 +5,14 @@ on:
   pull_request:
     branches: [ main, dev ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   PYTHON_VERSION: '3.13'
+  POETRY_VIRTUALENVS_IN_PROJECT: 'true'
+  PYTHON_DOTENV_DISABLED: '1'
 
 defaults:
   run:
@@ -18,36 +24,68 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-
       - uses: actions/setup-python@v6
         id: setup-python
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
       - name: Install Poetry
         uses: snok/install-poetry@v1
-
       - name: Load cached venv
-        id: cached-poetry-dependencies
         uses: actions/cache@v4
         with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-
-      - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+          path: Backend/.venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('Backend/poetry.lock') }}
+      - name: Install locked dependencies
         run: poetry install --no-interaction --no-root
-
-      - name: Create test config
-        run: |
-          cat > tsh/testing.cfg << 'EOF'
-          SQLALCHEMY_DATABASE_URI="sqlite:///testing.db"
-          JWT_SECRET_KEY="ci-only-dummy-key-not-used-anywhere-real-0000000000000000000000"
-          JWT_ACCESS_TOKEN_EXPIRES="timedelta(hours=4)"
-          EOF
-
-      - name: Run tests
+      - name: Run tests and production-code coverage
         env:
           TENANT_ID: "ci-only-dummy-tenant-id"
           CLIENT_ID: "ci-only-dummy-client-id"
-        run: poetry run pytest
+        run: >-
+          poetry run pytest --cov=tsh --cov-branch
+          --cov-report=term-missing --cov-report=json:coverage.json
+          --cov-report=xml:coverage.xml --cov-report=html:htmlcov
+      - name: Summarize backend coverage
+        if: ${{ !cancelled() }}
+        run: |
+          poetry run python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          report = Path('coverage.json')
+          if report.exists():
+              totals = json.loads(report.read_text())['totals']
+              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+                  summary.write('### Backend production-code coverage\n\n')
+                  summary.write(f"Combined line/branch coverage: {totals['percent_covered']:.2f}%\n\n")
+                  summary.write(f"Lines: {totals['covered_lines']}/{totals['num_statements']}; ")
+                  summary.write(f"branches: {totals['covered_branches']}/{totals['num_branches']}.\n\n")
+                  summary.write('Includes unimported tsh modules. No team-approved floor is enforced yet.\n')
+          PY
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
+        with:
+          name: pytest-coverage
+          path: |
+            Backend/coverage.json
+            Backend/coverage.xml
+            Backend/htmlcov/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Test deployment utilities
+        # Deployment utilities deliberately live outside application test collection.
+        if: ${{ !cancelled() }}
+        run: poetry run pytest -q ../deploy/test_backup.py ../deploy/test_recovery_check.py ../deploy/tests/test_provision_staging.py
+
+      - name: Audit locked backend dependencies
+        if: ${{ !cancelled() }}
+        run: poetry run pip-audit --format=json --output=pip-audit.json
+      - name: Retain backend dependency audit
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: backend-dependency-audit
+          path: Backend/pip-audit.json
+          retention-days: 30
+          if-no-files-found: error

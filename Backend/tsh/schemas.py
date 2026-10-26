@@ -1,15 +1,19 @@
 from __future__ import annotations
 
-from marshmallow import Schema, fields, post_load
+from marshmallow import Schema, fields, post_load, pre_load
 
 from tsh.models import (
     Series,
     Sermon,
     SermonChunk,
+    SermonChunkEmbedding,
+    SermonSummarySource,
     Speaker,
+    SummaryRegenState,
+    SyncRunState,
     Tag,
     TagSource,
-    UploadStatus, SermonChunkEmbedding,
+    UploadStatus,
 )
 
 
@@ -130,8 +134,10 @@ class TranscriptSegmentSchema(CamelCaseSchema):
     end = fields.Float()
     text = fields.String()
 
+
 transcript_segment_schema = TranscriptSegmentSchema()
 transcript_segments_schema = TranscriptSegmentSchema(many=True)
+
 
 class SermonSchema(CamelCaseSchema):
     id = id_field()
@@ -143,6 +149,9 @@ class SermonSchema(CamelCaseSchema):
     tags = fields.Nested(TagSchema(many=True))
     transcript = fields.String(allow_none=True)
     summary = fields.String(allow_none=True)
+    summary_source = fields.Enum(
+        SermonSummarySource, by_value=True, allow_none=True, dump_only=True
+    )
     speaker = fields.Nested(SpeakerSchema, required=True)
     series = fields.Nested(SeriesSchema, allow_none=True)
     status = fields.Enum(UploadStatus, required=True, by_value=True)
@@ -158,20 +167,40 @@ class SermonSchema(CamelCaseSchema):
         TranscriptSegmentSchema, many=True, allow_none=True
     )
 
+    # Where "Regenerate with AI" is, so the page can show it after a reload. The server sets these, never the client.
+    summary_regen_state = fields.Enum(SummaryRegenState, by_value=True, dump_only=True)
+    summary_regen_error = fields.String(allow_none=True, dump_only=True)
+    summary_regen_requested_at = fields.DateTime(allow_none=True, dump_only=True)
+    summary_regen_started_at = fields.DateTime(allow_none=True, dump_only=True)
+    summary_regen_finished_at = fields.DateTime(allow_none=True, dump_only=True)
+
+    @pre_load
+    def drop_regeneration_fields(self, data, **kwargs):
+        # The response carries these, so a client may send it back whole. Ignore them instead of rejecting or saving them.
+        if isinstance(data, dict):
+            data = {
+                key: value for key, value in data.items()
+                if not key.startswith("summaryRegen") and key != "summarySource"
+            }
+        return data
+
     @post_load
     def make_sermon(self, data, **kwargs) -> Sermon:
+        if kwargs.get("partial"):
+            return data
+
+        data.setdefault("id", None)
+        data.setdefault("tags", [])
         data.setdefault("transcript", None)
         data.setdefault("summary", None)
         data.setdefault("series", None)
         data["speaker_id"] = data["speaker"].id
-        data["series_id"] = data["series"].id if data["series"] else None
+        data["series_id"] = data["series"].id if data.get("series") else None
         return Sermon(**data)
 
 
 sermon_schema = SermonSchema()
-sermons_schema = SermonSchema(
-    many=True, exclude=("transcript", "transcript_segments")
-)
+sermons_schema = SermonSchema(many=True, exclude=("transcript", "transcript_segments"))
 
 
 class SermonChunkSchema(CamelCaseSchema):
@@ -203,3 +232,25 @@ class SermonChunkEmbeddingSchema(CamelCaseSchema):
 
 sermon_chunk_embedding_schema = SermonChunkEmbeddingSchema()
 sermon_chunk_embeddings_schema = SermonChunkEmbeddingSchema(many=True)
+
+
+class SyncRunSchema(CamelCaseSchema):
+    id = id_field()
+    date_from = fields.Date(allow_none=True)
+    date_to = fields.Date(allow_none=True)
+    state = fields.Enum(SyncRunState, by_value=True)
+    created_at = fields.DateTime()
+    started_at = fields.DateTime(allow_none=True)
+    finished_at = fields.DateTime(allow_none=True)
+    series_created = fields.Integer(allow_none=True)
+    sermons_created = fields.Integer(allow_none=True)
+    sermons_updated = fields.Integer(allow_none=True)
+    sermons_unchanged = fields.Integer(allow_none=True)
+    # Kept in ImportReport's snake_case keys, the shape the Import page already reads from a sync.
+    report = fields.Dict(allow_none=True)
+    error = fields.String(allow_none=True)
+
+
+sync_run_schema = SyncRunSchema()
+# A list of runs leaves out each report, whose skipped lists can run to hundreds of entries; the counts are enough there.
+sync_runs_schema = SyncRunSchema(many=True, exclude=("report",))

@@ -10,21 +10,39 @@ export const statuses = ['Published', 'Processing', 'Draft', 'Failed'] as const;
 export const Status = z.enum(statuses);
 export type Status = z.infer<typeof Status>;
 
+// Where "Regenerate with AI" is. The server keeps this on the sermon, so every tab and a reloaded page see the same thing.
+export const summaryRegenStates = [
+	'idle',
+	'queued',
+	'running',
+	'completed',
+	'failed',
+] as const;
+export const SummaryRegenState = z.enum(summaryRegenStates);
+export type SummaryRegenState = z.infer<typeof SummaryRegenState>;
+
 export const Sermon = z.object({
 	id: z.number(),
 	title: z.string().nonempty(),
-	videoLink: z.httpUrl(),
+	videoLink: z.string(), // Legacy text remains readable; validated builders alone may create links.
+	youtubeVideoId: z.string().nullish(), // Keep the stored ID so the frontend can check it against the link.
 	duration: z.number().nonnegative(),
 	date: z.coerce.date(),
 	description: z.string().nonempty(),
 	tags: Tag.array(),
 	transcript: z.string().nullish(),
 	summary: z.string().nullish(),
+	// Missing/null means legacy origin is unknown; never infer AI from saved text.
+	summarySource: z.enum(['ai', 'manual']).nullish(),
 	speaker: Speaker,
 	series: Series.nullish(),
 	status: Status,
 	processingError: z.string().nullish(),
 	processedAt: z.string().nullish(),
+	summaryRegenState: SummaryRegenState.optional(),
+	summaryRegenError: z.string().nullish(),
+	summaryRegenRequestedAt: z.string().nullish(),
+	summaryRegenStartedAt: z.string().nullish(),
 });
 export type Sermon = z.infer<typeof Sermon>;
 

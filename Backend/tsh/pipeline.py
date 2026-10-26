@@ -1,16 +1,28 @@
 # Processing pipeline for a sermon: transcript, then embeddings, then summary.
 import time
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from math import isfinite
+from uuid import uuid4
 
+import click
 from flask import current_app
-from sqlalchemy import delete, select
+from flask.cli import with_appcontext
+from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.dialects.sqlite import insert
 
 from tsh import captions, embeddings
 from tsh.database import db
-from tsh.models import Sermon, SermonChunk, SermonChunkEmbedding, UploadStatus
-from tsh.queue import enqueue
+from tsh.models import (
+    Sermon,
+    SermonChunk,
+    SermonChunkEmbedding,
+    SermonSummarySource,
+    SummaryRegenState,
+    UploadStatus,
+    utcnow,
+)
+from tsh.queue import JOB_TIMEOUT, enqueue
 from tsh.transcripts import transcript_text
 from tsh.summarize import summarize_transcript
 from tsh.tagging import save_ai_tags, suggest_tags
@@ -31,8 +43,11 @@ def fetch_transcript(sermon: Sermon) -> None:
 
     The pipeline commits both together. Chunking receives the persisted segments on the sermon.
     """
+    # Captions off: keep what is saved. process_sermon already checked cache usability.
+    if not captions.captions_enabled():
+        return
     # The importer also queues this pipeline, so importing its URL parser here avoids a cycle.
-    from tsh.youtube_import import parse_video_id
+    from tsh.youtube_links import parse_video_id
 
     video_id = sermon.youtube_video_id or parse_video_id(sermon.video_link)
     if not video_id:
@@ -48,18 +63,30 @@ def fetch_transcript(sermon: Sermon) -> None:
 def embed_chunks(sermon: Sermon) -> None:
     """Chunk sermon.transcript_segments with source times and store one embedding per chunk.
 
-    Safe to re-run. Chunks whose text is unchanged keep their rows and embeddings, chunks
-    that no longer appear in the captions are deleted with their embeddings, and only new
-    chunks are sent to ollama. Errors from ollama propagate, and _run_step records them.
+    Safe to re-run. A chunk is identified by its text and which repeat of that text it
+    is (see embeddings.chunk_hash), not by its times. Chunks whose identity is unchanged
+    keep their rows and embeddings and only get their start and end updated, chunks that
+    no longer appear in the captions are deleted with their embeddings, and only new
+    chunks are sent to ollama. Errors from ollama (or ValueError for a bad embedding batch)
+    propagate before anything is written, and _run_step records them. A database error
+    while replacing rolls back this sermon's whole replace and is raised again.
+
+    Raises EmbeddingError before any ollama call if the vec0 table's dimension is not
+    EMBEDDING_DIM, or if this sermon has vectors from a model other than EMBEDDING_MODEL.
+    Mixing models would make search compare unrelated vectors, so re-embedding has to
+    be deliberate: run `flask reembed` after changing EMBEDDING_MODEL.
     """
     if not sermon.transcript_segments:
         return
 
     chunks = embeddings.chunk(sermon, sermon.transcript_segments)
-    # insert().values() takes plain column values, not model objects. Keying by hash drops
-    # repeated text inside one sermon, which would otherwise be the same row twice.
-    rows = {
-        chunk.hash: {
+    # Segments with only blank text give no chunks. Keep what the sermon already has
+    # instead of deleting it, the same as having no segments at all.
+    if not chunks:
+        return
+    # insert().values() takes plain column values, not model objects.
+    rows = [
+        {
             "sermon_id": chunk.sermon_id,
             "hash": chunk.hash,
             "text": chunk.text,
@@ -67,43 +94,179 @@ def embed_chunks(sermon: Sermon) -> None:
             "end": chunk.end,
         }
         for chunk in chunks
-    }
+    ]
 
-    stale_ids = select(SermonChunk.id).where(
-        SermonChunk.sermon_id == sermon.id, SermonChunk.hash.not_in(rows.keys())
+    embeddings.check_schema_dimension()
+    _require_current_model(sermon.id)
+
+    # Embed before writing anything. A slow or failing ollama call then never holds the
+    # database write lock, and a failure leaves the old chunks and vectors untouched.
+    embedded = set(
+        db.session.scalars(
+            select(SermonChunk.hash)
+            .join(SermonChunkEmbedding)
+            .where(SermonChunk.sermon_id == sermon.id)
+        )
     )
-    # sermon_chunk_embedding is a sqlite-vec virtual table, which ignores foreign keys,
-    # so ON DELETE CASCADE never fires. Delete the embeddings first or they are orphaned.
-    # Virtual tables also reject DELETE RETURNING, which the ORM uses to sync the session.
-    db.session.execute(
-        delete(SermonChunkEmbedding)
-        .where(SermonChunkEmbedding.sermon_chunk_id.in_(stale_ids))
-        .execution_options(synchronize_session=False)
+    missing = [row for row in rows if row["hash"] not in embedded]
+    vectors = embeddings.embed_texts([row["text"] for row in missing])
+
+    # One transaction per sermon: either every stale row is gone and every new chunk has
+    # its vector, or nothing changed. Only this sermon's rows are touched.
+    try:
+        stale_ids = select(SermonChunk.id).where(
+            SermonChunk.sermon_id == sermon.id,
+            SermonChunk.hash.not_in([row["hash"] for row in rows]),
+        )
+        # sermon_chunk_embedding is a sqlite-vec virtual table, which ignores foreign keys,
+        # so ON DELETE CASCADE never fires. Delete the embeddings first or they are orphaned.
+        # Virtual tables also reject DELETE RETURNING, which the ORM uses to sync the session.
+        db.session.execute(
+            delete(SermonChunkEmbedding)
+            .where(SermonChunkEmbedding.sermon_chunk_id.in_(stale_ids))
+            .execution_options(synchronize_session=False)
+        )
+        db.session.execute(delete(SermonChunk).where(SermonChunk.id.in_(stale_ids)))
+
+        # Relies on unique (sermon_id, hash). A chunk this sermon already has keeps its id
+        # and embedding, and only its times are refreshed, since the text did not change.
+        statement = insert(SermonChunk).values(rows)
+        db.session.execute(
+            statement.on_conflict_do_update(
+                index_elements=[SermonChunk.sermon_id, SermonChunk.hash],
+                set_={"start": statement.excluded.start, "end": statement.excluded.end},
+            )
+        )
+
+        by_hash = {
+            chunk.hash: chunk
+            for chunk in db.session.scalars(
+                select(SermonChunk).where(
+                    SermonChunk.sermon_id == sermon.id,
+                    SermonChunk.hash.in_([row["hash"] for row in missing]),
+                )
+            )
+        }
+        db.session.add_all(
+            SermonChunkEmbedding(
+                sermon_chunk_id=by_hash[row["hash"]].id,
+                sermon_chunk=by_hash[row["hash"]],
+                embedding=vector,
+            )
+            for row, vector in zip(missing, vectors, strict=True)
+        )
+        for row in missing:
+            by_hash[row["hash"]].embedding_model = embeddings.EMBEDDING_MODEL
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+
+
+def _require_current_model(sermon_id: int) -> None:
+    """Raise EmbeddingError if any of the sermon's vectors came from another model."""
+    mismatch = db.session.execute(
+        _other_model_chunks().where(SermonChunk.sermon_id == sermon_id).limit(1)
+    ).first()
+    if mismatch is not None:
+        raise embeddings.EmbeddingError(
+            f"sermon {sermon_id} has vectors from {mismatch.embedding_model or 'an unrecorded model'} "
+            f"but EMBEDDING_MODEL is {embeddings.EMBEDDING_MODEL}; run flask reembed"
+        )
+
+
+def _other_model_chunks():
+    """Select chunks with a vector from a model other than EMBEDDING_MODEL, or an unrecorded one."""
+    return (
+        select(SermonChunk.id, SermonChunk.sermon_id, SermonChunk.text, SermonChunk.embedding_model)
+        .join(SermonChunkEmbedding)
+        .where(
+            or_(
+                SermonChunk.embedding_model.is_(None),
+                SermonChunk.embedding_model != embeddings.EMBEDDING_MODEL,
+            )
+        )
     )
-    db.session.execute(delete(SermonChunk).where(SermonChunk.id.in_(stale_ids)))
-
-    # Relies on unique (sermon_id, hash): chunks this sermon already has are skipped,
-    # so they keep their ids and embeddings.
-    db.session.execute(
-        insert(SermonChunk).values(list(rows.values())).on_conflict_do_nothing()
-    )
-
-    db.session.add_all(embeddings.embed(sermon))
-    db.session.commit()
 
 
-def summarize_sermon(sermon: Sermon) -> None:
+def reembed_sermon(sermon_id: int) -> int:
+    """Replace the sermon's vectors from other models with EMBEDDING_MODEL ones; return how many.
+
+    Runs in one transaction, so a failure leaves the old vectors in place. Raises what
+    embed_texts raises, and EmbeddingError if the vec0 dimension is not EMBEDDING_DIM.
+    """
+    embeddings.check_schema_dimension()
+    rows = db.session.execute(
+        _other_model_chunks().where(SermonChunk.sermon_id == sermon_id)
+    ).all()
+    vectors = embeddings.embed_texts([row.text for row in rows])
+    try:
+        ids = [row.id for row in rows]
+        # vec0 has no UPDATE for the vector through the ORM, so delete and insert again.
+        db.session.execute(
+            delete(SermonChunkEmbedding)
+            .where(SermonChunkEmbedding.sermon_chunk_id.in_(ids))
+            .execution_options(synchronize_session=False)
+        )
+        chunks = {c.id: c for c in db.session.scalars(select(SermonChunk).where(SermonChunk.id.in_(ids)))}
+        for chunk_id, vector in zip(ids, vectors, strict=True):
+            chunks[chunk_id].embedding_model = embeddings.EMBEDDING_MODEL
+            db.session.add(
+                SermonChunkEmbedding(
+                    sermon_chunk_id=chunk_id, sermon_chunk=chunks[chunk_id], embedding=vector
+                )
+            )
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+    return len(rows)
+
+
+@click.command("reembed")
+@with_appcontext
+def reembed_command() -> None:
+    """Re-embed every chunk whose vector is not from the configured EMBEDDING_MODEL.
+
+    The deliberate step after changing EMBEDDING_MODEL. Each sermon is replaced in its own
+    transaction, so a failure stops the command and leaves that sermon's old vectors.
+    Safe to run again: sermons already on the current model are skipped.
+    """
+    sermon_ids = db.session.scalars(
+        select(_other_model_chunks().subquery().c.sermon_id).distinct()
+    ).all()
+    total = 0
+    for sermon_id in sermon_ids:
+        try:
+            count = reembed_sermon(sermon_id)
+        except Exception as e:
+            raise click.ClickException(f"sermon {sermon_id}: {str(e) or type(e).__name__}") from e
+        total += count
+        click.echo(f"sermon {sermon_id}: re-embedded {count} chunks")
+    click.echo(f"re-embedded {total} chunks in {len(sermon_ids)} sermons with {embeddings.EMBEDDING_MODEL}")
+
+
+def summarize_sermon(sermon: Sermon, *, expected_run_id: str | None = None) -> None:
     """Write the AI summary for the sermon. TFH-461
     Neither commits: _run_step commits on success and rolls back on failure, so a 
     sermon never keeps a summary whose tagging failed halfway through.
 
-    Does nothing without a transcript. fetch_transcript owns that failure and reports
-    it; raising here too would put a second error on every sermon it could not fetch.
+    With expected_run_id, compute provider results before acquiring a conditional
+    write fence, then hold it through summary/tag persistence and lifecycle completion.
+    A superseded request raises _SummaryRegenerationSuperseded before writing results.
+    The caller owns commit/rollback; this function never commits.
     """
     if not sermon.transcript:
+        if expected_run_id is not None:
+            _fence_summary_regeneration(sermon.id, expected_run_id)
         return
-    sermon.summary = summarize_transcript(sermon.transcript)
-    save_ai_tags(sermon, suggest_tags(sermon.summary))
+    summary = summarize_transcript(sermon.transcript)
+    tags = suggest_tags(summary)
+    if expected_run_id is not None:
+        _fence_summary_regeneration(sermon.id, expected_run_id)
+    sermon.summary = summary
+    sermon.summary_source = SermonSummarySource.AI
+    save_ai_tags(sermon, tags)
 
 
 
@@ -131,6 +294,51 @@ def start_processing(sermon: Sermon) -> None:
         raise
 
 
+def _has_usable_cached_captions(sermon: Sermon) -> bool:
+    """Saved timed captions can rebuild the index; otherwise require a usable saved index.
+
+    A legacy text-only transcript is not enough to publish: embed_chunks deliberately
+    does nothing without timed segments. Inspect scalar metadata without loading vectors
+    or calling a provider, and leave cached data untouched when recovery is deferred.
+    """
+    def timed_text(text, start, end) -> bool:
+        return (
+            isinstance(text, str)
+            and bool(text.strip())
+            and all(
+                isinstance(value, (int, float)) and not isinstance(value, bool) and isfinite(value)
+                for value in (start, end)
+            )
+            and 0 <= start <= end
+        )
+
+    if any(
+        isinstance(segment, dict)
+        and timed_text(segment.get("text"), segment.get("start"), segment.get("end"))
+        for segment in (sermon.transcript_segments or [])
+    ):
+        return True
+
+    try:
+        embeddings.check_schema_dimension()
+    except embeddings.EmbeddingError:
+        return False
+    chunks = db.session.execute(
+        select(
+            SermonChunk.text, SermonChunk.start, SermonChunk.end, SermonChunk.embedding_model,
+            SermonChunkEmbedding.sermon_chunk_id,
+        )
+        .outerjoin(SermonChunkEmbedding)
+        .where(SermonChunk.sermon_id == sermon.id, SermonChunk.stale.is_(False))
+    ).all()
+    return bool(chunks) and all(
+        chunk.sermon_chunk_id is not None
+        and chunk.embedding_model == embeddings.EMBEDDING_MODEL
+        and timed_text(chunk.text, chunk.start, chunk.end)
+        for chunk in chunks
+    )
+
+
 def process_sermon(sermon_id: int) -> None:
     """Run every pipeline step for one sermon and save the result on it.
 
@@ -151,6 +359,22 @@ def process_sermon(sermon_id: int) -> None:
     sermon.status = UploadStatus.PROCESSING
     sermon.processing_error = None
     db.session.commit()
+
+    # Captions off: preserve cached data, but do not publish text-only legacy records
+    # when neither source timings nor a compatible existing search index is available.
+    has_transcript = bool((sermon.transcript or "").strip())
+    if not captions.captions_enabled() and (
+        not has_transcript or not _has_usable_cached_captions(sermon)
+    ):
+        sermon.status = UploadStatus.DRAFT
+        sermon.processing_error = "fetch_transcript: " + captions.DISABLED_MESSAGE
+        if has_transcript:
+            sermon.processing_error += (
+                "; saved transcript has no usable timed captions or compatible search index; "
+                "restore timed captions and reprocess, or repair/re-embed the cached index"
+            )
+        db.session.commit()
+        return
 
     # Steps are looked up when this runs, not at import, so tests can monkeypatch them.
     required_steps = (
@@ -181,16 +405,185 @@ def process_sermon(sermon_id: int) -> None:
     db.session.commit()
 
 
-def regenerate_summary(sermon_id: int) -> None:
+# RQ kills a job after JOB_TIMEOUT, and a worker that dies leaves its state behind. A request still QUEUED or
+# RUNNING this long after it started can no longer finish, so the next request may take over from it.
+REGEN_STALE_AFTER = timedelta(seconds=JOB_TIMEOUT + 300)
+_REGEN_FREE = (SummaryRegenState.IDLE, SummaryRegenState.COMPLETED, SummaryRegenState.FAILED)
+
+
+class _SummaryRegenerationSuperseded(Exception):
+    """The request was replaced, unpublished or removed while the provider was running."""
+
+
+def _fence_summary_regeneration(sermon_id: int, run_id: str) -> None:
+    """Acquire the current request's write lock without flushing pending ORM values.
+
+    This must stay in the transaction that writes the summary, tags and lifecycle.
+    An UPDATE, not a SELECT, prevents another claim from committing between the
+    ownership check and these writes. Callers roll back if ownership was lost.
+    """
+    with db.session.no_autoflush:
+        result = db.session.execute(
+            update(Sermon)
+            .where(
+                Sermon.id == sermon_id,
+                Sermon.summary_regen_run_id == run_id,
+                Sermon.summary_regen_state == SummaryRegenState.RUNNING,
+                Sermon.status == UploadStatus.PUBLISHED,
+            )
+            .values(summary_regen_run_id=run_id)
+            .execution_options(synchronize_session=False)
+        )
+    if result.rowcount != 1:
+        raise _SummaryRegenerationSuperseded()
+
+
+def _fail_unpublished_regeneration(sermon_id: int, run_id: str) -> None:
+    """Finish only this request if its sermon became unpublished; preserve content."""
+    with db.session.no_autoflush:
+        db.session.execute(
+            update(Sermon)
+            .where(
+                Sermon.id == sermon_id,
+                Sermon.summary_regen_run_id == run_id,
+                Sermon.summary_regen_state.in_((SummaryRegenState.QUEUED, SummaryRegenState.RUNNING)),
+                Sermon.status != UploadStatus.PUBLISHED,
+            )
+            .values(
+                summary_regen_state=SummaryRegenState.FAILED,
+                summary_regen_error="The sermon is no longer published",
+                summary_regen_finished_at=utcnow(),
+            )
+            .execution_options(synchronize_session=False)
+        )
+    db.session.commit()
+
+
+def claim_summary_regeneration(sermon_id: int) -> str | None:
+    """Mark the sermon's summary QUEUED for a new request and return that request's id, or None if refused.
+
+    The check and the claim are one conditional UPDATE, so two clicks at the same moment cannot both win.
+    Refused when the sermon is missing or not PUBLISHED, or when a request is still QUEUED or RUNNING and
+    not yet stale (REGEN_STALE_AFTER). Pass the id to regenerate_summary so the job can tell if it is current.
+    """
+    now = utcnow()
+    run_id = uuid4().hex
+    last_activity = func.coalesce(Sermon.summary_regen_started_at, Sermon.summary_regen_requested_at)
+    result = db.session.execute(
+        update(Sermon)
+        .where(
+            Sermon.id == sermon_id,
+            Sermon.status == UploadStatus.PUBLISHED,
+            or_(
+                Sermon.summary_regen_state.in_(_REGEN_FREE),
+                last_activity < now - REGEN_STALE_AFTER,
+            ),
+        )
+        .values(
+            summary_regen_state=SummaryRegenState.QUEUED,
+            summary_regen_error=None,
+            summary_regen_run_id=run_id,
+            summary_regen_requested_at=now,
+            summary_regen_started_at=None,
+            summary_regen_finished_at=None,
+        )
+        .execution_options(synchronize_session=False)
+    )
+    db.session.commit()
+    return run_id if result.rowcount == 1 else None
+
+
+def release_summary_regeneration(sermon_id: int, run_id: str) -> None:
+    """Put the sermon back to IDLE after its job could not be queued, so the admin can try again.
+
+    Does nothing if a newer request has taken over since.
+    """
+    db.session.execute(
+        update(Sermon)
+        .where(Sermon.id == sermon_id, Sermon.summary_regen_run_id == run_id)
+        .values(
+            summary_regen_state=SummaryRegenState.IDLE,
+            summary_regen_run_id=None,
+            summary_regen_requested_at=None,
+        )
+        .execution_options(synchronize_session=False)
+    )
+    db.session.commit()
+
+
+def regenerate_summary(sermon_id: int, run_id: str | None = None) -> None:
     """Run only the summary step, for the "Regenerate with AI" buttons.
 
     Leaves the status alone. Saves "summarize_sermon: <error>" to processing_error if it fails.
     If it works, clears processing_error only when that was an old summary error.
     Does nothing unless the sermon exists and is PUBLISHED.
+
+    With a run_id from claim_summary_regeneration, the sermon's summary_regen_* fields follow the job:
+    RUNNING when it starts, then COMPLETED, or FAILED with the reason. A job whose run_id is no longer the
+    sermon's current one was replaced after going stale, so it does nothing. Without a run_id none of that is
+    recorded.
     """
     sermon = db.session.get(Sermon, sermon_id)
+    if sermon is None:
+        return
+    tracked = run_id is not None
+    if tracked and sermon.summary_regen_run_id != run_id:
+        return
     # The summary needs the transcript, which only a PUBLISHED sermon is sure to have.
-    if sermon is None or sermon.status != UploadStatus.PUBLISHED:
+    if sermon.status != UploadStatus.PUBLISHED:
+        if tracked:
+            _fail_unpublished_regeneration(sermon_id, run_id)
+        return
+
+    if tracked:
+        # A delivered job may be replayed. Only one QUEUED -> RUNNING transition wins.
+        with db.session.no_autoflush:
+            started = db.session.execute(
+                update(Sermon)
+                .where(
+                    Sermon.id == sermon_id,
+                    Sermon.summary_regen_run_id == run_id,
+                    Sermon.summary_regen_state == SummaryRegenState.QUEUED,
+                    Sermon.status == UploadStatus.PUBLISHED,
+                )
+                .values(summary_regen_state=SummaryRegenState.RUNNING, summary_regen_started_at=utcnow())
+                .execution_options(synchronize_session=False)
+            )
+        db.session.commit()
+        if started.rowcount != 1:
+            return
+        db.session.refresh(sermon)
+
+        error = None
+        try:
+            summarize_sermon(sermon, expected_run_id=run_id)
+        except _SummaryRegenerationSuperseded:
+            db.session.rollback()
+            _fail_unpublished_regeneration(sermon_id, run_id)
+            return
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.exception("Sermon %s failed at summarize_sermon", sermon_id)
+            error = f"summarize_sermon: {str(exc) or type(exc).__name__}"
+            # A provider/tagging failure may arrive after a newer request completed.
+            # Fence its error too; failure must never damage the newer result.
+            try:
+                _fence_summary_regeneration(sermon_id, run_id)
+            except _SummaryRegenerationSuperseded:
+                db.session.rollback()
+                _fail_unpublished_regeneration(sermon_id, run_id)
+                return
+            sermon = db.session.get(Sermon, sermon_id)
+
+        if error:
+            sermon.processing_error = error
+        elif (sermon.processing_error or "").startswith("summarize_sermon:"):
+            sermon.processing_error = None
+        sermon.summary_regen_state = SummaryRegenState.FAILED if error else SummaryRegenState.COMPLETED
+        sermon.summary_regen_error = error.removeprefix("summarize_sermon: ") if error else None
+        sermon.summary_regen_finished_at = utcnow()
+        # The successful write fence is still held: content, tags and result commit together.
+        db.session.commit()
         return
 
     error = _run_step("summarize_sermon", summarize_sermon, sermon_id)

@@ -49,10 +49,10 @@ Three kinds of link are accepted, with or without `https://`:
 - `youtu.be/...`
 - `youtube.com/shorts/...`
 
-Anything else is rejected under the field before a request is sent. After the
-import, the modal fills in Sermon Title, Speaker, Series, Date and Description
-from the video. Those fields are read-only for now: there is no endpoint to
-update a sermon, so edits could not be saved.
+Anything else is rejected under the field before a request is sent. Only the link
+is sent. After the import, the modal shows Sermon Title, Speaker, Series, Date and
+Description from the video as a read-only preview of what was saved, and Open
+sermon goes to the sermon's own page.
 
 The import is refused, with the reason shown under the link, when the video is
 private, deleted or missing, is still streaming, or is longer than
@@ -76,10 +76,22 @@ Leaving both dates empty syncs the whole channel, which is about 444 sermons and
 a caption request for each. That can use up the day's caption quota, so prefer a
 short range, especially when testing.
 
+While a sync is queued or running it shows first in Active Imports as a YouTube
+Library Import, and the sync form is locked, even when another admin started it.
+The page checks every 5 seconds for up to 10 minutes, then shows a Check status
+button.
+
 When the sync ends, a pop-up reports the range and the result: how many series
 and sermons were created, updated or left unchanged, and a list of anything
 skipped or needing attention, such as private videos, videos over the length
-limit, and titles with no recognisable speaker.
+limit, and titles with no recognisable speaker. A failed sync shows why instead.
+Every sync is saved, so after a reload or after leaving the page it is listed in
+Sync History on the Import History tab, and clicking its title opens the same report.
+
+If captions cannot be downloaded when the sync ends (quota used up, sign-in
+expired, or captions turned off), the report says so in `caption_pause` and counts the
+sermons left waiting in `caption_deferred`. See
+[YouTube sync runs](youtube-sync-runs.md).
 
 Syncing again is safe. Videos already imported are matched by their YouTube id,
 and only their length, date and link are updated. Titles, descriptions, speakers,
@@ -89,8 +101,8 @@ tags, transcripts and summaries edited by an admin are left alone.
 
 The Import / Upload page lists sermons by status:
 
-- Active Imports: still processing
-- Import History: finished
+- Active Imports: still processing, led by any sync that is queued or running
+- Import History: finished, next to Sync History, the finished syncs
 - Failed Imports: processing hit an error
 
 The lists refresh every few seconds while anything is processing. A failed row
@@ -105,7 +117,13 @@ The site uses these endpoints, all Admin only:
 - `POST /api/import/youtube/video` with `{"url": "..."}` imports one video.
 - `POST /api/import/youtube` syncs the channel. An optional body,
   `{"from": "2026-09-01", "to": "2026-09-30"}`, limits it to a date range.
+- `GET /api/import/youtube/runs` lists recent syncs, and
+  `GET /api/import/youtube/runs/<id>` returns one with its report.
 - `POST /api/sermons/<id>/reprocess` runs processing on a sermon again.
+
+Each sync is saved as a run with its state and report. See
+[YouTube sync runs](youtube-sync-runs.md) for the responses, the run states and
+how the frontend should follow a queued sync.
 
 The whole channel can also be imported from `Backend`. This has no date range:
 
@@ -120,15 +138,18 @@ with `backfill-captions`, described in the captions guide.
 
 ## Limits
 
-The backend does not record sync runs, which leaves these gaps:
+The Import / Upload page reads every sync from its saved run (see
+[YouTube sync runs](youtube-sync-runs.md)), which leaves these gaps:
 
-- A sync shows no progress. The result arrives once, when it ends.
-- Reloading the page during a sync loses it on screen. The sync still finishes on
-  the server and its sermons appear in the lists, but the button resets and no
-  result pop-up is shown.
-- With Redis, a sync is queued and the pop-up shows only its job id, not the
-  result.
-- The result cannot be reopened after the pop-up is closed.
+- A sync shows its state, Queued or Running, but no progress bar. The server
+  reports counts only when the sync ends, and caption processing is followed per
+  sermon, not per sync.
+- Checking stops after 10 minutes with a sync still going. Check status starts it
+  again. The server gives up on a lost worker itself, after 20 minutes running or
+  24 hours queued, and marks the sync failed.
+- Reloading the page during a sync that runs inside the request (no Redis) drops
+  the request. The sync still finishes on the server and is listed in Sync
+  History once it has ended.
 
 Without Redis a sync runs inside the request, about 40 seconds for the full
 channel before captions, so use Redis in production to avoid server timeouts.

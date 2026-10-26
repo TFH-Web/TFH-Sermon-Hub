@@ -1,7 +1,8 @@
 # Imports the TFH YouTube channel: playlists become series, videos become sermons.
 import re
 from dataclasses import asdict, dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import click
@@ -11,24 +12,24 @@ from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy import func
 
-from tsh import youtube
+from tsh import captions, youtube
 from tsh.database import db
-from tsh.models import Series, Sermon, Speaker, UploadStatus
+from tsh.models import Series, Sermon, Speaker, SyncRun, SyncRunState, UploadStatus, utcnow
 from tsh.pipeline import start_processing
+from tsh.queue import JOB_TIMEOUT, enqueue
 from tsh.youtube_titles import ParsedTitle, parse_title, series_named_in
+
 
 # Every description is this boilerplate plus a few links, so everything from here on is dropped.
 BOILERPLATE_START = "broadcasted live from"
 DURATION_RE = re.compile(r"^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$")
 # YouTube's own titles for playlist entries whose video is gone or hidden.
 HIDDEN_TITLES = {"Private video", "Deleted video"}
-VIDEO_ID = r"[A-Za-z0-9_-]{11}"
-# youtube.com/watch?v=ID, youtu.be/ID and youtube.com/shorts/ID, with or without www., m. and extra params.
-VIDEO_URL_PATTERNS = [
-    re.compile(rf"^https?://(?:www\.|m\.)?youtube\.com/watch\?(?:.*&)?v=({VIDEO_ID})(?:[&#].*)?$"),
-    re.compile(rf"^https?://youtu\.be/({VIDEO_ID})(?:[?#].*)?$"),
-    re.compile(rf"^https?://(?:www\.|m\.)?youtube\.com/shorts/({VIDEO_ID})(?:[?#/].*)?$"),
-]
+# A running sync past this age has outlived RQ's timeout, so its worker is gone. The margin covers a slow start.
+STALE_SYNC_AFTER = timedelta(seconds=JOB_TIMEOUT) + timedelta(minutes=5)
+# A queued sync shares the "sermons" queue and can wait behind many 15 minute sermon jobs after a big
+# import, so it is only treated as lost (for example Redis was flushed) after much longer.
+STALE_QUEUED_SYNC_AFTER = timedelta(hours=24)
 
 
 class VideoImportError(Exception):
@@ -65,6 +66,13 @@ class ImportReport:
     # New sermons whose pipeline job could not be queued, as "title (id): error". They are left FAILED
     # and can be retried with the reprocess endpoint.
     queue_failures: list[str] = field(default_factory=list)
+    # Why caption downloads are on hold (quota used up, sign-in expired, or CAPTIONS_ENABLED off), or None.
+    # A snapshot taken when the import ended, not live status. With the worker the caption jobs have not run
+    # yet, so this only knows the saved breaker and flag; a later failure is on each sermon's processing_error.
+    caption_pause: str | None = None
+    # New sermons whose captions did not download because of that pause. They are not queue_failures:
+    # they are saved, and reprocessing or backfill-captions picks them up once the pause ends.
+    caption_deferred: int = 0
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -90,6 +98,8 @@ def import_channel(date_from: date | None = None, date_to: date | None = None, *
     duration, date and link are updated (see _update_sermon). New sermons are queued with start_processing;
     one that cannot be queued is counted in queue_failures and the import carries on. Once Redis
     cannot be reached, the rest are set FAILED without trying, since each try would wait for a timeout.
+    If caption downloads are on hold, the report says so in caption_pause and caption_deferred; the import
+    itself still succeeds.
     Returns an ImportReport. Raises youtube.YouTubeError if the channel or the video details cannot be fetched.
     """
     report = ImportReport()
@@ -154,16 +164,105 @@ def import_channel(date_from: date | None = None, date_to: date | None = None, *
 
     if process:
         _queue_new_sermons(new_sermons, report)
+        _note_caption_pause(new_sermons, report)
     return report
 
 
-def parse_video_id(url: str) -> str | None:
-    """Return the video id from a youtube.com/watch?v=, youtu.be/ or youtube.com/shorts/ URL, or None if it is not one."""
-    for pattern in VIDEO_URL_PATTERNS:
-        match = pattern.match(url.strip())
-        if match:
-            return match.group(1)
-    return None
+def active_sync_run() -> SyncRun | None:
+    """Return the QUEUED or RUNNING sync run, if there is one, so a second sync is not started alongside it.
+
+    A run RUNNING since started_at for longer than STALE_SYNC_AFTER, or QUEUED since created_at for longer
+    than STALE_QUEUED_SYNC_AFTER, is taken to be lost (the worker died, RQ killed the job, or the job was
+    dropped), and is set FAILED with a "worker: ..." error and finished_at instead of being returned.
+    Commits only when it fails a lost run. Raises nothing itself.
+    """
+    now = utcnow()
+    runs = db.session.scalars(
+        db.select(SyncRun)
+        .where(SyncRun.state.in_([SyncRunState.QUEUED, SyncRunState.RUNNING]))
+        .order_by(SyncRun.id.desc())
+    ).all()
+    active = None
+    for run in runs:
+        if run.state == SyncRunState.RUNNING:
+            since, limit = run.started_at, STALE_SYNC_AFTER
+        else:
+            since, limit = run.created_at, STALE_QUEUED_SYNC_AFTER
+        if since < now - limit:
+            # Without this a dead worker would block every future sync, since no job is coming to finish it.
+            run.state = SyncRunState.FAILED
+            run.error = f"worker: no result within {limit.total_seconds() / 60:.0f} minutes"
+            run.finished_at = utcnow()
+            db.session.commit()
+        elif active is None:
+            active = run
+    return active
+
+
+def start_sync(run: SyncRun) -> Any:
+    """Save a new QUEUED run and queue run_sync for it.
+
+    Returns what enqueue returns: the RQ job with REDIS_URL set, or None after running inline.
+    If the job cannot be queued, the run is set FAILED with a "queue: <error>" message and finished_at,
+    and the error is raised again, e.g. redis.ConnectionError or redis.TimeoutError when Redis is down.
+    """
+    db.session.add(run)
+    # Commit before queueing, or the worker could look for the run before it is saved.
+    db.session.commit()
+    try:
+        return enqueue(run_sync, run.id)
+    except Exception as e:
+        db.session.rollback()
+        # Without this the run would stay QUEUED until it went stale, blocking new syncs, though no job is coming.
+        run.state = SyncRunState.FAILED
+        run.error = f"queue: {str(e) or type(e).__name__}"
+        run.finished_at = utcnow()
+        db.session.commit()
+        raise
+
+
+def run_sync(run_id: int) -> None:
+    """Run import_channel for one SyncRun and save how it went on that run.
+
+    Sets the run RUNNING with started_at, then SUCCEEDED with the report, its counts and finished_at.
+    If the import raises, the run is set FAILED with the error and finished_at instead, and nothing
+    is raised, so the job itself never fails. Takes the run id rather than the run, so it can be queued.
+    Does nothing if the run no longer exists or is no longer QUEUED.
+    """
+    run = db.session.get(SyncRun, run_id)
+    if run is None:
+        current_app.logger.warning("Sync run %s was deleted before it could run", run_id)
+        return
+    if run.state != SyncRunState.QUEUED:
+        # active_sync_run gave up on it and a newer sync may already be running, so two imports never overlap.
+        current_app.logger.warning("Sync run %s is %s, not queued, so it was not run", run_id, run.state.value)
+        return
+
+    run.state = SyncRunState.RUNNING
+    run.started_at = utcnow()
+    # Commit before importing, so the run shows as running while the import is still fetching.
+    db.session.commit()
+
+    try:
+        report = import_channel(run.date_from, run.date_to)
+    except Exception as e:
+        # Roll back so a half-finished import is not saved along with the failure.
+        db.session.rollback()
+        current_app.logger.exception("Sync run %s failed", run_id)
+        run.state = SyncRunState.FAILED
+        run.error = str(e) or type(e).__name__
+        run.finished_at = utcnow()
+        db.session.commit()
+        return
+
+    run.state = SyncRunState.SUCCEEDED
+    run.report = report.as_dict()
+    run.series_created = report.series_created
+    run.sermons_created = report.sermons_created
+    run.sermons_updated = report.sermons_updated
+    run.sermons_unchanged = report.sermons_unchanged
+    run.finished_at = utcnow()
+    db.session.commit()
 
 
 def import_video(video_id: str) -> tuple[Sermon, bool]:
@@ -360,6 +459,25 @@ def _queue_new_sermons(sermons: list[Sermon], report: ImportReport) -> None:
             current_app.logger.exception("Could not queue imported sermon %s", sermon.id)
             report.queue_failures.append(f"{sermon.title} ({sermon.youtube_video_id}): {str(e) or type(e).__name__}")
             redis_down = isinstance(e, (RedisConnectionError, RedisTimeoutError))
+
+
+def _note_caption_pause(sermons: list[Sermon], report: ImportReport) -> None:
+    """Set report.caption_pause and caption_deferred from how the new sermons' caption step ended.
+
+    Without REDIS_URL the sermons have already been processed, so their processing_error shows a quota,
+    sign-in or captions-off pause. With the worker they are still Processing, so only the saved breaker and
+    CAPTIONS_ENABLED (captions.pause_reason) can be known. Reads only: no sermon is changed, and YouTube is not called.
+    """
+    db.session.expire_all()
+    prefixes = (captions.QUOTA_PREFIX, captions.AUTH_PREFIX, captions.DISABLED_PREFIX)
+    held = [s for s in sermons if (s.processing_error or "").startswith(prefixes)]
+    report.caption_deferred = len(held)
+    report.caption_pause = captions.pause_reason()
+    if report.caption_pause is None:
+        # An expired sign-in has no saved state, so it is only known from a sermon that hit it.
+        signed_out = next((s for s in held if s.processing_error.startswith(captions.AUTH_PREFIX)), None)
+        if signed_out is not None:
+            report.caption_pause = signed_out.processing_error.removeprefix("fetch_transcript: ")
 
 
 def _synced_fields(video: dict, duration: int) -> dict:

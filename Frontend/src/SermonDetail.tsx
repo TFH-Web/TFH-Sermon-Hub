@@ -11,9 +11,16 @@ import { Card } from '$/components/Card.tsx';
 import ErrorBox from '$/components/ErrorBox.tsx';
 import Loading from '$/components/Loading.tsx';
 import MainLayout from '$/components/MainLayout';
+import ManualSummaryEditor from '$/components/ManualSummaryEditor';
 import SermonTranscript from '$/components/SermonTranscript';
+import SummaryRegenStatus from '$/components/SummaryRegenStatus.tsx';
 import Tag from '$/components/Tag.tsx';
-import { useToast } from '$/components/ToastContext.tsx';
+import {
+	regenPollInterval,
+	useSummaryRegeneration,
+} from '$/hooks/useSummaryRegeneration';
+import { useAuth, useIsAdmin } from '$/lib/auth';
+import { buildYouTubeWatchUrl, resolveYouTubeVideoId } from '$/lib/youtube';
 import DeleteSermonModal from '$/modals/DeleteSermonModal.tsx';
 import EditSermonModal from '$/modals/EditSermonModal.tsx';
 import { durationToString, Sermon } from '$/types/sermon';
@@ -34,15 +41,16 @@ function isNotFound(error: unknown): boolean {
 }
 
 export default function SermonDetail() {
-	const { showToast } = useToast(); // let's up pop up a little message at the corner of the screen
+	const isAdmin = useIsAdmin();
 
-	const [_summary, setSummary] = useState<string | null>(null); // Starts as nothing. It only holds text once the user types their own summary.
+	const summarySession = useAuth(
+		state =>
+			`${state.status}:${state.account?.homeAccountId ?? ''}:${state.roles.includes('Admin')}`,
+	);
 
 	const { id } = useParams(); // reads the number of the web address, so /sermons/5 gives us 5
-	const [isEditingSummary, setIsEditingSummary] = useState(false); // Remembers if the summary edit box is open
 	const [editSermonOpen, setEditSermonOpen] = useState(false); //	Remembers if the Edit popup is open
 	const [deleteSermonOpen, setDeleteSermonOpen] = useState(false); // Remembers if the Delete popup is open
-	const [isRegenerating, setIsRegenerating] = useState(false); // Stops a second click from queueing the same summary job twice
 
 	const playerRef = useRef<YouTubePlayer | null>(null); //creates reference for youtube player
 	const [playerReady, setPlayerReady] = useState(false); //remembers if the player is ready (video is loaded)
@@ -64,31 +72,13 @@ export default function SermonDetail() {
 		// A sermon that does not exist will still not exist on the third try, so only keep trying for real failures like the server being down.
 		retry: (failureCount, error) => !isNotFound(error) && failureCount < 3,
 		refetchInterval: query =>
-			query.state.data?.status === 'Processing' ? 2000 : false,
+			query.state.data?.status === 'Processing'
+				? 2000
+				: regenPollInterval(query.state.data),
 	});
 
-	// Ask the server for a new AI summary, then reload the sermon so the card shows it.
-	// With the job queue on, the new summary only appears once the worker finishes, so the toast says it may take a moment.
-	const regenerateSummary = async () => {
-		if (isRegenerating) return;
-		setIsRegenerating(true);
-		try {
-			await axios.post(`/api/sermons/${id}/regenerate-summary`);
-			showToast(
-				'Regenerating summary with AI. It may take a moment to appear.',
-				'info',
-			);
-			await query.refetch();
-		} catch (error) {
-			// The server sends a readable message for the cases people can act on, like the job queue being down.
-			const message =
-				(axios.isAxiosError(error) && error.response?.data?.error) ||
-				'Could not regenerate the summary';
-			showToast(message, 'error');
-		} finally {
-			setIsRegenerating(false);
-		}
-	};
+	// Ask the server for a new AI summary. The server tracks the request, so this page, other tabs and a reload all show where it is.
+	const regen = useSummaryRegeneration(id, query.data);
 
 	//ask server for data of all sermons
 	const sermonsQuery = useQuery({
@@ -183,25 +173,6 @@ export default function SermonDetail() {
 		seriesIndex = filteredSermons.findIndex(item => item.id === sermon.id) + 1; // Add 1 to the index to offset zero-indexing
 	}
 
-	function getYouTubeEmbedUrl(videoLink: string): string | null {
-		try {
-			const url = new URL(videoLink);
-
-			if (url.hostname === 'youtu.be') {
-				return url.pathname.slice(1);
-			} else if (
-				url.hostname === 'www.youtube.com' ||
-				url.hostname === 'youtube.com'
-			) {
-				return url.searchParams.get('v');
-			}
-
-			return null;
-		} catch {
-			return null;
-		}
-	}
-
 	type YouTubePlayer = Parameters<
 		NonNullable<YouTubeProps['onReady']>
 	>[0]['target'];
@@ -228,7 +199,8 @@ export default function SermonDetail() {
 		}
 	}
 
-	const videoId = getYouTubeEmbedUrl(sermon.videoLink);
+	const videoId = resolveYouTubeVideoId(sermon);
+	const watchUrl = videoId ? buildYouTubeWatchUrl(videoId) : null;
 
 	return (
 		<MainLayout title={sermon.title}>
@@ -297,22 +269,28 @@ export default function SermonDetail() {
 								))}
 							</div>
 							<div className="SermonDetail-btn-group">
-								<a
-									className="Button Button--primary"
-									href={sermon.videoLink}
-									target="_blank"
-									rel="noreferrer"
-								>
-									Watch
-								</a>
+								{watchUrl ? (
+									<a
+										className="Button Button--primary"
+										href={watchUrl}
+										target="_blank"
+										rel="noreferrer"
+									>
+										Watch
+									</a>
+								) : (
+									<span>Video unavailable</span>
+								)}
 								<Button
 									variant="secondary"
+									disabled={!isAdmin}
 									onClick={() => setEditSermonOpen(true)}
 								>
 									Edit
 								</Button>
 								<Button
 									variant="danger"
+									disabled={!isAdmin}
 									onClick={() => setDeleteSermonOpen(true)}
 								>
 									Delete
@@ -328,17 +306,24 @@ export default function SermonDetail() {
 					<div className="SermonDetail-card-header">
 						<h2 className="SermonDetail-card-title">Summary</h2>
 						<div className="SermonDetail-card-actions">
-							<Tag variant="blue">AI Generated</Tag>
+							{sermon.summary && sermon.summarySource === 'ai' && (
+								<Tag variant="blue">AI generated</Tag>
+							)}
 							<Button
 								variant="ghost"
 								className="SermonDetail-regenerate-btn"
-								onClick={regenerateSummary}
-								disabled={isRegenerating}
+								onClick={regen.start}
+								disabled={!isAdmin || regen.isActive}
 							>
-								{isRegenerating ? 'Regenerating...' : 'Regenerate with AI'}
+								{regen.isActive ? 'Regenerating...' : 'Regenerate with AI'}
 							</Button>
 						</div>
 					</div>
+					<SummaryRegenStatus
+						state={regen.state}
+						error={regen.error}
+						stale={regen.isStale}
+					/>
 					<div className="SermonDetail-summary-container">
 						{/* Same idea as the transcript. Say there is no summary rather than showing an empty panel. */}
 						{summaryParagraphs.length > 0 ? (
@@ -353,32 +338,10 @@ export default function SermonDetail() {
 							</p>
 						)}
 					</div>
-					<div className="SermonDetail-summary-edit-container">
-						{isEditingSummary ? (
-							<div className="SermonDetail-summary-editing">
-								<Button
-									variant="secondary"
-									className="SermonDetail-summary-btn"
-									onClick={() => setIsEditingSummary(false)}
-								>
-									Edit Summary Manually
-								</Button>
-								<textarea
-									className="SermonDetail-summary-textarea"
-									value={_summary ?? sermon.summary ?? ''}
-									onChange={e => setSummary(e.target.value)}
-								/>
-							</div>
-						) : (
-							<Button
-								variant="secondary"
-								className="SermonDetail-summary-btn"
-								onClick={() => setIsEditingSummary(true)}
-							>
-								Edit Summary Manually
-							</Button>
-						)}
-					</div>
+					<ManualSummaryEditor
+						key={`${id}:${summarySession}`}
+						sermon={sermon}
+					/>
 				</Card>
 
 				{/* Metadata Section */}
@@ -417,16 +380,20 @@ export default function SermonDetail() {
 						</span>
 
 						<span className="SermonDetail-metadata-label">Video</span>
-						{/* The real video address from the server, shown without the https:// */}
+						{/* Never render an unchecked saved URL. */}
 						<span className="SermonDetail-metadata-value">
-							<a
-								href={sermon.videoLink}
-								target="_blank"
-								rel="noreferrer"
-								className="SermonDetail-metadata-link"
-							>
-								{sermon.videoLink.replace('https://', '')}
-							</a>
+							{watchUrl ? (
+								<a
+									href={watchUrl}
+									target="_blank"
+									rel="noreferrer"
+									className="SermonDetail-metadata-link"
+								>
+									{watchUrl.replace('https://', '')}
+								</a>
+							) : (
+								'Video unavailable'
+							)}
 						</span>
 
 						<span>

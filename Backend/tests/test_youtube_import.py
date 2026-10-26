@@ -9,11 +9,12 @@ from redis import Redis
 from redis.exceptions import ConnectionError as RedisConnectionError
 from rq import Queue
 
-from tsh import pipeline, views, youtube
+from tsh import pipeline, youtube, youtube_import
 from tsh.database import db
-from tsh.models import Series, Sermon, Speaker, UploadStatus
+from tsh.models import Series, Sermon, Speaker, SyncRun, UploadStatus
 from tsh.queue import QUEUE_NAME
-from tsh.youtube_import import import_channel, parse_video_id
+from tsh.youtube_import import import_channel
+from tsh.youtube_links import parse_video_id
 
 BOILERPLATE = "Broadcasted live from The Father's House in Vacaville, CA.\nhttps://example.com"
 
@@ -134,6 +135,8 @@ def test_import_report(app: Flask, channel: FakeChannel):
             "Joseph Zwanziger & James Cooper"
         ],
         "queue_failures": [],
+        "caption_pause": None,
+        "caption_deferred": 0,
     }
 
 
@@ -485,7 +488,7 @@ def test_sync_redis_down(client: FlaskClient, channel: FakeChannel, monkeypatch)
     def redis_down(*args):
         raise RedisConnectionError("Connection refused")
 
-    monkeypatch.setattr(views, "enqueue", redis_down)
+    monkeypatch.setattr(youtube_import, "enqueue", redis_down)
 
     res = client.post("/api/import/youtube")
 
@@ -512,7 +515,7 @@ def test_sync_date_range(client: FlaskClient, channel: FakeChannel):
 
 
 def test_sync_date_range_queued(app: Flask, client: FlaskClient, channel: FakeChannel, monkeypatch):
-    """A queued sync carries its date range to the worker as the job's arguments."""
+    """A queued sync saves its date range on the run, and the job carries only the run id for the worker to load."""
     fake = fakeredis.FakeStrictRedis()
     monkeypatch.setattr(Redis, "from_url", lambda *args, **kwargs: fake)
     app.config["REDIS_URL"] = "redis://fake:6379/0"
@@ -521,7 +524,9 @@ def test_sync_date_range_queued(app: Flask, client: FlaskClient, channel: FakeCh
 
     assert res.status_code == 202
     job = Queue(QUEUE_NAME, connection=fake).fetch_job(res.json["jobId"])
-    assert tuple(job.args) == (date(2026, 9, 1), date(2026, 9, 30))
+    assert tuple(job.args) == (res.json["runId"],)
+    run = db.session.get(SyncRun, res.json["runId"])
+    assert (run.date_from, run.date_to) == (date(2026, 9, 1), date(2026, 9, 30))
     assert channel.items_read == []
 
 
@@ -556,6 +561,21 @@ def test_import_video(client: FlaskClient, channel: FakeChannel):
     again = client.post("/api/import/youtube/video", json={"url": "https://youtu.be/vGuide00001"})
     assert again.status_code == 200
     assert again.json["id"] == res.json["id"]
+
+
+def test_import_with_captions_off_still_imports_every_sermon(app: Flask, channel: FakeChannel):
+    """Metadata imports don't depend on captions: same sermons, no queue failures, none published."""
+    app.config["CAPTIONS_ENABLED"] = "false"
+    report = import_channel().as_dict()
+
+    assert report["sermons_created"] == 11
+    assert report["queue_failures"] == []
+    guide = sermon_for("vGuide00001")
+    assert guide.title == "The Guide"
+    assert guide.status == UploadStatus.DRAFT
+    assert guide.transcript is None
+    assert "captions are turned off" in guide.processing_error
+    assert count(Sermon, Sermon.status == UploadStatus.PUBLISHED, Sermon.youtube_video_id.is_not(None)) == 0
 
 
 def test_import_video_then_sync_links_series(client: FlaskClient, channel: FakeChannel):

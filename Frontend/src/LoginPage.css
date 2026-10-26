@@ -98,7 +98,7 @@
 .login-subtitle {
 	margin-bottom: 20px;
 	font-size: 13px;
-	color: #888;
+	color: #595959;
 }
 
 /* Alert Box styling */
@@ -196,7 +196,7 @@
 	margin-top: 12px;
 	font-size: 12px;
 	line-height: 1.5;
-	color: #888;
+	color: #595959;
 }
 
 /* Text styling for the text inside the subtext and alert bodies */
@@ -215,10 +215,25 @@
 .login-footer p {
 	font-size: 12px;
 	line-height: 1.6;
-	color: #aaa;
+	color: #595959;
 }
 
 .login-footer p:first-child {
 	font-weight: 500;
-	color: #999;
+	color: #595959;
+}
+
+.login-page button:disabled {
+	cursor: wait;
+	opacity: 0.65;
+}
+
+.login-page button:focus-visible {
+	outline: 3px solid #4a6e42;
+	outline-offset: 3px;
+}
+
+.login-page .ErrorBox {
+	width: 100%;
+	margin-bottom: 16px;
 }

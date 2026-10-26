@@ -2,6 +2,10 @@
 __pycache__/
 .env
 instance/
+.coverage
+coverage.json
+coverage.xml
+htmlcov/
 
 # Devenv
 .devenv*
@@ -13,3 +17,4 @@ devenv.local.yaml
 
 # pre-commit
 .pre-commit-config.yaml
+pip-audit.json

@@ -2,6 +2,7 @@ import pytest  # noqa: F401
 from flask.testing import FlaskClient
 from syrupy.data import Snapshot
 
+from tsh.models import Sermon
 from tsh.schemas import (
     counted_speaker_schema,
     counted_speakers_schema,
@@ -27,9 +28,7 @@ def all_series(client: FlaskClient) -> dict[str, dict]:
 
 
 def test_series_pagination(client: FlaskClient):
-    pages = [
-        client.get(f"/api/series?page={n}&per_page=2").json for n in (1, 2, 3)
-    ]
+    pages = [client.get(f"/api/series?page={n}&per_page=2").json for n in (1, 2, 3)]
 
     assert [p["total"] for p in pages] == [5, 5, 5]
     assert [len(p["items"]) for p in pages] == [2, 2, 1]
@@ -98,7 +97,9 @@ def test_sermons(client, snapshot):
     for sermon in sermons:
         res = client.get(f"/api/sermons/{sermon.id}")
         res_sermon: Sermon = sermon_schema.loads(res.data)
-        assert sermons_schema.dump(res_sermon, many=False) == sermons_schema.dump(sermon, many=False)
+        assert sermons_schema.dump(res_sermon, many=False) == sermons_schema.dump(
+            sermon, many=False
+        )
 
 
 @pytest.mark.parametrize("suffix", ["", "?page=1&per_page=100"])
@@ -118,7 +119,9 @@ def test_sermon_lists_omit_caption_text_but_detail_retains_it(client, suffix):
     assert response.status_code == 200
     items = response.json["items"] if suffix else response.json
     assert items
-    assert all("transcript" not in item and "transcriptSegments" not in item for item in items)
+    assert all(
+        "transcript" not in item and "transcriptSegments" not in item for item in items
+    )
     assert transcript not in response.get_data(as_text=True)
     assert client.get("/api/sermons/1").json["transcript"] == transcript
     assert client.get("/api/sermons/1/transcript").json["transcript"] == transcript
@@ -179,6 +182,98 @@ def test_tags(client: FlaskClient):
     tag_names = [t.name for t in tags]
     assert "faith" in tag_names
     assert "grace" in tag_names
+
+
+def test_create_tag(client: FlaskClient):
+    res = client.post("/api/tags", json={"name": "perseverance"})
+    assert res.status_code == 201
+    assert res.json == {"name": "perseverance", "source": "manual"}
+
+    tag_names = [t["name"] for t in client.get("/api/tags").json]
+    assert "perseverance" in tag_names
+
+
+def test_create_tag_rejects_duplicate_name(client: FlaskClient):
+    # "grace" already exists; the different casing should still collide.
+    res = client.post("/api/tags", json={"name": "Grace"})
+    assert res.status_code == 422
+    assert "name" in res.json["errors"]
+
+
+def test_create_tag_rejects_empty_name(client: FlaskClient):
+    res = client.post("/api/tags", json={"name": "   "})
+    assert res.status_code == 422
+    assert "name" in res.json["errors"]
+
+
+def test_rename_attached_tag_keeps_its_sermons(client: FlaskClient):
+    from tsh.database import db
+    from tsh.models import Sermon
+
+    # "Under Grace" is seeded with tags=[grace, faith] (Backend/tests/populate.py)
+    sermon_id = db.session.execute(
+        db.select(Sermon.id).filter_by(title="Under Grace")
+    ).scalar_one()
+
+    res = client.patch("/api/tags/grace", json={"newName": "amazing-grace"})
+    assert res.status_code == 200
+    assert res.json == {"name": "amazing-grace", "source": "ai"}
+
+    tag_names = [t["name"] for t in client.get("/api/tags").json]
+    assert "grace" not in tag_names
+    assert "amazing-grace" in tag_names
+
+    sermon_tags = {t["name"] for t in client.get(f"/api/sermons/{sermon_id}").json["tags"]}
+    assert sermon_tags == {"amazing-grace", "faith"}
+
+
+def test_rename_tag_rejects_duplicate_name(client: FlaskClient):
+    res = client.patch("/api/tags/grace", json={"newName": "faith"})
+    assert res.status_code == 422
+    assert "newName" in res.json["errors"]
+
+
+def test_rename_tag_rejects_empty_name(client: FlaskClient):
+    res = client.patch("/api/tags/grace", json={"newName": "  "})
+    assert res.status_code == 422
+    assert "newName" in res.json["errors"]
+
+
+def test_rename_nonexistent_tag(client: FlaskClient):
+    res = client.patch("/api/tags/does-not-exist", json={"newName": "whatever"})
+    assert res.status_code == 404
+
+
+def test_delete_unused_tag(client: FlaskClient):
+    # "life" is seeded with no sermon associations (Backend/tests/populate.py)
+    res = client.delete("/api/tags/life")
+    assert res.status_code == 204
+
+    tag_names = [t["name"] for t in client.get("/api/tags").json]
+    assert "life" not in tag_names
+
+
+def test_delete_attached_tag_removes_the_association_not_the_sermon(client: FlaskClient):
+    from tsh.database import db
+    from tsh.models import Sermon
+
+    # "Bold Faith" is seeded with tags=[faith, anxiety, grace] (Backend/tests/populate.py)
+    sermon_id = db.session.execute(
+        db.select(Sermon.id).filter_by(title="Bold Faith")
+    ).scalar_one()
+
+    res = client.delete("/api/tags/anxiety")
+    assert res.status_code == 204
+    assert "anxiety" not in [t["name"] for t in client.get("/api/tags").json]
+
+    sermon_res = client.get(f"/api/sermons/{sermon_id}")
+    assert sermon_res.status_code == 200
+    assert {t["name"] for t in sermon_res.json["tags"]} == {"faith", "grace"}
+
+
+def test_delete_nonexistent_tag(client: FlaskClient):
+    res = client.delete("/api/tags/does-not-exist")
+    assert res.status_code == 404
 
 
 def test_dev_database_untouched(app):
@@ -450,6 +545,7 @@ def test_sermons_pagination_invalid_inputs(client: FlaskClient):
         assert res.is_json
         assert "error" in res.json
 
+
 def test_sermon_has_processing_fields(client):
     # New sermons come back with the pipeline fields, empty until the worker runs
     res = client.get("/api/sermons/1")
@@ -459,3 +555,28 @@ def test_sermon_has_processing_fields(client):
         assert data[key] is None
 
 
+def test_sermon_edit_and_delete(client: FlaskClient):
+    sermon_id = 1
+    new_speaker_id = 2
+
+    res = client.get(f"/api/sermons/{sermon_id}")
+    sermon: Sermon = sermon_schema.loads(res.data)
+
+    payload = {"speaker": {"id": 2}}
+
+    res = client.patch(f"/api/sermons/{sermon_id}", json=payload)
+    assert res.status_code == 200
+
+    res = client.get(f"/api/sermons/{sermon_id}")
+    new_sermon: Sermon = sermon_schema.loads(res.data)
+    assert new_sermon.speaker.id == new_speaker_id
+
+    sermon.speaker = new_sermon.speaker
+    sermon.speaker_id = new_speaker_id
+    assert sermon == new_sermon
+
+    res = client.delete(f"/api/sermons/{sermon_id}")
+    assert res.status_code == 204
+
+    res = client.get(f"/api/sermons/{sermon_id}")
+    assert res.status_code == 404

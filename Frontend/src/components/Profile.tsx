@@ -5,10 +5,12 @@ import { useQueryClient } from '@tanstack/react-query';
 
 export default function Profile() {
 	const user = useUser();
-	const initials = getInitials(user);
-	const name = getFullName(user);
 	const { instance } = useMsal();
 	const queryClient = useQueryClient();
+	// Without a verified session there is nobody to show or sign out.
+	if (!user) return null;
+	const initials = getInitials(user);
+	const name = getFullName(user);
 
 	function handleLogout() {
 		queryClient.clear();

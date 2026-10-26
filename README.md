@@ -16,6 +16,9 @@
 
 ## Overview
 
+Staff sign-in, API scope/role configuration and security verification are documented
+in [docs/authentication.md](docs/authentication.md).
+
 TFH Sermon Hub is an internal web application built for The Father's House church staff to organize, manage, and explore their sermon library. The platform provides a rich dashboard for tracking sermon content, a speaker and series management system, and AI-powered tools that allow staff to search across transcripts using natural language and have contextual conversations about specific sermons.
 
 ---
@@ -315,6 +318,21 @@ npm run dev
 
 The frontend will be available at `http://localhost:5173`.
 
+#### API scope for sign-in
+
+The backend only accepts API access tokens, so the frontend has to ask Microsoft
+for the Sermon Hub API scope. If you already have a `Frontend/.env`, add this line
+to it (a fresh copy of `Frontend/.env.example` already has it):
+
+```sh
+VITE_API_SCOPE=api://f8108595-ffa8-4c94-957f-b92b006da038/access_as_user
+```
+
+Restart `npm run dev` after changing `.env`. Without this line, sign-in shows
+"API access is not configured" and no API request is sent. Your account also
+needs the `Admin` or `InternalUser` app role; see
+[docs/authentication.md](docs/authentication.md) for the Entra setup.
+
 ---
 
 ## API Endpoints
@@ -413,7 +431,24 @@ Current planned testing tools include Vitest and Playwright for the frontend, an
 
 ## Deployment
 
-Deployment instructions will be added next semester.
+Start with [how to access private staging](docs/deploying.md#open-private-staging-now).
+It lists prerequisites, the SSH command, browser URL, sign-in and troubleshooting.
+For the ownership transfer, read [Samip: start here](docs/deploying.md#samip-start-here).
+Maintainers can use the [redeployment checklist](docs/deploying.md#redeploy-a-reviewed-change-maintainers)
+or [TFH-540 closeout checklist](docs/deploying.md#what-is-left-before-tfh-540-is-done)
+without reading the full operational history.
+
+The [full runbook](docs/deploying.md) and `deploy/` templates cover
+isolated gunicorn/RQ/Redis services, private NGINX access, production configuration,
+migrations, backups and restore. The existing public-IP application stays intact.
+
+The first staging instance is SSH-only, not a public launch or general team URL.
+Cloud AI/embedding configuration and full real-role verification remain explicit
+readiness gates. One-off off-server recovery copies are verified; automated
+off-server scheduling is a recommended operational follow-up. Ollama is for local
+development only; do not install it or download models on the droplet.
+New cloud-provider adapters belong to their owning feature stories; deployment
+owns configuring and verifying supported providers on the server.
 
 ---
 

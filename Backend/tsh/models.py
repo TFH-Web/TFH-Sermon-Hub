@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import struct
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from enum import Enum
 
 from sqlalchemy import (
@@ -113,6 +113,21 @@ class UploadStatus(Enum):
     FAILED = "Failed"
 
 
+class SermonSummarySource(Enum):
+    AI = "ai"
+    MANUAL = "manual"
+
+
+class SummaryRegenState(Enum):
+    """Where an admin's "Regenerate with AI" request is. IDLE means none has been made for this sermon."""
+
+    IDLE = "idle"
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
 class Sermon(db.Model):  # ty: ignore[unsupported-base]
     id: Mapped[intpk]
     # YouTube video titles can be up to 100 chars, with room to spare
@@ -127,6 +142,10 @@ class Sermon(db.Model):  # ty: ignore[unsupported-base]
     )
     transcript: Mapped[str | None]
     summary: Mapped[str | None]
+    # Legacy summaries remain unknown until their origin is established.
+    summary_source: Mapped[SermonSummarySource | None] = mapped_column(
+        default=None, kw_only=True
+    )
     speaker_id: Mapped[int] = mapped_column(
         ForeignKey(Speaker.id, onupdate="CASCADE", ondelete="RESTRICT")
     )
@@ -156,6 +175,20 @@ class Sermon(db.Model):  # ty: ignore[unsupported-base]
     transcript_segments: Mapped[list[TranscriptSegment] | None] = mapped_column(
         JSON, default=None, repr=False
     )
+        # Summary regeneration lives here, not in the browser, so every tab and a reloaded page see the same thing.
+    summary_regen_state: Mapped[SummaryRegenState] = mapped_column(
+        SAEnum(SummaryRegenState, create_constraint=True, validate_strings=True),
+        default=SummaryRegenState.IDLE,
+        server_default=SummaryRegenState.IDLE.name,
+        repr=False,
+    )
+    # Why the last request failed, if it did.
+    summary_regen_error: Mapped[str | None] = mapped_column(Text, default=None, repr=False)
+    # Names the current request. A job that finds a different id here is out of date and does nothing.
+    summary_regen_run_id: Mapped[str | None] = mapped_column(String(32), default=None, repr=False)
+    summary_regen_requested_at: Mapped[datetime | None] = mapped_column(default=None, repr=False)
+    summary_regen_started_at: Mapped[datetime | None] = mapped_column(default=None, repr=False)
+    summary_regen_finished_at: Mapped[datetime | None] = mapped_column(default=None, repr=False)
 
 
 class SermonChunk(db.Model):  # ty: ignore[unsupported-base]
@@ -174,6 +207,9 @@ class SermonChunk(db.Model):  # ty: ignore[unsupported-base]
     start: Mapped[float]
     end: Mapped[float]
     stale: Mapped[bool] = mapped_column(default=False)
+    # The model that made this chunk's vector, so vectors from two models are never mixed.
+    # None means no vector yet, or one saved before models were recorded.
+    embedding_model: Mapped[str | None] = mapped_column(String(100), default=None)
 
 
 class SermonChunkEmbedding(db.Model):  # ty: ignore[unsupported-base]
@@ -183,3 +219,48 @@ class SermonChunkEmbedding(db.Model):  # ty: ignore[unsupported-base]
     )
     sermon_chunk: Mapped[SermonChunk] = relationship()
     embedding: Mapped[list[float]] = mapped_column(Float32Vector())
+
+
+class CaptionQuota(db.Model):  # ty: ignore[unsupported-base]
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+    blocked_until: Mapped[datetime | None] = mapped_column(default=None)
+    opened_at: Mapped[datetime | None] = mapped_column(default=None)
+
+
+class SyncRunState(Enum):
+    """Where a SyncRun is in its life: QUEUED, then RUNNING, then SUCCEEDED or FAILED."""
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+
+
+def utcnow() -> datetime:
+    """Return the current UTC time without tzinfo, since the timestamp columns have no time zone."""
+    return datetime.now(UTC).replace(tzinfo=None)
+
+
+class SyncRun(db.Model):  # ty: ignore[unsupported-base]
+    """One YouTube channel sync. Each submission gets its own row, so earlier runs and their reports are kept."""
+
+    id: Mapped[intpk]
+    # The date range the admin asked for. None means that end is open.
+    date_from: Mapped[date | None] = mapped_column(default=None)
+    date_to: Mapped[date | None] = mapped_column(default=None)
+    state: Mapped[SyncRunState] = mapped_column(
+        SAEnum(SyncRunState, create_constraint=True, validate_strings=True),
+        default=SyncRunState.QUEUED,
+    )
+    created_at: Mapped[datetime] = mapped_column(default_factory=utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(default=None)
+    finished_at: Mapped[datetime | None] = mapped_column(default=None)
+    # The ImportReport counts, copied out of the report so a list of runs can show them
+    # without loading every report's skipped lists. None until the run succeeds.
+    series_created: Mapped[int | None] = mapped_column(default=None)
+    sermons_created: Mapped[int | None] = mapped_column(default=None)
+    sermons_updated: Mapped[int | None] = mapped_column(default=None)
+    sermons_unchanged: Mapped[int | None] = mapped_column(default=None)
+    # The full ImportReport as a dict, for admins fixing problems by hand.
+    report: Mapped[dict | None] = mapped_column(JSON, default=None, repr=False)
+    # Why the run failed, if it did: "queue: <error>" when it could not be queued, else the import's error.
+    error: Mapped[str | None] = mapped_column(Text, default=None)
