@@ -4,7 +4,14 @@ import {
 	QueryClientProvider,
 	useQuery,
 } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import {
+	act,
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from '@testing-library/react';
 import axios, { type AxiosAdapter, AxiosError } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import SummaryRegenStatus from '$/components/SummaryRegenStatus';
@@ -22,7 +29,10 @@ const server = {
 	state: 'idle' as SummaryRegenState,
 	error: null as string | null,
 	requestedAt: null as string | null,
+	startedAt: null as string | null,
 	posts: 0,
+	gets: 0,
+	failQueue: false,
 	inline: false, // true when there is no job queue, so the work is done before the answer
 };
 
@@ -40,6 +50,7 @@ function sermonBody() {
 		summaryRegenState: server.state,
 		summaryRegenError: server.error,
 		summaryRegenRequestedAt: server.requestedAt,
+		summaryRegenStartedAt: server.startedAt,
 	};
 }
 
@@ -53,7 +64,12 @@ const adapter: AxiosAdapter = async config => {
 	});
 	if (config.method === 'post') {
 		server.posts += 1;
-		if (server.state === 'queued' || server.state === 'running') {
+		const activity = server.startedAt ?? server.requestedAt;
+		const activeFresh =
+			(server.state === 'queued' || server.state === 'running') &&
+			(!activity ||
+				Date.now() - Date.parse(`${activity}Z`) <= REGEN_GIVE_UP_MS);
+		if (activeFresh) {
 			const message = 'A summary is already being regenerated for this sermon';
 			throw new AxiosError(
 				message,
@@ -63,11 +79,27 @@ const adapter: AxiosAdapter = async config => {
 				reply(409, { error: message }) as never,
 			);
 		}
+		if (server.failQueue) {
+			server.failQueue = false;
+			server.state = 'idle';
+			server.requestedAt = null;
+			server.startedAt = null;
+			const message = 'The job queue is unavailable. Please try again later.';
+			throw new AxiosError(
+				message,
+				'ERR_BAD_RESPONSE',
+				config,
+				null,
+				reply(503, { error: message }) as never,
+			);
+		}
 		server.state = server.inline ? 'completed' : 'queued';
 		server.error = null;
 		server.requestedAt = new Date().toISOString().replace('Z', '');
+		server.startedAt = null;
 		return reply(202, sermonBody());
 	}
+	server.gets += 1;
 	return reply(200, sermonBody());
 };
 
@@ -85,7 +117,11 @@ function Page() {
 			<button type="button" onClick={regen.start} disabled={regen.isActive}>
 				{regen.isActive ? 'Regenerating...' : 'Regenerate with AI'}
 			</button>
-			<SummaryRegenStatus state={regen.state} error={regen.error} />
+			<SummaryRegenStatus
+				state={regen.state}
+				error={regen.error}
+				stale={regen.isStale}
+			/>
 		</div>
 	);
 }
@@ -109,7 +145,10 @@ beforeEach(() => {
 	server.state = 'idle';
 	server.error = null;
 	server.requestedAt = null;
+	server.startedAt = null;
 	server.posts = 0;
+	server.gets = 0;
+	server.failQueue = false;
 	server.inline = false;
 	axios.defaults.adapter = adapter;
 	vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -181,9 +220,99 @@ describe('regenPollInterval', () => {
 		};
 		expect(regenPollInterval(sermon, now)).toBe(false);
 	});
+
+	it('uses running activity and the same strict twenty-minute grace as the backend', () => {
+		expect(REGEN_GIVE_UP_MS).toBe(20 * 60 * 1000);
+		const sermon = {
+			...base,
+			summaryRegenState: 'running' as const,
+			summaryRegenRequestedAt: new Date(
+				now - REGEN_GIVE_UP_MS * 2,
+			).toISOString(),
+			summaryRegenStartedAt: new Date(now - REGEN_GIVE_UP_MS).toISOString(),
+		};
+		expect(regenPollInterval(sermon, now)).toBe(REGEN_POLL_MS);
+		expect(regenPollInterval(sermon, now + 1)).toBe(false);
+		expect(
+			regenPollInterval(
+				{
+					...sermon,
+					summaryRegenStartedAt: new Date(now - 1000).toISOString(),
+				},
+				now,
+			),
+		).toBe(REGEN_POLL_MS);
+	});
 });
 
 describe('regenerating a summary', () => {
+	it('wakes at expiry, explains a lost worker and retries once without reloading', async () => {
+		server.state = 'queued';
+		server.requestedAt = new Date(Date.now() - REGEN_GIVE_UP_MS + 1000)
+			.toISOString()
+			.replace('Z', '');
+		open();
+		await screen.findByRole('status');
+		expect((regenButton() as HTMLButtonElement).disabled).toBe(true);
+
+		await act(() => vi.advanceTimersByTimeAsync(1100));
+
+		expect((await screen.findByRole('alert')).textContent).toContain(
+			'try again',
+		);
+		expect((regenButton() as HTMLButtonElement).disabled).toBe(false);
+		const readsAtExpiry = server.gets;
+		await act(() => vi.advanceTimersByTimeAsync(REGEN_POLL_MS + 100));
+		expect(server.gets).toBe(readsAtExpiry);
+		fireEvent.click(regenButton());
+		fireEvent.click(regenButton());
+		await screen.findByRole('status');
+		expect(server.posts).toBe(1);
+		expect((regenButton() as HTMLButtonElement).disabled).toBe(true);
+		expect(screen.queryByRole('alert')).toBeNull();
+	});
+
+	it('allows a stale reload to recover from a 503 and retry the released claim', async () => {
+		server.state = 'running';
+		server.requestedAt = new Date(Date.now() - REGEN_GIVE_UP_MS - 1000)
+			.toISOString()
+			.replace('Z', '');
+		server.failQueue = true;
+		open();
+		await screen.findByRole('alert');
+		fireEvent.click(regenButton());
+		await screen.findByText(
+			'The job queue is unavailable. Please try again later.',
+		);
+		await waitFor(() =>
+			expect((regenButton() as HTMLButtonElement).disabled).toBe(false),
+		);
+
+		fireEvent.click(regenButton());
+
+		expect((await screen.findByRole('status')).textContent).toContain(
+			'Waiting',
+		);
+		expect(server.posts).toBe(2);
+		expect((regenButton() as HTMLButtonElement).disabled).toBe(true);
+	});
+
+	it('does not offer stale takeover for a fresh running worker after a long queue wait', async () => {
+		server.state = 'running';
+		server.requestedAt = new Date(Date.now() - REGEN_GIVE_UP_MS * 2)
+			.toISOString()
+			.replace('Z', '');
+		server.startedAt = new Date().toISOString().replace('Z', '');
+		open();
+		expect((await screen.findByRole('status')).textContent).toContain(
+			'Writing',
+		);
+		expect((regenButton() as HTMLButtonElement).disabled).toBe(true);
+		fireEvent.click(regenButton());
+		expect(server.posts).toBe(0);
+		expect(screen.queryByRole('alert')).toBeNull();
+	});
+
 	it('follows the request from queued to running to done', async () => {
 		open();
 		fireEvent.click(
@@ -233,6 +362,22 @@ describe('regenerating a summary', () => {
 			await screen.findByText('The summary was regenerated.'),
 		).toBeTruthy();
 		expect(screen.queryByRole('status')).toBeNull();
+	});
+
+	it('reports a repeated inline completion even when the state remains completed', async () => {
+		server.inline = true;
+		server.state = 'completed';
+		server.requestedAt = new Date(Date.now() - 60_000)
+			.toISOString()
+			.replace('Z', '');
+		open();
+		fireEvent.click(
+			await screen.findByRole('button', { name: 'Regenerate with AI' }),
+		);
+		expect(
+			await screen.findByText('The summary was regenerated.'),
+		).toBeTruthy();
+		expect(server.posts).toBe(1);
 	});
 
 	it('shows a failure and lets the admin try again', async () => {

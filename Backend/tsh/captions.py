@@ -22,7 +22,6 @@ OAUTH_SETTINGS = (
 )
 
 
-
 # The reasons YouTube gives when the project's daily quota is used up. rateLimitExceeded is a short-term
 # limit that clears in seconds, so it does not open the breaker.
 DAILY_QUOTA_REASONS = {"quotaExceeded", "dailyLimitExceeded", "dailyLimitExceededUnreg"}
@@ -31,14 +30,18 @@ DAILY_QUOTA_REASONS = {"quotaExceeded", "dailyLimitExceeded", "dailyLimitExceede
 class CaptionError(RuntimeError):
     """An actionable caption failure that is safe to save in processing_error."""
 
+
 class CaptionQuotaError(CaptionError):
     """YouTube's daily quota is used up, so no caption request is made until it resets."""
+
 
 class CaptionAuthError(CaptionError):
     """The TFH channel's OAuth sign-in expired, was revoked, or could not be renewed."""
 
+
 class CaptionsDisabledError(CaptionError):
-    """The TFH channel's captions are disabled, so no caption request is made."""
+    """Caption downloads are turned off by CAPTIONS_ENABLED, so no caption request is made."""
+    
 
 DISABLED_MESSAGE = ("captions are turned off (CAPTIONS_ENABLED is false); turn them on and reprocess to get a transcript")
 
@@ -56,12 +59,12 @@ def parse_flag(value, name: str) -> bool:
 
 
 def captions_enabled() -> bool:
-    """True unless CAPTIONS_ENABLED turns caption downloads off. Read each time , so tests can change it."""
+    """True unless CAPTIONS_ENABLED turns caption downloads off. Read each time, so tests can change it."""
     return parse_flag(current_app.config.get("CAPTIONS_ENABLED", True), "CAPTIONS_ENABLED")
 
 
 def quota_message(resume) -> str:
-    """Say when captions resume. Starts with "Youtube quota exceeded" so it is easy to identify."""
+    """Say when captions resume. Starts with "YouTube quota exceeded" so it is easy to identify."""
     when = resume.astimezone(caption_quota.RESET_TIMEZONE).strftime("%Y-%m-%d %H:%M %Z")
     return f"YouTube quota exceeded; no caption requests are sent until {when}, then reprocess."
 
@@ -78,7 +81,6 @@ def auth_message(category: str) -> str:
     if category == "token refresh failed":
         steps = "check YOUTUBE_OAUTH_CLIENT_ID and YOUTUBE_OAUTH_CLIENT_SECRET, or " + steps
     return f"{AUTH_EXPIRED} ({category}); {steps}"
-
 
 
 def select_track(tracks: list[dict], language: str = "en") -> dict:
