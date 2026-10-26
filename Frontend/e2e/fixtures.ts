@@ -3,6 +3,8 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { test as base } from '@playwright/test';
 
+const BASE_PORT = 6001;
+
 const execFile = promisify(nodeExecFile);
 
 async function runBackendScript(
@@ -23,7 +25,7 @@ export const test = base.extend<{ forEachWorker: void; forEachTest: void }>({
 	forEachWorker: [
 		async ({}, use) => {
 			const workerIndex = test.info().workerIndex;
-			const port = 6000 + workerIndex;
+			const port = BASE_PORT + workerIndex;
 			const databaseURI = `sqlite:///ci${workerIndex}.db`;
 
 			const server = spawn(
@@ -60,7 +62,7 @@ export const test = base.extend<{ forEachWorker: void; forEachTest: void }>({
 	forEachTest: [
 		async ({ page }, use) => {
 			const workerIndex = test.info().workerIndex;
-			const port = 6000 + workerIndex;
+			const port = BASE_PORT + workerIndex;
 			const databaseURI = `sqlite:///ci${workerIndex}.db`;
 
 			await page.route(/.*:5000\/api\/.*/, async route => {
