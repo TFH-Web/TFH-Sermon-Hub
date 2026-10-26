@@ -9,6 +9,7 @@
 		"includes": [
 			"src/**/*",
 			"e2e/**/*",
+			"e2e-integration/**/*",
 			"tests/**/*",
 			"biome.json",
 			"index.html",
@@ -16,7 +17,9 @@
 			"tsconfig.app.json",
 			"tsconfig.json",
 			"tsconfig.node.json",
-			"vite.config.ts"
+			"vite.config.ts",
+			"vite.integration.config.ts",
+			"playwright.integration.config.ts"
 		],
 		"ignoreUnknown": false
 	},

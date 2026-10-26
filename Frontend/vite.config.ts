@@ -26,7 +26,7 @@ export default defineConfig({
 			provider: 'v8',
 
 			// Show results in the terminal and create a browser-readable report.
-			reporter: ['text', 'html'],
+			reporter: ['text', 'html', 'json-summary', 'lcov'],
 
 			// Include source files even when no unit test imports them.
 			include: ['src/**/*.{ts,tsx}'],
