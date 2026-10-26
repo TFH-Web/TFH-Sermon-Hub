@@ -116,8 +116,9 @@ def test_metadata_and_manual_summary_patch_persist_without_replacing_evidence(
     for key, value in payload.items():
         assert response.json[key] == value
     assert client.get(f"/api/sermons/{target}").json["summary"] == payload["summary"]
-    assert response.json["summarySource"] == "ai"
+    assert response.json["summarySource"] == "manual"
     after = snapshot(target)
+    assert after["summary_source"] == SermonSummarySource.MANUAL
     for key in (
         "transcript",
         "segments",

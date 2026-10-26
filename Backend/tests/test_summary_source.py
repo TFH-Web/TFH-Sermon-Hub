@@ -13,7 +13,7 @@ from tsh.models import Sermon, SermonSummarySource, UploadStatus
     [
         (None, "New manual content", "manual"),
         (SermonSummarySource.MANUAL, "Edited manual content", "manual"),
-        (SermonSummarySource.AI, "Edited generated content", "ai"),
+        (SermonSummarySource.AI, "Edited generated content", "manual"),
         (None, None, None),
         (SermonSummarySource.MANUAL, "", None),
         (SermonSummarySource.AI, "  ", None),
@@ -34,13 +34,20 @@ def test_manual_summary_origin_persists_after_api_reload(
     assert saved["summarySource"] == expected
 
 
-def test_metadata_edit_does_not_invent_origin_for_legacy_summary(app, client):
+@pytest.mark.parametrize("origin", [None, SermonSummarySource.AI, SermonSummarySource.MANUAL])
+def test_metadata_edit_preserves_summary_content_and_origin(app, client, origin):
     sermon = db.session.get(Sermon, 1)
-    sermon.summary = "Legacy content of unknown origin"
+    sermon.summary = "Saved content whose summary is omitted from the edit"
+    sermon.summary_source = origin
     db.session.commit()
     response = client.patch("/api/sermons/1", json={"title": "New title"})
     assert response.status_code == 200
-    assert response.json["summarySource"] is None
+    expected = origin.value if origin else None
+    assert response.json["summarySource"] == expected
+    db.session.remove()
+    saved = client.get("/api/sermons/1").json
+    assert saved["summary"] == "Saved content whose summary is omitted from the edit"
+    assert saved["summarySource"] == expected
 
 
 def test_created_manual_summary_cannot_claim_ai_origin(app, client):
@@ -65,8 +72,11 @@ def test_successful_tracked_generation_marks_summary_as_ai(app, client):
     sermon = db.session.get(Sermon, 1)
     sermon.status = UploadStatus.PUBLISHED
     sermon.transcript = "A source transcript about grace."
-    sermon.summary_source = SermonSummarySource.MANUAL
+    sermon.summary_source = SermonSummarySource.AI
     db.session.commit()
+    edited = client.patch("/api/sermons/1", json={"summary": "A manual revision"})
+    assert edited.status_code == 200
+    assert edited.json["summarySource"] == "manual"
     response = client.post("/api/sermons/1/regenerate-summary")
     assert response.status_code == 202
     saved = client.get("/api/sermons/1").json

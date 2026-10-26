@@ -530,7 +530,7 @@ def update_sermon(id: int):
         if "summary" in updates:
             if not (sermon.summary or "").strip():
                 sermon.summary_source = None
-            elif sermon.summary_source != SermonSummarySource.AI:
+            else:
                 sermon.summary_source = SermonSummarySource.MANUAL
         sermon.title = title
         sermon.speaker = speaker
