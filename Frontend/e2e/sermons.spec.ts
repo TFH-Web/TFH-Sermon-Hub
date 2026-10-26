@@ -2,7 +2,7 @@ import { expect } from '@playwright/test';
 import { test } from './fixtures';
 
 for (const { name, parameter, value, totalPages } of [
-	{ name: 'status', parameter: 'status', value: 'Published', totalPages: 1, },
+	{ name: 'status', parameter: 'status', value: 'Published', totalPages: 1 },
 	{ name: 'topic', parameter: 'topic', value: 'grace', totalPages: 1 },
 	{ name: 'speaker', parameter: 'speaker_id', value: '1', totalPages: 1 },
 	{ name: 'series', parameter: 'series_id', value: '1', totalPages: 1 },

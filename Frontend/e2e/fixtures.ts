@@ -1,4 +1,4 @@
-import { spawn, execFile as nodeExecFile } from 'node:child_process';
+import { execFile as nodeExecFile, spawn } from 'node:child_process';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { test as base } from '@playwright/test';
@@ -23,7 +23,8 @@ async function runBackendScript(
 export const test = base.extend<{ forEachWorker: void; forEachTest: void }>({
 	// @ts-expect-error
 	forEachWorker: [
-		async ({}, use) => {
+		// biome-ignore lint/correctness/noEmptyPattern: playwright complains if we don't destructure here
+		async ({ }, use) => {
 			const workerIndex = test.info().workerIndex;
 			const port = BASE_PORT + workerIndex;
 			const databaseURI = `sqlite:///ci${workerIndex}.db`;
