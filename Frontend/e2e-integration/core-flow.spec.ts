@@ -79,6 +79,14 @@ test('imports, processes, searches and cites the persisted sermon through Flask'
 		}),
 	]);
 	await expect(page.getByText(title, { exact: true }).first()).toBeVisible();
+	// Follow the real API source through the actual search card to the player route.
+	await page.locator('.AISearchPreviewCard-open').click();
+	await expect(page).toHaveURL(
+		`http://127.0.0.1:5360/sermons/${sermon.id}?t=75.5`,
+	);
+	await expect(
+		page.getByRole('heading', { name: title, exact: true, level: 1 }),
+	).toBeVisible();
 
 	await page.goto('/ai-chat');
 	await page

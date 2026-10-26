@@ -1,4 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
+import { sermons } from './data';
 
 // Example API result used by the tests.
 const result = {
@@ -409,4 +410,128 @@ test('a delayed old search cannot replace newer results', async ({ page }) => {
 	await expect(
 		page.getByRole('heading', { name: 'Outdated search result' }),
 	).toHaveCount(0);
+});
+
+// Exercise the final TFH-462 source contract through both entry routes.
+for (const path of ['/ai-search', '/ai-search/results']) {
+	for (const source of [
+		{
+			name: 'fractional source',
+			start: 75.5,
+			chunk: 481,
+			video: 'F_OiCiZ3Y3Y',
+			query: '?t=75.5',
+		},
+		{
+			name: 'zero-second source',
+			start: 0,
+			chunk: 481,
+			video: 'F_OiCiZ3Y3Y',
+			query: '?t=0',
+		},
+		{
+			name: 'metadata-only result',
+			start: null,
+			chunk: null,
+			video: 'F_OiCiZ3Y3Y',
+			query: '',
+		},
+		{
+			name: 'unavailable video source',
+			start: 75.5,
+			chunk: 481,
+			video: null,
+			query: '',
+		},
+	]) {
+		test(`${path} opens ${source.name} without inventing a timestamp`, async ({
+			page,
+		}) => {
+			await page.route('https://www.youtube.com/**', route => route.abort());
+			await page.route(isSearch, route =>
+				route.fulfill({
+					json: {
+						items: [
+							{
+								...result,
+								chunk_id: source.chunk,
+								start_sec: source.start,
+								end_sec: source.start === null ? null : 91.25,
+								youtube_video_id: source.video,
+								video_link: source.video
+									? `https://www.youtube.com/watch?v=${source.video}`
+									: null,
+							},
+						],
+						total: 1,
+						page: 1,
+						pageSize: 6,
+						totalPages: 1,
+					},
+				}),
+			);
+			await page.route('**/api/sermons**', route => {
+				const pathname = new URL(route.request().url()).pathname;
+				const sermon = {
+					...sermons[0],
+					id: 42,
+					title: result.title,
+					videoLink: 'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y',
+				};
+				if (pathname === '/api/sermons')
+					return route.fulfill({ json: [sermon] });
+				if (pathname === '/api/sermons/42')
+					return route.fulfill({ json: sermon });
+				if (pathname === '/api/sermons/42/transcript')
+					return route.fulfill({ json: { transcript: null, segments: [] } });
+				return route.abort();
+			});
+			await page.goto(`${path}?q=grace`);
+			await page.locator('.AISearchPreviewCard-open').click();
+			await expect(page).toHaveURL(
+				`http://localhost:5173/sermons/42${source.query}`,
+			);
+			await expect(
+				page.getByRole('heading', {
+					name: result.title,
+					level: 1,
+					exact: true,
+				}),
+			).toBeVisible();
+		});
+	}
+}
+
+test('opening chat from a timed search result sends only the sermon ID', async ({
+	page,
+}) => {
+	await page.route(isSearch, route =>
+		route.fulfill({
+			json: {
+				items: [
+					{
+						...result,
+						chunk_id: 481,
+						start_sec: 75.5,
+						end_sec: 91.25,
+						youtube_video_id: 'F_OiCiZ3Y3Y',
+						video_link: 'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y',
+					},
+				],
+				total: 1,
+				page: 1,
+				pageSize: 6,
+				totalPages: 1,
+			},
+		}),
+	);
+	await page.goto('/ai-search?q=grace');
+	await page
+		.getByRole('button', {
+			name: `Open AI chat for ${result.title}`,
+			exact: true,
+		})
+		.click();
+	await expect(page).toHaveURL(/\/ai-chat\?/);
+	expect(new URL(page.url()).searchParams.get('sermonId')).toBe('42');
 });

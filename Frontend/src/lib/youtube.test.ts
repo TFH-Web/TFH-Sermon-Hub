@@ -212,3 +212,14 @@ describe('resolveYouTubeVideoId', () => {
 		).toBeNull();
 	});
 });
+
+// Stored IDs must be exactly 11 characters, even when the extra character is invisible.
+it.each([
+	`${ID}\n`,
+	`${ID}\r`,
+	`${ID}\r\n`,
+])('rejects a trailing line break in a video ID %j', videoId => {
+	expect(buildYouTubeWatchUrl(videoId)).toBeNull();
+	expect(buildYouTubeEmbedUrl(videoId)).toBeNull();
+	expect(buildYouTubeSourceUrl(videoId, 30)).toBeNull();
+});

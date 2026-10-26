@@ -14,7 +14,7 @@ export interface SearchParameters {
 	pageSize: number;
 }
 
-// This describes one result returned by the current backend.
+// Shared TFH-462 result. Null source fields mean a metadata-only match.
 export interface SearchApiResult {
 	id: number | string;
 	title: string;
@@ -23,6 +23,12 @@ export interface SearchApiResult {
 	date: string;
 	summary: string;
 	ai_score: number;
+	score?: number;
+	chunk_id?: number | null;
+	start_sec?: number | null;
+	end_sec?: number | null;
+	youtube_video_id?: string | null;
+	video_link?: string | null;
 	snippet?: string;
 	series?: string;
 	sermonId?: number | string;
@@ -38,8 +44,7 @@ export interface SearchPage {
 	totalPages: number;
 }
 
-// The current backend returns an array.
-// This also accepts a paginated response when the backend supports it.
+// Requests with a page return an envelope; retain the legacy array contract.
 type SearchResponse = SearchApiResult[] | SearchPage;
 
 export default function useAISearchRequest(
@@ -68,7 +73,7 @@ export default function useAISearchRequest(
 				return response.data;
 			}
 
-			// Temporarily paginate the array returned by the current backend.
+			// Compatibility for an unpaginated legacy response only.
 			const start = (parameters.page - 1) * parameters.pageSize;
 
 			return {

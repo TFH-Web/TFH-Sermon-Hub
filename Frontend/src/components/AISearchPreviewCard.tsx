@@ -81,9 +81,8 @@ export default function AISearchPreviewCard({
 
 	function handleChatClick(e: MouseEvent<HTMLButtonElement>) {
 		e.stopPropagation();
-		const sermonId = result.redirectTo.split('/').pop();
 		const params = new URLSearchParams({
-			...(sermonId ? { sermonId } : {}),
+			sermonId: result.sermonId,
 			title: result.title,
 			speaker: result.speaker,
 			date: result.date,
