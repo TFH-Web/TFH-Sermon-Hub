@@ -13,7 +13,8 @@ from tsh import pipeline, youtube, youtube_import
 from tsh.database import db
 from tsh.models import Series, Sermon, Speaker, SyncRun, UploadStatus
 from tsh.queue import QUEUE_NAME
-from tsh.youtube_import import import_channel, parse_video_id
+from tsh.youtube_import import import_channel
+from tsh.youtube_links import parse_video_id
 
 BOILERPLATE = "Broadcasted live from The Father's House in Vacaville, CA.\nhttps://example.com"
 
@@ -134,6 +135,8 @@ def test_import_report(app: Flask, channel: FakeChannel):
             "Joseph Zwanziger & James Cooper"
         ],
         "queue_failures": [],
+        "caption_pause": None,
+        "caption_deferred": 0,
     }
 
 
@@ -558,6 +561,21 @@ def test_import_video(client: FlaskClient, channel: FakeChannel):
     again = client.post("/api/import/youtube/video", json={"url": "https://youtu.be/vGuide00001"})
     assert again.status_code == 200
     assert again.json["id"] == res.json["id"]
+
+
+def test_import_with_captions_off_still_imports_every_sermon(app: Flask, channel: FakeChannel):
+    """Metadata imports don't depend on captions: same sermons, no queue failures, none published."""
+    app.config["CAPTIONS_ENABLED"] = "false"
+    report = import_channel().as_dict()
+
+    assert report["sermons_created"] == 11
+    assert report["queue_failures"] == []
+    guide = sermon_for("vGuide00001")
+    assert guide.title == "The Guide"
+    assert guide.status == UploadStatus.DRAFT
+    assert guide.transcript is None
+    assert "captions are turned off" in guide.processing_error
+    assert count(Sermon, Sermon.status == UploadStatus.PUBLISHED, Sermon.youtube_video_id.is_not(None)) == 0
 
 
 def test_import_video_then_sync_links_series(client: FlaskClient, channel: FakeChannel):

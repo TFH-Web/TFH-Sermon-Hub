@@ -15,6 +15,7 @@ import SermonTranscript from '$/components/SermonTranscript';
 import Tag from '$/components/Tag.tsx';
 import { useToast } from '$/components/ToastContext.tsx';
 import { useIsAdmin } from '$/lib/auth';
+import { buildYouTubeWatchUrl, resolveYouTubeVideoId } from '$/lib/youtube';
 import DeleteSermonModal from '$/modals/DeleteSermonModal.tsx';
 import EditSermonModal from '$/modals/EditSermonModal.tsx';
 import { durationToString, Sermon } from '$/types/sermon';
@@ -185,25 +186,6 @@ export default function SermonDetail() {
 		seriesIndex = filteredSermons.findIndex(item => item.id === sermon.id) + 1; // Add 1 to the index to offset zero-indexing
 	}
 
-	function getYouTubeEmbedUrl(videoLink: string): string | null {
-		try {
-			const url = new URL(videoLink);
-
-			if (url.hostname === 'youtu.be') {
-				return url.pathname.slice(1);
-			} else if (
-				url.hostname === 'www.youtube.com' ||
-				url.hostname === 'youtube.com'
-			) {
-				return url.searchParams.get('v');
-			}
-
-			return null;
-		} catch {
-			return null;
-		}
-	}
-
 	type YouTubePlayer = Parameters<
 		NonNullable<YouTubeProps['onReady']>
 	>[0]['target'];
@@ -230,7 +212,8 @@ export default function SermonDetail() {
 		}
 	}
 
-	const videoId = getYouTubeEmbedUrl(sermon.videoLink);
+	const videoId = resolveYouTubeVideoId(sermon);
+	const watchUrl = videoId ? buildYouTubeWatchUrl(videoId) : null;
 
 	return (
 		<MainLayout title={sermon.title}>
@@ -299,14 +282,18 @@ export default function SermonDetail() {
 								))}
 							</div>
 							<div className="SermonDetail-btn-group">
-								<a
-									className="Button Button--primary"
-									href={sermon.videoLink}
-									target="_blank"
-									rel="noreferrer"
-								>
-									Watch
-								</a>
+								{watchUrl ? (
+									<a
+										className="Button Button--primary"
+										href={watchUrl}
+										target="_blank"
+										rel="noreferrer"
+									>
+										Watch
+									</a>
+								) : (
+									<span>Video unavailable</span>
+								)}
 								<Button
 									variant="secondary"
 									disabled={!isAdmin}
@@ -423,16 +410,20 @@ export default function SermonDetail() {
 						</span>
 
 						<span className="SermonDetail-metadata-label">Video</span>
-						{/* The real video address from the server, shown without the https:// */}
+						{/* Never render an unchecked saved URL. */}
 						<span className="SermonDetail-metadata-value">
-							<a
-								href={sermon.videoLink}
-								target="_blank"
-								rel="noreferrer"
-								className="SermonDetail-metadata-link"
-							>
-								{sermon.videoLink.replace('https://', '')}
-							</a>
+							{watchUrl ? (
+								<a
+									href={watchUrl}
+									target="_blank"
+									rel="noreferrer"
+									className="SermonDetail-metadata-link"
+								>
+									{watchUrl.replace('https://', '')}
+								</a>
+							) : (
+								'Video unavailable'
+							)}
 						</span>
 
 						<span>
