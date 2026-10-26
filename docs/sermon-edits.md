@@ -16,6 +16,15 @@ state is reset. The change does not call YouTube/AI or automatically enqueue a
 job: use the existing explicit Reprocess flow when ready. Save a video replacement
 before submitting a new manual summary for it.
 
+`summarySource` is server-owned (`ai`, `manual`, or null for unknown legacy
+origin). Successful generation records `ai` with the saved summary and tags.
+Explicit nonblank manual summary saves record `manual`, including edits to a
+previously generated summary. Omitting the summary preserves its saved origin.
+Clearing the summary or replacing its video clears its origin;
+failed saves or generation leave the saved origin intact. The detail page labels
+only a nonempty summary with known `ai` origin as “AI generated”; old text is
+never retroactively assumed to be generated.
+
 Untimed `transcript` edits and client-supplied `transcriptSegments` are rejected
 with JSON 422: this API cannot safely map arbitrary replacement text to video
 timestamps. Processing status, error/timestamp/storage fields and regeneration

@@ -58,12 +58,9 @@ async function detailRoutes(
 				const body = request.postDataJSON() as { summary: string };
 				state.saves.push(body);
 
-				// The backend's rule: a staff edit never removes a known AI origin, and any other non-empty text is manual.
-				const summary = body.summary.trim();
-				state.sermon.summary = summary;
-				if (state.sermon.summarySource !== 'ai' && summary) {
-					state.sermon.summarySource = 'manual';
-				}
+				// Explicit saves establish manual origin; empty content has no origin.
+				state.sermon.summary = body.summary;
+				state.sermon.summarySource = body.summary.trim() ? 'manual' : null;
 			}
 			return route.fulfill({ json: state.sermon });
 		}
@@ -150,16 +147,16 @@ for (const scenario of [
 		await summary.getByRole('textbox').fill('Edited by staff.');
 		await summary.getByRole('button', { name: 'Save', exact: true }).click();
 
-		// The label follows the origin the server sends back after the save.
+		// A successful explicit manual save removes the generated label.
 		await expect(summary).toContainText('Edited by staff.');
-		await expect(label).toHaveCount(scenario.labels);
+		await expect(label).toHaveCount(0);
 
 		// The page sends only the text, so the server alone decides the origin.
 		expect(state.saves).toEqual([{ summary: 'Edited by staff.' }]);
 	});
 }
 
-// TFH-546 replaces the regeneration flow with server-side status, so recheck these two when it merges.
+// Regeneration keeps content and origin consistent with the server response.
 test('regenerating a manual summary shows the new text with an AI label', async ({
 	page,
 }) => {

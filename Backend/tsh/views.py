@@ -374,6 +374,9 @@ def create_sermon():
     sermon.series = series
     sermon.tags = tags
 
+    if sermon.summary and sermon.summary.strip():
+        sermon.summary_source = SermonSummarySource.MANUAL
+
     try:
         db.session.add(sermon)
         db.session.commit()
@@ -399,9 +402,6 @@ def update_sermon(id: int):
     # Ensure the request contains a JSON object
     if not isinstance(payload, dict):
         return jsonify({"message": "Validation failed","errors": {"_schema": ["A JSON object is required"]},}), 422
-
-    if "summary" in payload and not isinstance(payload["summary"], str):
-        return jsonify({"message": "Validation failed", "errors": {"summary": ["Summary must be a string."]}}), 422
 
     unsupported = set(payload) - EDITABLE_FIELDS
     if unsupported:
@@ -527,9 +527,10 @@ def update_sermon(id: int):
     try:
         for key, value in updates.items():
             setattr(sermon, key, value)
-        # Preserve confirmed AI origin through manual edits, as in the current contract.
-        if "summary" in updates and (sermon.summary or "").strip():
-            if sermon.summary_source != SermonSummarySource.AI:
+        if "summary" in updates:
+            if not (sermon.summary or "").strip():
+                sermon.summary_source = None
+            else:
                 sermon.summary_source = SermonSummarySource.MANUAL
         sermon.title = title
         sermon.speaker = speaker

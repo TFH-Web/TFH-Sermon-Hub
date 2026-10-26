@@ -149,7 +149,9 @@ class SermonSchema(CamelCaseSchema):
     tags = fields.Nested(TagSchema(many=True))
     transcript = fields.String(allow_none=True)
     summary = fields.String(allow_none=True)
-    summary_source = fields.Enum(SermonSummarySource, by_value=True, allow_none=True,) # Older summaries may have unknown origin.
+    summary_source = fields.Enum(
+        SermonSummarySource, by_value=True, allow_none=True, dump_only=True
+    )
     speaker = fields.Nested(SpeakerSchema, required=True)
     series = fields.Nested(SeriesSchema, allow_none=True)
     status = fields.Enum(UploadStatus, required=True, by_value=True)
@@ -176,7 +178,10 @@ class SermonSchema(CamelCaseSchema):
     def drop_regeneration_fields(self, data, **kwargs):
         # The response carries these, so a client may send it back whole. Ignore them instead of rejecting or saving them.
         if isinstance(data, dict):
-            data = {key: value for key, value in data.items() if not key.startswith("summaryRegen")}
+            data = {
+                key: value for key, value in data.items()
+                if not key.startswith("summaryRegen") and key != "summarySource"
+            }
         return data
 
     @post_load

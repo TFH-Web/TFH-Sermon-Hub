@@ -262,7 +262,9 @@ def test_sermon_schema_load():
         "summaryRegenStartedAt": None,
         "summaryRegenFinishedAt": None,
     }
-    assert sermon_schema.dump(processed_sermon) == {**data, **regen_idle}
+    assert sermon_schema.dump(processed_sermon) == {
+        **data, **regen_idle, "summarySource": None
+    }
 
     data["processedAt"] = "invalid-date"
     with pytest.raises(ValidationError) as exc_info:
@@ -301,17 +303,17 @@ def sermon_data(**overrides):
     ],
 )
 def test_sermon_schema_summary_source(value, source):
-    """The summary origin loads from, and dumps back to, "ai", "manual" or null."""
+    """Origin is server-owned; responses expose the stored value."""
     sermon = sermon_schema.load(sermon_data(summarySource=value))
-    assert sermon.summary_source == source
+    assert sermon.summary_source is None
+    sermon.summary_source = source
     assert sermon_schema.dump(sermon)["summarySource"] == value
 
 
 @pytest.mark.parametrize("value", ["human", "AI", ""])
-def test_sermon_schema_rejects_unknown_summary_source(value):
-    with pytest.raises(ValidationError) as exc_info:
-        sermon_schema.load(sermon_data(summarySource=value))
-    assert "summarySource" in exc_info.value.messages
+def test_sermon_schema_ignores_client_summary_source(value):
+    sermon = sermon_schema.load(sermon_data(summarySource=value))
+    assert sermon.summary_source is None
 
 
 def test_sermon_schema_load_null_series():

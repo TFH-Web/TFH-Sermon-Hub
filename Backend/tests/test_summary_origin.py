@@ -24,12 +24,12 @@ def reload_sermon(sermon_id):
 @pytest.mark.parametrize(
     ("source", "expected"),
     [
-        (SermonSummarySource.AI, "ai"),
+        (SermonSummarySource.AI, "manual"),
         (SermonSummarySource.MANUAL, "manual"),
         (None, "manual"),
     ],
 )
-def test_manual_save_preserves_known_ai_origin(app, client, source, expected):
+def test_explicit_manual_save_records_manual_origin(app, client, source, expected):
     sermon_id = prepare_sermon(source)
 
     response = client.patch(
@@ -51,7 +51,7 @@ def test_invalid_save_retains_previous_content_and_origin(app, client):
 
     response = client.patch(
         f"/api/sermons/{sermon_id}",
-        json={"summary": None},
+        json={"summary": 123},
     )
 
     assert response.status_code == 422
