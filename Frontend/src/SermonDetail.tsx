@@ -317,7 +317,11 @@ export default function SermonDetail() {
 							</Button>
 						</div>
 					</div>
-					<SummaryRegenStatus state={regen.state} error={regen.error} />
+					<SummaryRegenStatus
+						state={regen.state}
+						error={regen.error}
+						stale={regen.isStale}
+					/>
 					<div className="SermonDetail-summary-container">
 						{/* Same idea as the transcript. Say there is no summary rather than showing an empty panel. */}
 						{summaryParagraphs.length > 0 ? (

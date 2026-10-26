@@ -1,14 +1,16 @@
 """The "Regenerate with AI" request is tracked on the sermon, so it survives navigation and reloads."""
 
+import json
 from datetime import timedelta
 
 import pytest
 from redis.exceptions import ConnectionError as RedisConnectionError
+from sqlalchemy.orm import Session
 
 from tests.test_ai_enrichment import NEW_TAG, fake_llm, patch_llm, published_sermon, reload
 from tsh import llm, pipeline, views
 from tsh.database import db
-from tsh.models import SummaryRegenState, UploadStatus, utcnow
+from tsh.models import Sermon, SummaryRegenState, Tag, TagSource, UploadStatus, utcnow
 from tsh.schemas import sermon_schema
 
 URL = "/api/sermons/{}/regenerate-summary"
@@ -239,6 +241,120 @@ def test_old_job_cannot_overwrite_the_state_of_a_newer_request(app, client, monk
     assert saved.summary_regen_run_id == "b" * 32
     assert saved.summary_regen_state == SummaryRegenState.QUEUED
     assert saved.summary_regen_finished_at is None
+
+
+def replace_request_from_another_session(sermon_id: int) -> None:
+    """Commit a newer result without refreshing the old worker's ORM identity map."""
+    with Session(db.engine) as writer:
+        newer = writer.get(Sermon, sermon_id)
+        newer.summary_regen_run_id = "b" * 32
+        newer.summary_regen_state = SummaryRegenState.COMPLETED
+        newer.summary_regen_finished_at = utcnow()
+        newer.summary = "Newer successfully completed summary."
+        newer.processing_error = "newer request's processing note"
+        newer.tags = [Tag(name="newer-result", source=TagSource.AI, sermons=[])]
+        writer.commit()
+
+
+@pytest.mark.parametrize("provider_fails", [False, True])
+def test_replaced_worker_preserves_newer_content_tags_and_errors(
+    app, client, monkeypatch, delayed, provider_fails
+):
+    sermon = published_sermon()
+
+    def fake(prompt, system="", **kwargs):
+        if kwargs.get("json_mode"):
+            return json.dumps({"tags": ["superseded-suggestion"]})
+        replace_request_from_another_session(sermon.id)
+        if provider_fails:
+            raise llm.LLMError("old request's provider failed")
+        return "Old delayed summary must not replace the newer result."
+
+    patch_llm(monkeypatch, fake)
+    post(client, sermon)
+
+    run(delayed[0])
+
+    saved = reload(sermon.id)
+    assert saved.summary_regen_run_id == "b" * 32
+    assert saved.summary_regen_state == SummaryRegenState.COMPLETED
+    assert saved.summary == "Newer successfully completed summary."
+    assert saved.processing_error == "newer request's processing note"
+    assert saved.summary_regen_error is None
+    assert {tag.name for tag in saved.tags} == {"newer-result"}
+    assert db.session.get(Tag, "superseded-suggestion") is None
+
+
+def test_tracked_tagging_failure_rolls_back_summary_and_tag_rows(app, client, monkeypatch, delayed):
+    sermon = published_sermon()
+    original = Tag(name="kept-manual", source=TagSource.MANUAL, sermons=[])
+    sermon.tags = [original]
+    db.session.commit()
+    save_tags = pipeline.save_ai_tags
+
+    def failing_save(row, names):
+        save_tags(row, names)
+        raise RuntimeError("tag persistence failed")
+
+    monkeypatch.setattr(pipeline, "save_ai_tags", failing_save)
+    patch_llm(monkeypatch, fake_llm(tags=["failed-suggestion"]))
+    post(client, sermon)
+
+    run(delayed[0])
+
+    saved = reload(sermon.id)
+    assert saved.summary_regen_state == SummaryRegenState.FAILED
+    assert saved.summary_regen_error == "tag persistence failed"
+    assert saved.summary == "Old summary."
+    assert {tag.name for tag in saved.tags} == {"kept-manual"}
+    assert db.session.get(Tag, "failed-suggestion") is None
+
+
+def test_completed_job_replay_does_not_generate_again(app, client, monkeypatch, delayed):
+    calls = []
+    provider = fake_llm()
+
+    def fake(*args, **kwargs):
+        calls.append(args)
+        return provider(*args, **kwargs)
+
+    patch_llm(monkeypatch, fake)
+    sermon = published_sermon()
+    post(client, sermon)
+    run(delayed[0])
+    calls_after_completion = len(calls)
+
+    run(delayed[0])
+
+    assert len(calls) == calls_after_completion
+    assert reload(sermon.id).summary_regen_state == SummaryRegenState.COMPLETED
+
+
+def test_unpublishing_during_generation_preserves_the_cleared_content(app, client, monkeypatch, delayed):
+    sermon = published_sermon()
+
+    def fake(prompt, system="", **kwargs):
+        if kwargs.get("json_mode"):
+            return '{"tags": []}'
+        with Session(db.engine) as writer:
+            changed = writer.get(Sermon, sermon.id)
+            changed.status = UploadStatus.DRAFT
+            changed.summary = None
+            changed.tags = []
+            writer.commit()
+        return "This summary belongs to the old published source."
+
+    patch_llm(monkeypatch, fake)
+    post(client, sermon)
+
+    run(delayed[0])
+
+    saved = reload(sermon.id)
+    assert saved.status == UploadStatus.DRAFT
+    assert saved.summary is None
+    assert saved.tags == []
+    assert saved.summary_regen_state == SummaryRegenState.FAILED
+    assert saved.summary_regen_error == "The sermon is no longer published"
 
 
 def test_redis_down_releases_the_claim(app, client, monkeypatch):

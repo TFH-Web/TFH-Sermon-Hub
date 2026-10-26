@@ -1,13 +1,14 @@
 import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useToast } from '$/components/ToastContext.tsx';
 import type { Sermon, SummaryRegenState } from '$/types/sermon';
 
 // How often to ask the server while a regeneration is waiting or running.
 export const REGEN_POLL_MS = 2000;
 // The server lets a new request take over from one this old, so there is nothing left to wait for.
-export const REGEN_GIVE_UP_MS = 25 * 60 * 1000;
+// Match pipeline.REGEN_STALE_AFTER: the 15-minute worker timeout plus 5 minutes.
+export const REGEN_GIVE_UP_MS = 20 * 60 * 1000;
 
 // Waiting for the worker, or being worked on.
 export function isRegenActive(state: SummaryRegenState | undefined): boolean {
@@ -19,16 +20,26 @@ function parseUtc(text: string): number {
 	return Date.parse(/(Z|[+-]\d\d:?\d\d)$/.test(text) ? text : `${text}Z`);
 }
 
+function lastActivity(sermon: Sermon | undefined): number {
+	const timestamp =
+		sermon?.summaryRegenStartedAt ?? sermon?.summaryRegenRequestedAt;
+	return timestamp ? parseUtc(timestamp) : Number.NaN;
+}
+
+function isRegenStale(sermon: Sermon | undefined, now: number): boolean {
+	return (
+		isRegenActive(sermon?.summaryRegenState) &&
+		now - lastActivity(sermon) > REGEN_GIVE_UP_MS
+	);
+}
+
 // For useQuery's refetchInterval: keep checking while the job is active, then stop.
 export function regenPollInterval(
 	sermon: Sermon | undefined,
 	now: number = Date.now(),
 ): number | false {
 	if (!sermon || !isRegenActive(sermon.summaryRegenState)) return false;
-	const requested = sermon.summaryRegenRequestedAt
-		? parseUtc(sermon.summaryRegenRequestedAt)
-		: Number.NaN;
-	if (now - requested > REGEN_GIVE_UP_MS) return false;
+	if (isRegenStale(sermon, now)) return false;
 	return REGEN_POLL_MS;
 }
 
@@ -41,14 +52,32 @@ export function useSummaryRegeneration(
 	const { showToast } = useToast();
 	const state = sermon?.summaryRegenState;
 	const sending = useRef(false); // Stops a second click before the page has redrawn
+	const [isSending, setIsSending] = useState(false);
+	const [now, setNow] = useState(Date.now);
 	const previous = useRef<SummaryRegenState | undefined>(undefined);
+	const activity = lastActivity(sermon);
+	const isStale = isRegenStale(sermon, now);
+
+	// Unchanged polling results need not re-render React. Wake at the claim's exact
+	// expiry so a lost worker cannot leave the button disabled after polling stops.
+	useEffect(() => {
+		if (!isRegenActive(state) || !Number.isFinite(activity)) return;
+		const remaining = activity + REGEN_GIVE_UP_MS + 1 - Date.now();
+		const timer = window.setTimeout(
+			() => setNow(Date.now()),
+			Math.max(0, remaining),
+		);
+		return () => window.clearTimeout(timer);
+	}, [activity, state]);
 
 	// Say how it ended, but only when we watched it finish, not when a page loads with an old result.
 	useEffect(() => {
 		const wasActive = isRegenActive(previous.current);
 		previous.current = state;
 		if (!wasActive) return;
-		if (state === 'completed') {
+		// A request timestamp identifies completion even when two inline requests
+		// both arrive as "completed", without announcing untracked legacy content.
+		if (state === 'completed' && sermon?.summaryRegenRequestedAt) {
 			showToast('The summary was regenerated.', 'success');
 		} else if (state === 'failed') {
 			showToast(
@@ -56,11 +85,21 @@ export function useSummaryRegeneration(
 				'error',
 			);
 		}
-	}, [state, sermon?.summaryRegenError, showToast]);
+	}, [
+		state,
+		sermon?.summaryRegenError,
+		sermon?.summaryRegenRequestedAt,
+		showToast,
+	]);
 
 	const start = async () => {
-		if (sending.current || isRegenActive(state)) return;
+		if (
+			sending.current ||
+			(isRegenActive(state) && !isRegenStale(sermon, Date.now()))
+		)
+			return;
 		sending.current = true;
+		setIsSending(true);
 		try {
 			await axios.post(`/api/sermons/${id}/regenerate-summary`);
 			// With no job queue the summary is already done, and this is the only moment we see it start.
@@ -72,16 +111,21 @@ export function useSummaryRegeneration(
 				'Could not regenerate the summary';
 			showToast(message, 'error');
 		} finally {
-			sending.current = false;
 			// Success or not, show what the server says now.
-			await queryClient.invalidateQueries({ queryKey: ['sermon', id] });
+			try {
+				await queryClient.invalidateQueries({ queryKey: ['sermon', id] });
+			} finally {
+				sending.current = false;
+				setIsSending(false);
+			}
 		}
 	};
 
 	return {
 		state,
 		error: sermon?.summaryRegenError,
-		isActive: isRegenActive(state),
+		isStale,
+		isActive: isSending || (isRegenActive(state) && !isStale),
 		start,
 	};
 }
