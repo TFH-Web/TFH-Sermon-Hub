@@ -17,7 +17,7 @@ from tsh.models import (
     SermonChunkEmbedding,
     UploadStatus,
 )
-from tsh.youtube_import import VIDEO_ID, parse_video_id
+from tsh.youtube_links import VIDEO_ID, parse_video_id
 
 # How many chunks a question can draw on before the context budget trims them.
 CANDIDATE_LIMIT = 8
