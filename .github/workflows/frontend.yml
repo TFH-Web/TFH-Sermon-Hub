@@ -106,6 +106,8 @@ jobs:
           name: Frontend
           path: Frontend/dist/
       - name: Run existing mocked feature tests
+        env:
+          HOME: /root
         run: npm run e2e
       - uses: actions/upload-artifact@v6
         if: ${{ !cancelled() }}
@@ -145,6 +147,8 @@ jobs:
         run: echo "TFH_E2E_PYTHON=$(cd ../Backend && poetry env info --executable)" >> "$GITHUB_ENV"
       - run: npm ci
       - name: Run real-API browser core flow
+        env:
+          HOME: /root
         run: npm run e2e:integration
       - name: Retain integration failure artifacts
         uses: actions/upload-artifact@v6
