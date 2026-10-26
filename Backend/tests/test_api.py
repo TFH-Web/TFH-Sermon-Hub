@@ -181,6 +181,98 @@ def test_tags(client: FlaskClient):
     assert "grace" in tag_names
 
 
+def test_create_tag(client: FlaskClient):
+    res = client.post("/api/tags", json={"name": "perseverance"})
+    assert res.status_code == 201
+    assert res.json == {"name": "perseverance", "source": "manual"}
+
+    tag_names = [t["name"] for t in client.get("/api/tags").json]
+    assert "perseverance" in tag_names
+
+
+def test_create_tag_rejects_duplicate_name(client: FlaskClient):
+    # "grace" already exists; the different casing should still collide.
+    res = client.post("/api/tags", json={"name": "Grace"})
+    assert res.status_code == 422
+    assert "name" in res.json["errors"]
+
+
+def test_create_tag_rejects_empty_name(client: FlaskClient):
+    res = client.post("/api/tags", json={"name": "   "})
+    assert res.status_code == 422
+    assert "name" in res.json["errors"]
+
+
+def test_rename_attached_tag_keeps_its_sermons(client: FlaskClient):
+    from tsh.database import db
+    from tsh.models import Sermon
+
+    # "Under Grace" is seeded with tags=[grace, faith] (Backend/tests/populate.py)
+    sermon_id = db.session.execute(
+        db.select(Sermon.id).filter_by(title="Under Grace")
+    ).scalar_one()
+
+    res = client.patch("/api/tags/grace", json={"newName": "amazing-grace"})
+    assert res.status_code == 200
+    assert res.json == {"name": "amazing-grace", "source": "ai"}
+
+    tag_names = [t["name"] for t in client.get("/api/tags").json]
+    assert "grace" not in tag_names
+    assert "amazing-grace" in tag_names
+
+    sermon_tags = {t["name"] for t in client.get(f"/api/sermons/{sermon_id}").json["tags"]}
+    assert sermon_tags == {"amazing-grace", "faith"}
+
+
+def test_rename_tag_rejects_duplicate_name(client: FlaskClient):
+    res = client.patch("/api/tags/grace", json={"newName": "faith"})
+    assert res.status_code == 422
+    assert "newName" in res.json["errors"]
+
+
+def test_rename_tag_rejects_empty_name(client: FlaskClient):
+    res = client.patch("/api/tags/grace", json={"newName": "  "})
+    assert res.status_code == 422
+    assert "newName" in res.json["errors"]
+
+
+def test_rename_nonexistent_tag(client: FlaskClient):
+    res = client.patch("/api/tags/does-not-exist", json={"newName": "whatever"})
+    assert res.status_code == 404
+
+
+def test_delete_unused_tag(client: FlaskClient):
+    # "life" is seeded with no sermon associations (Backend/tests/populate.py)
+    res = client.delete("/api/tags/life")
+    assert res.status_code == 204
+
+    tag_names = [t["name"] for t in client.get("/api/tags").json]
+    assert "life" not in tag_names
+
+
+def test_delete_attached_tag_removes_the_association_not_the_sermon(client: FlaskClient):
+    from tsh.database import db
+    from tsh.models import Sermon
+
+    # "Bold Faith" is seeded with tags=[faith, anxiety, grace] (Backend/tests/populate.py)
+    sermon_id = db.session.execute(
+        db.select(Sermon.id).filter_by(title="Bold Faith")
+    ).scalar_one()
+
+    res = client.delete("/api/tags/anxiety")
+    assert res.status_code == 204
+    assert "anxiety" not in [t["name"] for t in client.get("/api/tags").json]
+
+    sermon_res = client.get(f"/api/sermons/{sermon_id}")
+    assert sermon_res.status_code == 200
+    assert {t["name"] for t in sermon_res.json["tags"]} == {"faith", "grace"}
+
+
+def test_delete_nonexistent_tag(client: FlaskClient):
+    res = client.delete("/api/tags/does-not-exist")
+    assert res.status_code == 404
+
+
 def test_dev_database_untouched(app):
     import os
     import sqlite3
