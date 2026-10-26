@@ -9,7 +9,7 @@ from tsh.app import create_app
 from tsh.database import db
 
 
-def main(config_path: str, database_uri: str | None = None):
+def main(config_path: str = "testing.cfg", database_uri: str | None = None):
     from tsh.models import Series, Sermon, Speaker, Tag, sermon_tag_m2m  # noqa: F401
 
     settings = {"SQLALCHEMY_DATABASE_URI": database_uri} if database_uri else None

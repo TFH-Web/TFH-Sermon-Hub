@@ -5,7 +5,7 @@ from tests.populate import populate
 from tsh.app import create_app
 
 
-def main(config_path: str, database_uri: str | None = None):
+def main(config_path: str = "testing.cfg", database_uri: str | None = None):
     settings = {"SQLALCHEMY_DATABASE_URI": database_uri} if database_uri else None
     app = create_app(config_path, settings)
     with app.app_context():
