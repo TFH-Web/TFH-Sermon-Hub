@@ -11,29 +11,50 @@ import { useToast } from '$/components/ToastContext';
 import { invalidateSermonData } from '$/hooks/useImportSermons';
 import { apiErrorMessage } from '$/lib/api';
 import { toCalendarDateString } from '$/lib/date';
+import type { Series } from '$/types/series';
 import type { Sermon } from '$/types/sermon';
-import { getFullName } from '$/types/speaker';
+import { getFullName, type Speaker } from '$/types/speaker';
 
 interface EditSermonModalProps {
 	isOpen: boolean;
 	onClose: () => void;
 	sermon: Sermon | null;
+	// The speakers and series to choose from. The page loads them and passes them in, so this modal makes no requests
+	// of its own besides the save. The sermon's own speaker and series are added when they are missing from these.
+	speakers?: Speaker[];
+	series?: Series[];
+}
+
+// The lists load on their own, so the sermon's current speaker or series can be missing from them for a moment, or for
+// good (the series list stops at 100). Adding it keeps the select showing it, and keeps a save from clearing it.
+function withCurrent<T extends { id: number }>(
+	items: T[],
+	current: T | null | undefined,
+): T[] {
+	return !current || items.some(item => item.id === current.id)
+		? items
+		: [...items, current];
 }
 
 export default function EditSermonModal({
 	isOpen,
 	onClose,
 	sermon,
+	speakers = [],
+	series = [],
 }: EditSermonModalProps) {
 	const { showToast } = useToast();
 	const queryClient = useQueryClient();
 	const [title, setTitle] = useState('');
 	const [titleError, setTitleError] = useState('');
-	const [speaker, setSpeaker] = useState('');
+	// The selects hold ids as text. A speaker is required; an empty series means the sermon has none.
+	const [speakerId, setSpeakerId] = useState('');
 	const [speakerError, setSpeakerError] = useState('');
-	const [series, setSeries] = useState('');
+	const [seriesId, setSeriesId] = useState('');
 	const [seriesIndex, setSeriesIndex] = useState('');
 	const [date, setDate] = useState('');
+	const [description, setDescription] = useState('');
+	const [descriptionError, setDescriptionError] = useState('');
 	const [videoLink, setVideoLink] = useState('');
 	const [tags, setTags] = useState('');
 	const [notes, setNotes] = useState('');
@@ -44,17 +65,19 @@ export default function EditSermonModal({
 	useEffect(() => {
 		if (sermon) {
 			setTitle(sermon.title);
-			setSpeaker(getFullName(sermon.speaker));
-			setSeries(sermon.series?.title ?? '');
+			setSpeakerId(String(sermon.speaker.id));
+			setSeriesId(sermon.series ? String(sermon.series.id) : '');
 			setTags(sermon.tags.map(t => t.name).join(', '));
 			setSeriesIndex('');
-			// Shows the saved day. The date is not part of the save request yet.
+			// Shows the saved day.
 			setDate(toCalendarDateString(sermon.date));
+			setDescription(sermon.description);
 			setVideoLink('');
 			setNotes('');
 			setTranscript('');
 			setTitleError('');
 			setSpeakerError('');
+			setDescriptionError('');
 		}
 	}, [sermon]);
 
@@ -64,8 +87,13 @@ export default function EditSermonModal({
 			setTitleError('Sermon title is required');
 			valid = false;
 		}
-		if (!speaker) {
+		if (!speakerId) {
 			setSpeakerError('Speaker is required');
+			valid = false;
+		}
+		// Every sermon has a description: the server refuses a blank one, and the sermon pages could not read one.
+		if (!description.trim()) {
+			setDescriptionError('Description is required');
 			valid = false;
 		}
 		if (!valid || !sermon || isSaving) {
@@ -76,8 +104,14 @@ export default function EditSermonModal({
 		setSaveError('');
 
 		try {
+			// Series Index, Video Link, Sermon Notes and Transcript are on the form but not part of the save, so they are not sent.
 			const payload = {
 				title: title.trim(),
+				speaker: { id: Number(speakerId) },
+				series: seriesId ? { id: Number(seriesId) } : null,
+				// A date that was cleared is left out, so the saved date stays.
+				...(date ? { date } : {}),
+				description: description.trim(),
 				tags: tags
 					.split(',')
 					.map(t => t.trim())
@@ -137,27 +171,36 @@ export default function EditSermonModal({
 				</FormField>
 				<FormField label="Speaker *" error={speakerError}>
 					<select
-						value={speaker}
+						aria-label="Speaker"
+						value={speakerId}
 						onChange={e => {
-							setSpeaker(e.target.value);
+							setSpeakerId(e.target.value);
 							if (speakerError) setSpeakerError('');
 						}}
 					>
 						<option value="">Select speaker</option>
-						<option value="Dave Patterson">Dave Patterson</option>
-						<option value="Guest Speaker">Guest Speaker</option>
+						{withCurrent(speakers, sermon?.speaker).map(option => (
+							<option key={option.id} value={option.id}>
+								{getFullName(option)}
+							</option>
+						))}
 					</select>
 				</FormField>
 			</FormRow>
 
 			<FormRow>
 				<FormField label="Series">
-					<select value={series} onChange={e => setSeries(e.target.value)}>
+					<select
+						aria-label="Series"
+						value={seriesId}
+						onChange={e => setSeriesId(e.target.value)}
+					>
 						<option value="">Select series</option>
-						<option value="Live Your Best Life">Live Your Best Life</option>
-						<option value="Hope Rising">Hope Rising</option>
-						<option value="Together">Together</option>
-						<option value="Fearless">Fearless</option>
+						{withCurrent(series, sermon?.series).map(option => (
+							<option key={option.id} value={option.id}>
+								{option.title}
+							</option>
+						))}
 					</select>
 				</FormField>
 				<FormField label="Series Index">
@@ -174,6 +217,7 @@ export default function EditSermonModal({
 				<FormField label="Date">
 					<input
 						type="date"
+						aria-label="Date"
 						value={date}
 						onChange={e => setDate(e.target.value)}
 					/>
@@ -187,6 +231,18 @@ export default function EditSermonModal({
 					/>
 				</FormField>
 			</FormRow>
+
+			<FormField label="Description *" error={descriptionError}>
+				<textarea
+					aria-label="Description"
+					placeholder="Enter a short description"
+					value={description}
+					onChange={e => {
+						setDescription(e.target.value);
+						if (descriptionError) setDescriptionError('');
+					}}
+				/>
+			</FormField>
 
 			<FormField label="Tags (comma-separated)">
 				<input
