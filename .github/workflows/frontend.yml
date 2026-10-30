@@ -71,7 +71,7 @@ jobs:
               .map(key => `| ${key} | ${total[key].pct}% | ${total[key].covered}/${total[key].total} |`);
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
               '### Frontend production-code coverage\n\n| Metric | Coverage | Covered/total |\n| --- | --- | --- |\n'
-              + rows.join('\n') + '\n\nIncludes unimported src files. No team-approved floor is enforced yet.\n');
+              + rows.join('\n') + '\n\nIncludes unimported production src files. Required minimums: 55% lines and 55% branches.\n');
           }
           JS
       - name: Upload coverage reports
