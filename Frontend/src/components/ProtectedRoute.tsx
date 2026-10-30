@@ -12,11 +12,11 @@ export default function ProtectedRoute({
 	const location = useLocation();
 	const { status, roles } = useAuth();
 
-	if (isAuthTestMode) {
-		return <Outlet />;
-	}
-
-	if (inProgress !== InteractionStatus.None || status === 'loading') {
+	// Mocked browser identities skip Microsoft interaction, but retain role checks.
+	if (
+		(!isAuthTestMode && inProgress !== InteractionStatus.None) ||
+		status === 'loading'
+	) {
 		return <p role="status">Checking your session…</p>;
 	}
 
