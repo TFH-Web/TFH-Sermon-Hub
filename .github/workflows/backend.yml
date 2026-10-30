@@ -45,6 +45,9 @@ jobs:
           poetry run pytest --cov=tsh --cov-branch
           --cov-report=term-missing --cov-report=json:coverage.json
           --cov-report=xml:coverage.xml --cov-report=html:htmlcov
+      - name: Enforce backend coverage minimums
+        run: poetry run python check_coverage.py
+
       - name: Summarize backend coverage
         if: ${{ !cancelled() }}
         run: |
@@ -60,7 +63,8 @@ jobs:
                   summary.write(f"Combined line/branch coverage: {totals['percent_covered']:.2f}%\n\n")
                   summary.write(f"Lines: {totals['covered_lines']}/{totals['num_statements']}; ")
                   summary.write(f"branches: {totals['covered_branches']}/{totals['num_branches']}.\n\n")
-                  summary.write('Includes unimported tsh modules. No team-approved floor is enforced yet.\n')
+                  summary.write('Includes unimported tsh modules. '
+                                'Required minimums: 90% lines and 80% branches.\n')
           PY
       - name: Upload coverage reports
         uses: actions/upload-artifact@v6
