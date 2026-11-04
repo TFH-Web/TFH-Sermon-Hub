@@ -61,6 +61,40 @@ prints `Limit reached` as a reminder to run it again. If the quota breaker (belo
 open when the command starts, it prints `Paused:` with the resume time, exits 0 and
 changes no sermon. `--dry-run` shows the same warning as a `Note:`.
 
+## Scheduling the backfill
+
+The command above runs once and schedules nothing else, so clearing a large
+backlog (for example, importing years of archived sermons) means someone
+running it by hand every day. On the staging droplet, that's instead a
+systemd timer: `deploy/tfh-staging-caption-backfill.timer` fires
+`deploy/tfh-staging-caption-backfill.service` daily, shortly after the
+midnight-Pacific quota reset, at `--limit 40` (the command's own per-run
+cap). Install it the same way as the existing backup timer, from
+[deploying.md](deploying.md#5-install-separate-services-and-private-nginx-site):
+
+```bash
+install -o root -g root -m 0644 "$release/deploy/tfh-staging-caption-backfill.service" /etc/systemd/system/
+install -o root -g root -m 0644 "$release/deploy/tfh-staging-caption-backfill.timer" /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now tfh-staging-caption-backfill.timer
+```
+
+To track progress: each run's `attempted/succeeded/failed/remaining` line
+lands in the journal:
+
+```bash
+journalctl -u tfh-staging-caption-backfill.service --since -7d
+```
+
+`remaining` across recent runs then shows the backlog shrinking day over
+day. `systemctl status tfh-staging-caption-backfill.timer` shows the last
+and next run times. A run that fails the unit (exit 1) is a missing OAuth
+config or a sign-in/permission failure, not a quota pause, see the sign-in
+renewal steps below. There's no dashboard stat for remaining transcripts
+yet; `journalctl` is the only view into progress today, so a dashboard card
+showing sermons still missing a transcript would be a reasonable, separate
+follow-up to file rather than rolled in here.
+
 ## Daily quota breaker
 
 YouTube resets the project's daily quota at midnight Pacific time. When YouTube
