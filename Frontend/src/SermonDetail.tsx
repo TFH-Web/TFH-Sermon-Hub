@@ -350,7 +350,7 @@ function SermonDetailContent({
 								>
 									Edit
 								</Button>
-								<div className="delete-btn-gap">
+								<div className="SermonDetail-delete-btn-gap">
 									<Button
 										variant="danger"
 										disabled={!isAdmin}
