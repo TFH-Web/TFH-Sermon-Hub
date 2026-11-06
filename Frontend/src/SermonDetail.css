@@ -16,8 +16,8 @@
 }
 
 .SermonDetail-player {
-    transform: scale(1.5);
-    transform-origin: center;
+	transform: scale(1.5);
+	transform-origin: center;
 }
 
 .SermonDetail-playButton {
