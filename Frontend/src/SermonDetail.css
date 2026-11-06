@@ -103,6 +103,10 @@
 	gap: 10px;
 }
 
+.delete-btn-gap {
+	transform: translateX(50px);
+}
+
 .SermonDetail-transcript {
 	grid-area: transcript;
 }
