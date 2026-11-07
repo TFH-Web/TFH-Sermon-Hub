@@ -212,14 +212,14 @@ def test_transport_errors_do_not_expose_their_exception_context(configured, monk
     (RefreshError("test-client-secret", {"error": "invalid_client"}), "token refresh failed"),
 ])
 def test_expired_or_failed_renewal_asks_for_a_new_refresh_token(configured, monkeypatch, error, category):
-    """An expired, revoked or unrenewable sign-in gets the agreed message with safe renewal steps."""
+    """An expired, revoked or unrenewable sign-in gets the agreed message pointing at the renewal runbook."""
     monkeypatch.setattr(captions, "AuthorizedSession", lambda *args, **kwargs: FakeSession([error]))
     with pytest.raises(captions.CaptionAuthError) as raised:
         captions.get_transcript(VIDEO_ID)
     message = str(raised.value)
     assert message.startswith("YouTube sign-in expired, refresh the token")
     assert f"({category})" in message
-    assert "YOUTUBE_OAUTH_REFRESH_TOKEN" in message
+    assert captions.RUNBOOK in message
     assert raised.value.__suppress_context__
     assert all(secret not in message for secret in SECRETS)
 

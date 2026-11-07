@@ -61,6 +61,40 @@ prints `Limit reached` as a reminder to run it again. If the quota breaker (belo
 open when the command starts, it prints `Paused:` with the resume time, exits 0 and
 changes no sermon. `--dry-run` shows the same warning as a `Note:`.
 
+## Scheduling the backfill
+
+The command above runs once and schedules nothing else, so clearing a large
+backlog (for example, importing years of archived sermons) means someone
+running it by hand every day. On the staging droplet, that's instead a
+systemd timer: `deploy/tfh-staging-caption-backfill.timer` fires
+`deploy/tfh-staging-caption-backfill.service` daily, shortly after the
+midnight-Pacific quota reset, at `--limit 40` (the command's own per-run
+cap). Install it the same way as the existing backup timer, from
+[deploying.md](deploying.md#5-install-separate-services-and-private-nginx-site):
+
+```bash
+install -o root -g root -m 0644 "$release/deploy/tfh-staging-caption-backfill.service" /etc/systemd/system/
+install -o root -g root -m 0644 "$release/deploy/tfh-staging-caption-backfill.timer" /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now tfh-staging-caption-backfill.timer
+```
+
+To track progress: each run's `attempted/succeeded/failed/remaining` line
+lands in the journal:
+
+```bash
+journalctl -u tfh-staging-caption-backfill.service --since -7d
+```
+
+`remaining` across recent runs then shows the backlog shrinking day over
+day. `systemctl status tfh-staging-caption-backfill.timer` shows the last
+and next run times. A run that fails the unit (exit 1) is a missing OAuth
+config or a sign-in/permission failure, not a quota pause, see the sign-in
+renewal steps below. There's no dashboard stat for remaining transcripts
+yet; `journalctl` is the only view into progress today, so a dashboard card
+showing sermons still missing a transcript would be a reasonable, separate
+follow-up to file rather than rolled in here.
+
 ## Daily quota breaker
 
 YouTube resets the project's daily quota at midnight Pacific time. When YouTube
@@ -86,35 +120,9 @@ sqlite3 instance/testing.db "UPDATE caption_quota SET blocked_until = NULL"
 
 ## Renewing the YouTube sign-in
 
-A caption failure that starts with `YouTube sign-in expired, refresh the token` means
-Google no longer accepts the saved sign-in. The label in parentheses says why:
-
-- `(invalid_grant)`: the refresh token expired or was revoked. A common cause is a
-  Google Cloud consent screen left in Testing, where refresh tokens expire after 7 days.
-- `(token refresh failed)`: Google rejected the renewal for another reason, often a
-  wrong or changed OAuth client ID or secret.
-
-To fix it:
-
-1. For `(token refresh failed)`, check that `YOUTUBE_OAUTH_CLIENT_ID` and
-   `YOUTUBE_OAUTH_CLIENT_SECRET` match the OAuth client in the Google Cloud project.
-2. Signed in as a user who manages the TFH channel, create a new refresh token for
-   that client with the `https://www.googleapis.com/auth/youtube.force-ssl` scope.
-3. Set `YOUTUBE_OAUTH_REFRESH_TOKEN` in `Backend/.env` and in the worker's
-   environment, then restart the API and the worker.
-4. Retry the failed sermons:
-
-```sh
-poetry run flask --app "tsh:create_app('testing.cfg')" backfill-captions --failed-only
-```
-
-`backfill-captions` stops at the first sign-in failure instead of trying every
-sermon. The message never includes the token, so it is safe to copy into a ticket.
-Do not paste a token itself into tickets or chat.
-
-If the message says `permission denied` instead, the sign-in works but the account
-cannot manage captions on this channel. A new token will not fix that; check the
-account's channel access.
+See [youtube-token-renewal.md](youtube-token-renewal.md) for how to tell `(invalid_grant)` apart
+from `(token refresh failed)`, issue a new refresh token, and roll it out everywhere it's
+configured.
 
 ## Turning captions off
 
