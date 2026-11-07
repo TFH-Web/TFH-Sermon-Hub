@@ -1,6 +1,6 @@
 .SermonDetail-top {
 	display: grid;
-	grid-template-columns: 55fr 45fr;
+	grid-template-columns: 70fr 30fr;
 	gap: 28px;
 	margin-bottom: 28px;
 }
@@ -13,6 +13,11 @@
 	aspect-ratio: 16 / 9;
 	background: #d0d0d0;
 	border-radius: 12px;
+}
+
+.SermonDetail-player {
+	transform: scale(1.5);
+	transform-origin: center;
 }
 
 .SermonDetail-playButton {
@@ -96,6 +101,10 @@
 .SermonDetail-btn-group {
 	display: flex;
 	gap: 10px;
+}
+
+.SermonDetail-delete-btn-gap {
+	transform: translateX(50px);
 }
 
 .SermonDetail-transcript {

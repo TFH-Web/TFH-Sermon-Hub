@@ -350,13 +350,15 @@ function SermonDetailContent({
 								>
 									Edit
 								</Button>
-								<Button
-									variant="danger"
-									disabled={!isAdmin}
-									onClick={() => setDeleteSermonOpen(true)}
-								>
-									Delete
-								</Button>
+								<div className="SermonDetail-delete-btn-gap">
+									<Button
+										variant="danger"
+										disabled={!isAdmin}
+										onClick={() => setDeleteSermonOpen(true)}
+									>
+										Delete
+									</Button>
+								</div>
 							</div>
 						</div>
 					</div>
