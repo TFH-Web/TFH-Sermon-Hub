@@ -11,9 +11,14 @@ not expose staging, change public ports/DNS or add public Entra redirects as par
 of routine maintenance. HTTPS/public access and church DNS ownership remain
 deferred external follow-ups, not changes authorized by this guide.
 
-Last verified **2026-10-21 UTC**: deployed source `cf783d2` (application baseline
-`3144d67`), 450 sermons, healthy API/worker/Redis and an active nightly backup
-timer. Check these again before a later handoff; this is a dated record, not a
+Last verified **2026-11-08 UTC**: deployed source `f9a2d83` (release
+`/opt/tfh-staging/releases/f9a2d83-tfh540-20261108T224455Z`, schema
+`e602c47a1025`; previous release `3144d67-tfh540-20261021-2` kept for rollback),
+450 sermons, healthy API/worker/Redis, `/api/whoami` without a token returns a
+JSON 401, the old public site still returns 200 and the nightly backup timer is
+active. The YouTube caption credentials were added to the server env the same
+day and a read-only caption fetch from staging succeeded. Check these again
+before a later handoff; this is a dated record, not a
 live status page.
 
 Testers only need the access steps below. Maintainers can jump to the
@@ -345,6 +350,19 @@ ACL-protected off-droplet storage at
 Jack owns these recovery copies and their access/retention. They are one-off
 copies, not an automated off-site backup service. Samip owns runtime/provider
 configuration; public DNS ownership is still unconfirmed and deferred.
+
+### Anthropic SDK redeploy (2026-11-08 UTC)
+
+| Check | Result |
+| --- | --- |
+| Source | `f9a2d83` on `dev`, frontend built with Node 24.22.2; release `/opt/tfh-staging/releases/f9a2d83-tfh540-20261108T224455Z` |
+| Pre-deploy backup | `sermonhub-20261108T223654169250Z-57cf9ebc.sqlite3`, `--verify` passed (integrity, foreign keys, 450 sermons) |
+| Prepare | New venv with `anthropic` 0.125.0; `provision_staging.py --prepare-only` passed and kept the existing env and database |
+| Migration | `958b50d14869` to `e602c47a1025`, one head, 450 sermons before and after, preflight passed before and after |
+| Cutover | `current` switched 22:55 UTC; API `/api/health` 200, nginx 8081 200, `/api/whoami` JSON 401, worker idle on its queue, old public site PID 738 still 200 |
+| Post-cutover backup | `sermonhub-20261108T225609994629Z-58b8e75a.sqlite3`, integrity and foreign keys passed |
+| Credentials | The four YouTube caption settings were added to the server env (previous file kept root-only); a read-only caption fetch from staging returned 1,014 segments |
+| Rollback target | `3144d67-tfh540-20261021-2`, still installed |
 
 </details>
 
