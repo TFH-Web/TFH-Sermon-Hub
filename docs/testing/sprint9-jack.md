@@ -1,7 +1,26 @@
 # Sprint 9: Jack's acceptance and launch work
 
-Last checked: **2026-11-07 UTC**. This records observed results and remaining
+Last checked: **2026-11-08 UTC**. This records observed results and remaining
 acceptance, not client approval or a production launch.
+
+## November 8 operational completion
+
+See the [dated operations evidence](sprint9-operations-20261108.md) for exact
+release, model, backup, recovery and reboot results. The earlier November 7
+audit below is retained as a dated baseline.
+
+| Task | November 8 result |
+| --- | --- |
+| TFH-651 | Private CPU embedding provider installed; real 21-chunk/vector sample passed; `flask reembed` exited 0 and every saved chunk records the selected model. Full-library processing was not run. |
+| TFH-657 | Off-droplet processed-data scratch restore passed: 450 sermons, 21 real chunks/vectors, all fingerprints matched, input unchanged, scratch removed. |
+| TFH-673 | Scheduled restricted offsite pulls to Jack's workstation; actual scheduler run passed. Full host reboot and previous-release startup against a paired rollback copy passed. Workstation must be on, signed in and online. |
+| TFH-640 / TFH-654 | Staging now runs `f9a2d83`; real three-account browser checks and the complete import/recovery/summary/chat flow remain pending. Anthropic setup needs Tim. |
+| TFH-645 / TFH-672 / TFH-675 | Production DNS/HTTPS/Entra, admin handoff and actual client approval remain pending. |
+
+PR #157 contains the acceptance/operations tools and evidence. PR #161 targets
+PR #159's branch to fix interrupted backup publication and revalidate existing
+vault copies. PR #160 records Samip's earlier rollout/caption failure rehearsal;
+its no-provider result predates the embedding setup described here.
 
 ## Existing work and PR audit
 
@@ -12,18 +31,19 @@ release merge to repeat.
 | Existing work | Status and overlap |
 | --- | --- |
 | [PR #120](https://github.com/TFH-Web/TFH-Sermon-Hub/pull/120) | Merged: production factory, isolated staging services, backups, full-content scratch restore and the deployment runbook. Reuse these tools. |
-| [PR #154](https://github.com/TFH-Web/TFH-Sermon-Hub/pull/154) | Open: dependency-audit fixes and smoke-test Python pin. Keep those dependency/workflow changes with their PR. |
+| [PR #154](https://github.com/TFH-Web/TFH-Sermon-Hub/pull/154) | Merged November 8: dependency-audit fixes and smoke-test Python pin. |
 | [PR #155](https://github.com/TFH-Web/TFH-Sermon-Hub/pull/155) | Open against `main`: player sizing and Delete placement (TFH-659/660). It does not complete Jack's live acceptance or launch work. |
 | [PR #156](https://github.com/TFH-Web/TFH-Sermon-Hub/pull/156) | Open: caption timer and token-renewal runbook (TFH-671/669), plus dependency/workflow changes. Reuse that work after review; do not add a second caption timer or renewal guide here. |
 | PRs #151, #152 and #153 | Closed without merging at the time of this audit. Their reported automated tests are not live Entra or staging acceptance evidence. |
 
-No reviewed PR implements TFH-654, TFH-657, TFH-672 or TFH-675. TFH-532 and its
+At the initial November 7 audit, no other reviewed PR implemented TFH-654,
+TFH-657, TFH-672 or TFH-675. TFH-532 and its
 pagination subtasks are explicitly scheduled for the post-launch backlog and
 are outside this Sprint 9 acceptance change.
 
-## Current evidence and task status
+## Initial November 7 evidence and task status
 
-The staging checks used the existing authorized SSH connection. No app release,
+The November 7 staging checks used the existing authorized SSH connection. No app release,
 configuration, DNS record, Entra registration, service, queue or live database
 was changed. The restore utility created and removed its isolated scratch copy.
 

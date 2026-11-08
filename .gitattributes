@@ -1,2 +1,3 @@
 # Certbot executes this hook on Linux, including releases prepared on Windows.
 deploy/renew-nginx.sh text eol=lf
+deploy/*.service text eol=lf

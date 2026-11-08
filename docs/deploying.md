@@ -6,23 +6,25 @@ tunnel; the app and database are not running on your laptop. Neither
 `sermonhub.tfh.org` nor the proposed temporary sslip.io address is configured
 for this release yet.
 
-**Sprint 9 follow-up (checked 2026-11-07):** see the
+**Sprint 9 follow-up (checked 2026-11-08):** see the
 [Jack acceptance audit and role/recovery checks](testing/sprint9-jack.md),
+[embedding, backup and reboot results](testing/sprint9-operations-20261108.md),
 [production launch procedure](production-launch.md), and
 [client acceptance record](testing/sprint9-client-acceptance.md). Staging still
-runs the older October release with cloud AI pending and empty chunk/vector
-tables. The latest backup passed an isolated full-content restore, but the
-representative processed-data rehearsal and production/client acceptance remain
-open. The production templates are prepared for review, not installed.
+runs `f9a2d83` with a private CPU embedding service and a real 21-chunk/vector
+sample. Its processed-data offsite restore, full host reboot and paired rollback
+startup rehearsal passed. Anthropic answers, real-account browser checks and
+production/client acceptance remain open. The production templates are prepared
+for review, not installed.
 
 **Access decision (2026-10-21 UTC): Jack requested SSH-only access for now.** Do
 not expose staging, change public ports/DNS or add public Entra redirects as part
 of routine maintenance. HTTPS/public access and church DNS ownership remain
 deferred external follow-ups, not changes authorized by this guide.
 
-Last verified **2026-10-21 UTC**: deployed source `cf783d2` (application baseline
-`3144d67`), 450 sermons, healthy API/worker/Redis and an active nightly backup
-timer. Check these again before a later handoff; this is a dated record, not a
+Last verified **2026-11-08 UTC**: deployed source `f9a2d83`, schema `e602c47a1025`,
+450 sermons, healthy API/worker/Redis/embeddings and an active nightly backup
+timer after a host reboot. Check these again before a later handoff; this is a dated record, not a
 live status page.
 
 Testers only need the access steps below. Maintainers can jump to the
@@ -74,22 +76,21 @@ The older site at `http://167.71.149.116/` is separate and unchanged. It is
 ## Samip: start here
 
 This is an **SSH-only maintainer handoff**, not public launch or a claim that all
-features are ready. The TFH-540 PR targets `dev`; review its actual merge status
-before assuming these files are on that branch. Merging the PR does **not**
-automatically redeploy the droplet. The deployed app source is still `cf783d2`;
-the newer recovery utilities are installed separately under
-`/opt/tfh-staging/tools/recovery-598d6ef/deploy/`.
+features are ready. PR #120 is merged; merged PR #158 is deployed as `f9a2d83`.
+Merging later PRs does **not** automatically redeploy the droplet. Operator tools
+may be installed separately; use the dated
+[November 8 evidence](testing/sprint9-operations-20261108.md) for current paths.
 
 1. Use your own authorized SSH key and the [access steps](#open-private-staging-now).
    Preserve the 450-sermon persistent library, private server `.env`, previous
    release/backups and unchanged old public site. Keep access SSH-only.
-2. Confirm the **answer provider/model** and **embedding provider/model**, required
-   SDKs/endpoints and 768-dimensional compatibility. Anthropic is only tentative;
-   the existing embedding implementation is Ollama-specific. Coordinate any
-   missing adapter with the owning feature story before runtime activation.
+2. Obtain the approved Anthropic answer model, private API key and spending limit
+   from Tim. Embeddings now use `nomic-embed-text:v1.5` on the bounded private
+   CPU service; its 768-dimensional output and saved sample passed validation.
 3. Provision approved credentials privately in `/etc/tfh-staging/.env`, never
    chat, Git or PR comments. Cloud AI remains `cloud-pending` until configured.
-   Do **not** install Ollama or download models on the droplet; Ollama is local-only.
+   The November 8 embedding-only decision supersedes the earlier local-only
+   restriction. Keep answer generation cloud-pending until its setup is complete.
 4. Put reviewed dependency/configuration changes into a new release and follow
    the [backup/redeploy checklist](#redeploy-a-reviewed-change-maintainers).
    Do not install into the active venv, seed/re-copy the database, start imports
@@ -100,8 +101,8 @@ the newer recovery utilities are installed separately under
    with Jack. Only Jack's Admin account is currently available.
 6. Once the runtime/features are ready, agree on a small import/processing test
    and verify transcript seeking, real search, grounded chat and failure recovery.
-   Record the release and results without secrets. Keep DNS/HTTPS changes, full
-   reboot and batch reprocessing separate until explicitly approved.
+   Record the release and results without secrets. The November 8 reboot passed;
+   keep DNS/HTTPS changes and a full-library processing run separately scoped.
 
 Already verified: private services/auth guards, migrations/sqlite-vec, consistent
 nightly backups, a protected off-droplet copy, full-content isolated restore and
@@ -113,23 +114,22 @@ final integrated acceptance; Samip owns supported cloud runtime/setup work.
 
 This maps to the [current Jira acceptance criteria](https://csus-team-nekos.atlassian.net/browse/TFH-540).
 Hosting, persistent SQLite, server migrations/extension loading, private secrets,
-restartable services, nightly on-droplet backups and one-off off-droplet copies
+restartable services, nightly on-droplet backups and scheduled workstation copies
 are already verified. Remaining work:
 
 | Work | Owner | Completion evidence |
 | --- | --- | --- |
 | HTTPS/team access and production domain | Jack | AC 3-4: deferred while Jack requests SSH-only access. Retain the localhost Entra redirect; record the church DNS owner and verify final HTTPS/redirects/certificate renewal when approved and DNS is pointed. No temporary public hostname is enabled. |
 | Cloud runtime/provider checks | Samip | AC 2, 8: selected supported providers/models, runtime SDKs/private credentials and connectivity/resources verified under the service user. Any missing adapter implementation is a feature dependency, not extra TFH-540 scope. |
-| Feature-backed recovery follow-up | Jack + Samip | AC 5-6, 8: the current 450-sermon restore, off-droplet restore, prior-release compatibility and synthetic nonempty-vector checks passed. Repeat with real processed chunks once available. A full host reboot is not rehearsed or authorized; schedule it separately if required. |
+| Feature-backed recovery | Jack + Samip | AC 5-6, 8: November 8 processed-data offsite restore, full host reboot and paired rollback startup passed. See the dated operations evidence for scope and workstation availability. |
 | Portable Python/macOS and Ollama setup | Samip | AC 7: verified macOS guidance and optional acceleration. `Backend/devenv.nix` still forces `ollama-rocm`; this is not fixed. Server extension loading already passed. |
 | Integrated staging acceptance | Jack + Samip | AC 8: staff-only/unassigned roles, import/queue completion and failure recovery, transcript seeking, real search and grounded chat as owning feature stories land. Admin sign-in was reported successful. |
-| Publish the reviewed handoff | Jack | AC 7 / delivery: review/merge the TFH-540 PR into `dev`; share access, deployed commit, health evidence, limitations and owners. Check the PR's merge status rather than assuming it is already in `dev`; merging does not deploy automatically. |
+| Publish the reviewed handoff | Jack | AC 7 / delivery: PR #120 is merged. Review the Sprint 9 acceptance/operations changes and retain the release/evidence/owner records. Merging does not deploy automatically. |
 
-The copied library has no chunks/embeddings yet. Nonempty vector preservation is
-covered by isolated synthetic tests, not a claim of cloud/feature acceptance.
-Real processed-data acceptance still follows the owning feature stories. Scheduled
-off-droplet automation is a recommended operational follow-up: the verified
-one-off external recovery copy already exists, but is not automated protection.
+The library now has a real processed 21-chunk/vector sample. Its full-content
+offsite restore passed; the complete import/summary/chat flow still needs the
+answer provider and browser acceptance. Scheduled off-droplet copies now run on
+Jack's workstation; they require it to be on, signed in and online.
 The initial safe staging handoff is separate from final closeout; teammates do
 **not** wait for every AC 8 smoke test before starting their feature stories.
 
@@ -186,17 +186,15 @@ release tree, database, ports and services:
 | API | `tfh-staging-api.service`, `127.0.0.1:5001` |
 | Worker | `tfh-staging-worker.service`, Redis `sermons` queue in DB 1 |
 | Browser entry | NGINX `127.0.0.1:8081`, reached through SSH |
-| Nightly backups | `/var/backups/tfh-staging`, `0700`, app-owned |
+| Nightly backups | `/var/backups/tfh-staging`, `0750`, app-owned; verified pairs `0640` for the dedicated read-only pull group |
 
-Cloud AI is **not yet configured or verified**. The server must use a cloud
-provider; Ollama is for local development only. Do not install Ollama or download
-models on the droplet. `LLM_PROVIDER=cloud-pending` deliberately avoids silently
-using the local-development provider. The current embedding implementation is
-Ollama-specific, so a selected cloud embedding provider/adapter and compatible
-768-dimensional model are prerequisites to enabling search/chat/import processing.
-Any new adapter implementation belongs to the relevant feature dependency;
-TFH-540 owns runtime configuration/dependencies and connectivity verification
-once a supported implementation is available.
+Cloud **answer generation** is not yet configured or verified;
+`LLM_PROVIDER=cloud-pending` remains set. The November 8 decision permits a
+bounded CPU Ollama service for staging embeddings only. `OLLAMA_HOST` points
+to loopback and `EMBEDDING_MODEL=nomic-embed-text:v1.5`; the legacy answer
+endpoint stays closed. See the dated operations record for resource limits,
+model identity and the real sample. Summaries/chat still require Tim's approved
+Anthropic model, private API key and spending limit.
 Do not change the embedding model or dimension against existing vectors without
 the compatibility checks, migration if required, and deliberate re-embedding.
 
@@ -868,16 +866,22 @@ database first. A code-only rollback is safe only when its schema compatibility
 has been checked. Otherwise restore the paired pre-upgrade DB and compatible
 release together; retain all newer files for investigation.
 
-Nightly **off-server automation is pending**. A backup on the droplet does not
-survive droplet loss. Assign an owner and protected destination, then transfer
-verified DB+manifest pairs through an authenticated channel, compare checksums
-at the destination, document retention/access and perform an isolated restore
-drill there. Credentials belong in server/backup infrastructure, never this
-repository. The existing protected local baseline copy is not proof of scheduled
-off-site recovery. AC 6 requires a recovery copy outside the droplet; the verified
-one-off copies meet that portion, but must not be presented as a scheduled
-off-droplet recovery service. Automation/custody and a representative populated
-restore rehearsal remain explicit operational follow-ups.
+Nightly **off-server automation is configured on Jack's workstation**. The
+[November 8 record](testing/sprint9-operations-20261108.md#scheduled-off-droplet-protection-tfh-673)
+documents the restricted pull account, destination, retention, scheduler and
+successful populated restore. The workstation must be on, signed in and online;
+check its last-run status and backup age. A permanent always-on destination and
+external alerting remain operational improvements. Credentials belong in
+server/backup infrastructure, never this repository.
+
+`provision_staging.py` still prepares the backup directory as app-private. After
+preparation, run `systemctl start tfh-backup-read-access.service` and wait for its
+successful completion before testing the restricted pull account. Successful
+nightly backups also trigger that service. New app environments still start
+with AI disabled; redeploys preserve only the approved loopback embedding
+endpoint/model and keep the legacy answer endpoint closed. Use the updated
+helper from this acceptance change; older copies reject the active embedding
+endpoint. Never edit the active release's source to bypass the check.
 
 ## Operational references
 
