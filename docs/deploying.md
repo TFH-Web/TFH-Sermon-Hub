@@ -364,6 +364,27 @@ configuration; public DNS ownership is still unconfirmed and deferred.
 | Credentials | The four YouTube caption settings were added to the server env (previous file kept root-only); a read-only caption fetch from staging returned 1,014 segments |
 | Rollback target | `3144d67-tfh540-20261021-2`, still installed |
 
+### Caption failure recovery rehearsal (TFH-656, 2026-11-08 UTC)
+
+Run on the staging host with the live release code and credentials, against a
+private copy of the staging database made with SQLite's online
+backup API, so no live row, service or env setting changed. The pipeline ran
+inline, so nothing was queued. One sermon with a YouTube ID and no saved
+transcript (id 173) was reprocessed after each failure and after each fix.
+
+| Scenario | Failure seen | After the fix and a reprocess |
+| --- | --- | --- |
+| Captions turned off | Status DRAFT, `fetch_transcript: captions are turned off (CAPTIONS_ENABLED is false)...`, no YouTube call | Captions on again: 766 timed segments saved |
+| Expired or revoked token | Status FAILED, `fetch_transcript: YouTube sign-in expired, refresh the token (invalid_grant)...`; quota breaker stayed closed | Real token restored: 766 segments saved |
+| Daily quota breaker | Breaker opened until 2026-11-09 00:00 PST; status FAILED, `fetch_transcript: YouTube quota exceeded...`; no YouTube call | Reset simulated on the copy: breaker clear, 766 segments saved |
+
+Result: 7 of 7 checks passed. Each caption pause produced the documented
+message and cleared after its fix and one reprocess. The sermon still ended
+FAILED at `embed_chunks`, because staging has no embedding provider yet (TFH-651),
+so publishing after recovery is not rehearsed until that is decided. The live
+database kept 450 sermons, 189 transcripts and no saved quota block; the API and
+worker PIDs were unchanged. The private copy was deleted afterward.
+
 </details>
 
 ## 1. Preserve the old server before any change
