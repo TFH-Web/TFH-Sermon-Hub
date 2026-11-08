@@ -863,6 +863,32 @@ one-off copies meet that portion, but must not be presented as a scheduled
 off-droplet recovery service. Automation/custody and a representative populated
 restore rehearsal remain explicit operational follow-ups.
 
+### Off-droplet vault (TFH-673)
+
+`deploy/offsite_vault.py` runs on the off-droplet machine, never on the droplet. It
+only accepts a pulled backup after it matches its manifest's checksum and passes
+integrity, foreign-key and sqlite-vec checks, then publishes the pair into a private
+vault as `0600` files and prunes the vault (30 days and at least 30 copies by
+default). A pair that fails stays in the incoming folder and makes the run exit
+non-zero, so the scheduler can alert on it. The script uses no credentials or network.
+
+Each scheduled run is two steps: pull new pairs, then verify them into the vault.
+The pull is append-only (`--ignore-existing`, no `--delete`), so a bad or wiped
+droplet can never remove copies already off it.
+
+```sh
+rsync -a --ignore-existing --include='sermonhub-*.sqlite3' --include='sermonhub-*.sqlite3.json' \
+  --exclude='*' <operator>@167.71.149.116:/var/backups/tfh-staging/ /path/to/incoming/
+python3 deploy/offsite_vault.py --incoming /path/to/incoming --vault /path/to/vault
+```
+
+Use a Python environment with the locked `sqlite-vec` installed (the backend's Poetry
+environment works). Still to decide before scheduling it: which machine holds the
+vault, which SSH account can read `/var/backups/tfh-staging` (ideally read-only,
+key-restricted to this rsync), the run time (after the 03:15 UTC nightly backup) and
+who receives failure alerts. After the first scheduled run, rehearse a restore from
+the vault with `deploy/recovery_check.py` and record it here.
+
 ## Operational references
 
 ### Python SQLite-extension capability check
