@@ -6,6 +6,15 @@ tunnel; the app and database are not running on your laptop. Neither
 `sermonhub.tfh.org` nor the proposed temporary sslip.io address is configured
 for this release yet.
 
+**Sprint 9 follow-up (checked 2026-11-07):** see the
+[Jack acceptance audit and role/recovery checks](testing/sprint9-jack.md),
+[production launch procedure](production-launch.md), and
+[client acceptance record](testing/sprint9-client-acceptance.md). Staging still
+runs the older October release with cloud AI pending and empty chunk/vector
+tables. The latest backup passed an isolated full-content restore, but the
+representative processed-data rehearsal and production/client acceptance remain
+open. The production templates are prepared for review, not installed.
+
 **Access decision (2026-10-21 UTC): Jack requested SSH-only access for now.** Do
 not expose staging, change public ports/DNS or add public Entra redirects as part
 of routine maintenance. HTTPS/public access and church DNS ownership remain
@@ -766,6 +775,13 @@ removes only its scratch directory. It does **not** restore over the running DB,
 run migrations, start an app, touch Redis or contact a provider. Preserve original
 backup filenames and paired `.sqlite3.json` manifests when transferring copies;
 the verifier checks the name as well as the hash.
+
+For TFH-657, add `--require-processed-data` when running the reviewed updated
+helper against a fresh backup containing real processed sermons. This fails on
+empty chunks/vectors, unlinked vectors or missing embedding-model metadata.
+An ordinary successful infrastructure restore with zero vectors does not pass
+the Sprint 9 processed-data requirement. See the
+[Sprint 9 recovery procedure](testing/sprint9-jack.md#tfh-657-require-a-representative-processed-backup).
 
 On the current droplet, run the installed, reviewed operator utility as the app
 user. This exact example selects the recorded 450-sermon backup, not the live DB:
