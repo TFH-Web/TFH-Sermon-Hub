@@ -29,6 +29,12 @@ The private app environment now sets `OLLAMA_HOST=http://127.0.0.1:11434` and
 the legacy `OLLAMA_URL` remains closed and `LLM_PROVIDER=cloud-pending` remains
 in place. The previous environment file was saved root-only before the edit.
 Only staging API/worker processes were restarted for the configuration change.
+The updated preparation helper accepts only this approved loopback endpoint
+and model (or the original disabled endpoint), preserving existing private
+settings on a redeploy. Its validation passed against the actual server file
+without changing it. Reviewed utilities are also installed separately under
+`/opt/tfh-staging/tools/acceptance-6c4a65a/deploy/` until a new app release includes
+them; the active `f9a2d83` source was not edited.
 
 ## Real processed-data check: TFH-651 and TFH-657
 
@@ -131,3 +137,4 @@ paired snapshot; it does not claim a live database rollback or traffic cutover.
   production project, so weekly testing-mode token expiry is resolved.
 - Required PR reviews/integration, the admin guide and Tim/Pastor Michael's
   recorded client decision. Infrastructure tests do not provide that approval.
+  The [guide](../admin-guide.md) is prepared for Louson's review and delivery.

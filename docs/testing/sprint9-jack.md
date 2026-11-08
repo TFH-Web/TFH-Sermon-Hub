@@ -21,6 +21,8 @@ PR #157 contains the acceptance/operations tools and evidence. PR #161 targets
 PR #159's branch to fix interrupted backup publication and revalidate existing
 vault copies. PR #160 records Samip's earlier rollout/caption failure rehearsal;
 its no-provider result predates the embedding setup described here.
+An [admin guide](../admin-guide.md) is prepared for Louson's review and client
+delivery under TFH-674; delivery remains pending.
 
 ## Existing work and PR audit
 

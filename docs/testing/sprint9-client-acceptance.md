@@ -4,7 +4,8 @@
 
 Coordinator: Jack. Client reviewers: Tim and Pastor Michael. Use this during the
 actual acceptance meeting after TFH-640 and the required regression fixes pass.
-It complements the admin guide delivered under TFH-674.
+It complements the [admin guide](../admin-guide.md) prepared for review under
+TFH-674; record actual delivery during the handoff.
 
 ## Meeting and release
 
