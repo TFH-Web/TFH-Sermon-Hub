@@ -19,7 +19,36 @@ export const useAuth = create<{
 	account: AccountInfo | null;
 	roles: string[];
 	message: string | null;
-}>(() => ({ status: 'loading', account: null, roles: [], message: null }));
+}>(() => {
+	// Normal development and production still require real authentication.
+	if (!isAuthTestMode) {
+		return {
+			status: 'loading',
+			account: null,
+			roles: [],
+			message: null,
+		};
+	}
+
+	// Browser tests can select a role; existing feature tests default to Admin.
+	const role = window.sessionStorage.getItem('tfh-e2e-role') ?? 'Admin';
+	const roles =
+		role === 'Admin'
+			? ['Admin']
+			: role === 'InternalUser'
+				? ['InternalUser']
+				: [];
+
+	return {
+		status: roles.length > 0 ? 'ready' : 'forbidden',
+		account: null,
+		roles,
+		message:
+			roles.length > 0
+				? null
+				: 'This account has no Sermon Hub staff role. Ask an administrator for access.',
+	};
+});
 
 export function selectedAccount(
 	instance: IPublicClientApplication,
@@ -55,7 +84,8 @@ export function useIsAdmin(): boolean {
 	const allowed = useAuth(
 		state => state.status === 'ready' && state.roles.includes('Admin'),
 	);
-	return isAuthTestMode || allowed;
+	// Test identities use the same Admin permission check as real identities.
+	return allowed;
 }
 
 export function installApiAuth(
