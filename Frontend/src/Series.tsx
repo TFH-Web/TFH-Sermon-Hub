@@ -146,7 +146,9 @@ export default function Seriess() {
 					onClose={() => setNewSeriesOpen(false)}
 					// New series have no sermons, so they sort to the very end of the list.
 					// Jump to the last page, counting the one just added, so it is on screen.
-					onCreated={() => setPage(Math.max(1, Math.ceil((total + 1) / PER_PAGE)))}
+					onCreated={() =>
+						setPage(Math.max(1, Math.ceil((total + 1) / PER_PAGE)))
+					}
 				/>
 			)}
 		</MainLayout>
