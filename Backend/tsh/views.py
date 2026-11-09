@@ -173,7 +173,8 @@ def create_series():
         db.session.add(series)
         db.session.commit()
     except IntegrityError:
-        # Two requests with the same title can both pass the check above; the unique constraint catches the loser.
+        # Two requests with the same title (in any capitalization) can both pass the check above;
+        # the unique index on lower(title) catches the loser.
         db.session.rollback()
         return jsonify({"message": "Validation failed", "errors": {"title": [f'Series "{title}" already exists']}}), 422
     except SQLAlchemyError:

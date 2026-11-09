@@ -279,7 +279,7 @@ def test_summary_origin_and_regeneration_branches_upgrade_to_one_head(migration_
                 connection.execute(text("UPDATE sermon SET summary_source='MANUAL' WHERE id=1"))
         upgrade(directory=str(up.MIGRATIONS))
         with db.engine.connect() as connection:
-            assert MigrationContext.configure(connection).get_current_heads() == ("e602c47a1025",)
+            assert MigrationContext.configure(connection).get_current_heads() == ("f1a7c2d94b38",)
         sermon = db.session.get(Sermon, 1)
         assert sermon.summary == "Summary"
         assert sermon.summary_regen_state.value == "idle"

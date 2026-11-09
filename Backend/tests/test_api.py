@@ -106,6 +106,40 @@ def test_create_series_rejects_duplicate_title(client: FlaskClient, title):
     assert client.get("/api/series").json["total"] == 5
 
 
+def test_series_title_unique_ignoring_case_in_database(client: FlaskClient):
+    from sqlalchemy.exc import IntegrityError
+
+    from tsh.database import db
+    from tsh.models import Series
+
+    # Inserting directly skips the check in create_series, as a racing request would.
+    db.session.add(Series(id=None, title="fearless"))
+    with pytest.raises(IntegrityError):
+        db.session.commit()
+    db.session.rollback()
+
+
+def test_create_series_race_with_different_case_returns_422(
+    client: FlaskClient, monkeypatch
+):
+    from tsh import views
+
+    # Make the pre-check miss, as it does when both requests run it before either inserts.
+    class _NoMatch:
+        def first(self):
+            return None
+
+    monkeypatch.setattr(
+        views.db.session, "execute", lambda *a, **k: _NoMatch()
+    )
+    res = client.post("/api/series", json={"title": "FEARLESS"})
+    monkeypatch.undo()
+
+    assert res.status_code == 422
+    assert "already exists" in res.json["errors"]["title"][0]
+    assert client.get("/api/series").json["total"] == 5
+
+
 def test_create_series_is_admin_only(client: FlaskClient):
     res = client.post(
         "/api/series",
