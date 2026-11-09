@@ -137,7 +137,11 @@ jobs:
           cache-dependency-path: Frontend/package-lock.json
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.13'
+          # Pinned: the 3.13.18 build from setup-python has no `ssl` module inside
+          # the Playwright container, so snok/install-poetry fails with
+          # "unknown url type: https". 3.13.17 worked. Unpin once a newer 3.13
+          # build is confirmed to have ssl in this container.
+          python-version: '3.13.17'
       - name: Install Poetry
         uses: snok/install-poetry@v1
       - name: Install locked backend dependencies
