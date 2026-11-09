@@ -151,6 +151,26 @@ placeholder `tests/example.test.ts` (`1 + 1`), which covers no source. The first
 baseline above counted 279 tests and 50.19% of lines; it was measured on a
 different commit, so the difference is not attributed to a single change.
 
+## Vitest baseline on main
+
+Measured on 2026-11-06 against `main` commit `a9bc1b3` with no local changes.
+The environment was Windows 11, Node 24.13.1, Vitest 4.1.12 and
+`@vitest/coverage-v8` 4.1.12, using the dependencies already installed locally
+(CI installs the locked set on Ubuntu with Node 24 and publishes its own
+numbers). Command, from `Frontend`: `npm run test`. All 49 test files and 593
+tests passed.
+
+| Metric | Coverage | 
+| --- | --- |
+| Lines | 82.69% |
+| Branches | 80.00% |
+| Functions | 76.67% |
+| Statements | 81.95% |
+
+Tests added since last test (2026-10-25), all passing: useAISearch, useAISearchRequest, AddTagModal, AddSermon, Sermons, AISearch, SearchDateDropdown, plus the Tier 2 pages Series, TagsAndMetadata and Speakers.
+
+Not tested, with reasons: dead or unused files (FilterDropdown, SearchResultCard, src/data/*), Playwright-only bootstrap (main.tsx, authConfig.ts), and the NewSeriesModal stub. Left for later: AISearchResults, Notifications, PopularTags.
+
 ### Exclusions
 
 | Pattern | Reason |
