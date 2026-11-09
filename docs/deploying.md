@@ -114,22 +114,22 @@ final integrated acceptance; Samip owns supported cloud runtime/setup work.
 
 This maps to the [current Jira acceptance criteria](https://csus-team-nekos.atlassian.net/browse/TFH-540).
 Hosting, persistent SQLite, server migrations/extension loading, private secrets,
-restartable services, nightly on-droplet backups and scheduled workstation copies
+restartable services, nightly on-droplet backups and a populated off-droplet restore
 are already verified. Remaining work:
 
 | Work | Owner | Completion evidence |
 | --- | --- | --- |
 | HTTPS/team access and production domain | Jack | AC 3-4: deferred while Jack requests SSH-only access. Retain the localhost Entra redirect; record the church DNS owner and verify final HTTPS/redirects/certificate renewal when approved and DNS is pointed. No temporary public hostname is enabled. |
 | Cloud runtime/provider checks | Samip | AC 2, 8: selected supported providers/models, runtime SDKs/private credentials and connectivity/resources verified under the service user. Any missing adapter implementation is a feature dependency, not extra TFH-540 scope. |
-| Feature-backed recovery | Jack + Samip | AC 5-6, 8: November 8 processed-data offsite restore, full host reboot and paired rollback startup passed. See the dated operations evidence for scope and workstation availability. |
+| Feature-backed recovery | Jack + Samip | AC 5-6, 8: November 8 processed-data offsite restore, full host reboot and paired rollback startup passed. Recurring offsite copies still need an approved project destination; the workstation schedule was removed and its source access revoked. |
 | Portable Python/macOS and Ollama setup | Samip | AC 7: verified macOS guidance and optional acceleration. `Backend/devenv.nix` still forces `ollama-rocm`; this is not fixed. Server extension loading already passed. |
 | Integrated staging acceptance | Jack + Samip | AC 8: staff-only/unassigned roles, import/queue completion and failure recovery, transcript seeking, real search and grounded chat as owning feature stories land. Admin sign-in was reported successful. |
 | Publish the reviewed handoff | Jack | AC 7 / delivery: PR #120 is merged. Review the Sprint 9 acceptance/operations changes and retain the release/evidence/owner records. Merging does not deploy automatically. |
 
 The library now has a real processed 21-chunk/vector sample. Its full-content
 offsite restore passed; the complete import/summary/chat flow still needs the
-answer provider and browser acceptance. Scheduled off-droplet copies now run on
-Jack's workstation; they require it to be on, signed in and online.
+answer provider and browser acceptance. The personal-workstation backup schedule
+has been removed. Recurring offsite protection needs an approved project destination.
 The initial safe staging handoff is separate from final closeout; teammates do
 **not** wait for every AC 8 smoke test before starting their feature stories.
 
@@ -866,18 +866,17 @@ database first. A code-only rollback is safe only when its schema compatibility
 has been checked. Otherwise restore the paired pre-upgrade DB and compatible
 release together; retain all newer files for investigation.
 
-Nightly **off-server automation is configured on Jack's workstation**. The
-[November 8 record](testing/sprint9-operations-20261108.md#scheduled-off-droplet-protection-tfh-673)
-documents the restricted pull account, destination, retention, scheduler and
-successful populated restore. The workstation must be on, signed in and online;
-check its last-run status and backup age. A permanent always-on destination and
-external alerting remain operational improvements. Credentials belong in
-server/backup infrastructure, never this repository.
+Nightly **off-server automation needs an approved project destination**. The
+[November 8 record](testing/sprint9-operations-20261108.md#off-droplet-copy-trial-and-withdrawal-tfh-673)
+documents the successful populated restore and removal of the personal-workstation
+schedule. Its key is revoked, pull account disabled, automatic read-access hook
+disabled, and source backups app-private again. Do not recreate that schedule.
+Agree on the destination, operator, retention and monitoring before activating
+recurring offsite copies. Credentials belong in backup infrastructure, never Git.
 
-`provision_staging.py` still prepares the backup directory as app-private. After
-preparation, run `systemctl start tfh-backup-read-access.service` and wait for its
-successful completion before testing the restricted pull account. Successful
-nightly backups also trigger that service. New app environments still start
+`provision_staging.py` prepares the backup directory as app-private. The optional
+read-access helper/service is not currently part of nightly backup operation.
+New app environments still start
 with AI disabled; redeploys preserve only the approved loopback embedding
 endpoint/model and keep the legacy answer endpoint closed. Use the updated
 helper from this acceptance change; older copies reject the active embedding

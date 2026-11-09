@@ -3,6 +3,12 @@
 These are observed staging and recovery results. Production launch, real-account
 browser acceptance and client sign-off remain pending.
 
+**Current backup status:** the personal-workstation schedule has been removed,
+its server key revoked and its pull account disabled. Server backup permissions
+are private again and the automatic read-access hook is disabled. Server nightly
+backups continue. An approved destination for recurring offsite copies is still
+required; TFH-673 is In Progress. The copy/restore trial below is historical evidence.
+
 ## Release and embedding decision
 
 The active release is `f9a2d83-tfh540-20261108T224455Z` from merged PR #158,
@@ -61,45 +67,32 @@ input unchanged, integrity/foreign keys passed, scratch removed. The Windows
 runtime uses SQLite 3.50.4 and sqlite-vec v0.1.9. Complete proof JSON stays in
 Jack's private backup vault; no database or transcript is checked into Git.
 
-## Scheduled off-droplet protection: TFH-673
+## Off-droplet copy trial and withdrawal: TFH-673
 
-Destination: Jack's Windows workstation, ACL-protected
-`C:/Users/Jack/TFH-Backups/`, outside the repository. Eighteen backup pairs were
-copied, verified and retained. Retention is 30 days and at least 30 copies as
-the vault fills; eighteen copies exist today. An independent private Python
-environment runs the verifier, so it does not depend on the checkout's venv.
+The trial copied and verified eighteen DB/manifest pairs into an ACL-protected
+folder outside the repository. Its populated restore passed. A manual run and
+one actual scheduler execution succeeded, but that schedule is now removed.
+Existing recovery copies and proof files remain private pending a cleanup decision.
 
-The source account is `tfh-backup-pull`, with a dedicated key and the forced
-command `rrsync -ro /var/backups/tfh-staging`. Arbitrary SSH commands were
-rejected. It has no app-group membership and cannot read `/etc/tfh-staging/.env`.
-The backup directory is app-owned, group `tfh-backups-read`, mode 0750; only
-verified generated DB/manifest pairs receive group read, mode 0640. Unrelated
-snapshots and rehearsal folders remain private. A successful nightly backup
-triggers `tfh-backup-read-access.service`; the permission helper validates every
-candidate before granting access. A fresh post-embedding backup exercised this
-hook successfully. See [the helper](../../deploy/backup_read_access.py) and
-[service](../../deploy/tfh-backup-read-access.service).
+The Windows task **TFH Staging Offsite Backup** was stopped, disabled and removed.
+The dedicated pull key was revoked; `tfh-backup-pull` now has a nologin shell.
+The successful-backup read-access hook was disabled, the helper service stopped,
+and all 36 generated DB/manifest files returned to app-private mode 0600 with
+the original app group. The backup directory is app-owned and mode 0700 again.
+There are no continuing downloads to the workstation.
 
-Windows Task Scheduler task **TFH Staging Offsite Backup** runs at **04:00 UTC**
-(8 PM PST / 9 PM PDT) and on Jack's sign-in. It starts missed runs when available,
-retries failures three times at ten-minute intervals, verifies copies and
-rehearses the newest processed-data restore. Manual execution and an actual
-scheduler execution both succeeded; the scheduler returned `LastTaskResult=0`.
-Its private `last-run.json`, timestamped logs and restore proofs record results.
-The droplet's nightly backup remains at 03:15 UTC plus up to 15 minutes jitter.
+The droplet's nightly backup remains active at 03:15 UTC plus up to 15 minutes
+jitter. Recurring offsite protection remains pending an explicitly approved
+project destination and operator. Do not recreate the personal-workstation task.
+The [read-access helper](../../deploy/backup_read_access.py) and
+[service template](../../deploy/tfh-backup-read-access.service) are optional tools
+for a future approved destination; they are not an active backup arrangement.
 
-**Availability limit:** this destination needs Jack's PC powered on, signed in
-and online. Runs catch up when available. A permanent always-on church/offsite
-host would improve that coverage; no such host or subscription was provisioned.
-There is no email/SMS alert integration; task failure codes and private logs
-must be monitored by the operator.
-
-Review of PR #159 found that interruption after publishing a manifest prevented
-a retry, and already-present DBs were skipped without revalidation. The separate
-[PR #161](https://github.com/TFH-Web/TFH-Sermon-Hub/pull/161) allows safe retries, rejects conflicting files,
-rechecks existing pairs and suppresses retention after a failure. The installed
-workstation tool includes that fix. Its tests passed on Linux: 20/20; Windows:
-19 passed and one symlink privilege skip. Permission-helper tests: 5/5 on both.
+Review of PR #159 found interrupted-publication and existing-copy validation
+issues. [PR #161](https://github.com/TFH-Web/TFH-Sermon-Hub/pull/161) fixes them;
+Linux tests passed 20/20 and Windows 19 with one symlink privilege skip.
+Permission-helper tests passed 5/5 on both platforms. These results do not
+establish an approved ongoing offsite service.
 
 ## Reboot and paired rollback rehearsal: TFH-673
 
@@ -138,3 +131,5 @@ paired snapshot; it does not claim a live database rollback or traffic cutover.
 - Required PR reviews/integration, the admin guide and Tim/Pastor Michael's
   recorded client decision. Infrastructure tests do not provide that approval.
   The [guide](../admin-guide.md) is prepared for Louson's review and delivery.
+- An approved project destination and schedule for recurring offsite backups.
+  The personal-workstation schedule has been removed.

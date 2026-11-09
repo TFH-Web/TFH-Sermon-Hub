@@ -99,8 +99,8 @@ private setup process. Jack coordinates access, recovery and client acceptance;
 Samip maintains runtime/provider setup; Louson coordinates this guide's review
 and delivery.
 
-Backups and populated recovery were rehearsed on November 8. Offsite copies
-currently use Jack's workstation and need it on, signed in and online. Contact
+Server nightly backups and populated recovery were verified on November 8.
+Recurring offsite copies still need an approved project destination. Contact
 a maintainer for restoration or a release change. The final
 [client acceptance record](testing/sprint9-client-acceptance.md) records the
 approved release, guide delivery and Tim/Pastor Michael's actual decision.
