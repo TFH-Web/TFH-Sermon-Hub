@@ -90,6 +90,61 @@ class RecoveryTests(unittest.TestCase):
     def test_normal_nightly_manifest_is_supported_without_optional_content_hashes(self):
         self.assertTrue(recovery_check.rehearse(self.database, scratch_parent=self.root)["manifest_verified"])
 
+    def test_processed_data_gate_verifies_populated_vectors_and_keeps_input_unchanged(self):
+        original = backup.sha256(self.database)
+        result = recovery_check.rehearse(
+            self.database, scratch_parent=self.root, require_processed=True,
+        )
+        self.assertTrue(result["processed_data_required"])
+        self.assertEqual(result["processed_data"], {
+            "chunks": 1, "vectors": 1, "linked_vectors": 1,
+        })
+        self.assertEqual(backup.sha256(self.database), original)
+
+    def rewrite_backup(self, sql):
+        with closing(sqlite3.connect(self.database)) as connection:
+            backup.load_vec(connection)
+            connection.executescript(sql)
+        state = backup.verify_database(self.database)
+        self.update_manifest(lambda metadata: metadata.update(
+            sha256=backup.sha256(self.database), **state,
+        ))
+
+    def test_empty_vector_backup_is_not_processed_data_acceptance(self):
+        self.rewrite_backup("DELETE FROM sermon_chunk_embedding; DELETE FROM sermon_chunk;")
+        # The existing infrastructure-only rehearsal remains useful for an empty library.
+        self.assertTrue(recovery_check.rehearse(self.database, scratch_parent=self.root)["manifest_verified"])
+        with self.assertRaisesRegex(ValueError, "nonempty sermon chunks and vectors"):
+            recovery_check.rehearse(self.database, scratch_parent=self.root, require_processed=True)
+        self.assertEqual(list(self.root.glob("tfh-recovery-*")), [])
+
+    def test_chunks_without_vectors_do_not_pass_processed_data_gate(self):
+        self.rewrite_backup("DELETE FROM sermon_chunk_embedding;")
+        with self.assertRaisesRegex(ValueError, "nonempty sermon chunks and vectors"):
+            recovery_check.rehearse(self.database, scratch_parent=self.root, require_processed=True)
+
+    def test_unlinked_vector_does_not_pass_processed_data_gate(self):
+        self.rewrite_backup(
+            "INSERT INTO sermon_chunk_embedding "
+            "SELECT 999, embedding FROM sermon_chunk_embedding WHERE sermon_chunk_id=19;"
+            "DELETE FROM sermon_chunk_embedding WHERE sermon_chunk_id=19;"
+        )
+        with self.assertRaisesRegex(ValueError, "without their sermon/chunk"):
+            recovery_check.rehearse(self.database, scratch_parent=self.root, require_processed=True)
+
+    def test_unrecorded_model_does_not_pass_processed_data_gate(self):
+        self.rewrite_backup("UPDATE sermon_chunk SET embedding_model=NULL;")
+        with self.assertRaisesRegex(ValueError, "recorded model"):
+            recovery_check.rehearse(self.database, scratch_parent=self.root, require_processed=True)
+
+    def test_processed_data_cli_cannot_succeed_on_an_empty_backup(self):
+        self.rewrite_backup("DELETE FROM sermon_chunk_embedding; DELETE FROM sermon_chunk;")
+        with redirect_stdout(io.StringIO()), patch("sys.stderr", new=io.StringIO()):
+            self.assertEqual(recovery_check.main([
+                "--backup", str(self.database), "--scratch-parent", str(self.root),
+                "--require-processed-data",
+            ]), 1)
+
     def test_corrupt_file_hash_is_rejected(self):
         self.update_manifest(lambda metadata: metadata.update(sha256="0" * 64))
         with self.assertRaisesRegex(ValueError, "SHA-256"):
