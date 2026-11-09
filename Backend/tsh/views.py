@@ -12,7 +12,7 @@ from tsh.embeddings import EmbeddingError
 
 # API routes for series, speakers, and sermons
 from marshmallow import ValidationError
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.exceptions import RequestEntityTooLarge
 
 from tsh.database import db
@@ -140,6 +140,48 @@ def get_series(id: int):
     series = db.get_or_404(Series, id, description=f"Series with id {id} not found")
     result = series_schema.dump(series)
     return result
+
+
+@api.post("/series")
+@require_role("Admin")
+def create_series():
+    """Create an empty series from a title. Sermons are attached to it later."""
+    payload = request.get_json(silent=True)
+
+    if not isinstance(payload, dict):
+        return jsonify({"message": "Validation failed", "errors": {"_schema": ["A JSON object is required"]}}), 422
+
+    title = payload.get("title")
+    if not isinstance(title, str) or not title.strip():
+        return jsonify({"message": "Validation failed", "errors": {"title": ["Series title is required"]}}), 422
+
+    title = title.strip()
+    max_length = Series.title.type.length
+    if len(title) > max_length:
+        return jsonify({"message": "Validation failed", "errors": {"title": [f"Series title must be {max_length} characters or fewer"]}}), 422
+
+    already_exists = db.session.execute(
+        db.select(Series.id).where(func.lower(Series.title) == title.lower())
+    ).first()
+    if already_exists is not None:
+        return jsonify({"message": "Validation failed", "errors": {"title": [f'Series "{title}" already exists']}}), 422
+
+    # id=None lets the database assign it; the model's constructor requires the argument
+    series = Series(id=None, title=title)
+
+    try:
+        db.session.add(series)
+        db.session.commit()
+    except IntegrityError:
+        # Two requests with the same title can both pass the check above; the unique constraint catches the loser.
+        db.session.rollback()
+        return jsonify({"message": "Validation failed", "errors": {"title": [f'Series "{title}" already exists']}}), 422
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception("Failed to create series")
+        return jsonify({"message": "Failed to save series"}), 500
+
+    return series_schema.dump(series), 201
 
 
 @api.route("/speakers")
