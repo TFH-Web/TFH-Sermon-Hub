@@ -997,7 +997,17 @@ before describing disaster recovery as complete. Review service health, free
 disk space, backup age and failed backup runs; an enabled timer alone is not proof
 of a recoverable backup.
 
-Caption downloads require the channel-authorized OAuth configuration described in [YouTube captions](youtube-captions.md), not just a public metadata API key. If authorization expires or is revoked, have the authorized channel administrator reauthorize the OAuth application and replace the refresh token privately in `/etc/tfh-staging/.env`, following [youtube-token-renewal.md](youtube-token-renewal.md#rotating-in-each-environment). Never include tokens in this runbook, git, Jira or chat.
+Caption downloads require the channel-authorized OAuth configuration described in
+[YouTube captions](youtube-captions.md), not just a public metadata API key. If
+authorization expires or is revoked, have the authorized channel administrator
+reauthorize the OAuth application and replace the refresh token privately in
+`/etc/tfh-staging/.env`, following the
+[renewal runbook](youtube-token-renewal.md#rotating-in-each-environment).
+Never include tokens in this runbook, git, Jira or chat. Pause scheduled caption
+batches and drain active queue jobs before restarting only the staging API and
+worker to load the replacement. Preserve saved captions, and retry a reviewed
+small batch only after the embedding and answer providers are ready. Infrastructure
+checks alone do not authorize a channel-wide import or consume YouTube/AI quota.
 
 Use the production factory and `tfh_run` wrapper from this runbook for server
 CLI operations, rather than copying the local `testing.cfg` commands verbatim.

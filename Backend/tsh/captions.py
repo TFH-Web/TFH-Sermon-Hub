@@ -70,7 +70,7 @@ def quota_message(resume) -> str:
 
 
 AUTH_EXPIRED = "YouTube sign-in expired, refresh the token"
-# Rulebook and Rotation steps live here
+# Token rotation and recovery instructions; this path contains no credentials.
 RUNBOOK = "docs/youtube-token-renewal.md"
 
 

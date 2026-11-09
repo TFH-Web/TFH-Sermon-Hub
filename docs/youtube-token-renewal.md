@@ -7,11 +7,12 @@ configured.
 
 ## Why the sign-in expires
 
-Google treats OAuth consent screens differently depending on whether a project is in Testing
-or Published status. A project left in Testing mode only issues refresh tokens that expire
-after 7 days of inactivity, no matter how the token is used otherwise. A Published project's
-refresh tokens do not expire on a schedule like that; they only stop working if they are
-revoked, unused for 6 months, or the user's account access changes.
+For an External OAuth app in Testing, refresh tokens with the YouTube caption scope expire
+seven days after they are created, even if they are being used. This is not an inactivity
+timeout. The exception for basic identity-only scopes does not apply to YouTube captions.
+Publishing removes this specific seven-day limit, but does not guarantee a permanent token:
+revocation, inactivity, token limits and account policies can still invalidate it. See
+[Google's refresh-token expiration rules](https://developers.google.com/identity/protocols/oauth2#expiration).
 
 Whether to publish the TFH Cloud project, versus staying in Testing and accepting the 7 day
 expiry, is a decision for Tim to make (tracked in TFH-668), since it affects how the Google
@@ -23,30 +24,51 @@ Testing mode and its 7 day expiry, and follow the proactive rotation guidance be
 1. Sign in to a Google account that manages the TFH YouTube channel.
 2. Open the [OAuth 2.0 Playground](https://developers.google.com/oauthplayground).
 3. In the gear icon settings, check "Use your own OAuth credentials" and enter the project's
-   `YOUTUBE_OAUTH_CLIENT_ID` and `YOUTUBE_OAUTH_CLIENT_SECRET`.
+   `YOUTUBE_OAUTH_CLIENT_ID` and `YOUTUBE_OAUTH_CLIENT_SECRET`. The OAuth client must allow
+   `https://developers.google.com/oauthplayground` as a redirect URI for this flow.
 4. In Step 1, enter the scope `https://www.googleapis.com/auth/youtube.force-ssl`, then
    authorize and approve as the channel manager account.
 5. In Step 2, exchange the authorization code for tokens. Copy the refresh token shown there,
    this is the long-lived value, not the short-lived access token above it.
 
-The Playground flow above requests `access_type=offline` and `prompt=consent` automatically
-when you check "Use your own OAuth credentials" and re-authorize, which is what actually
-causes Google to issue a refresh token at all. Re-running Step 1 without re-consenting will
-reuse an existing grant and may not return a new refresh token.
+The authorization request needs `access_type=offline`; use `prompt=consent` when requesting
+a new grant. Check the Playground settings rather than assuming that entering your own
+client credentials changes these options. If no refresh token is returned, check those
+settings and authorize again. Follow Google's
+[offline-access instructions](https://developers.google.com/identity/protocols/oauth2/web-server#offline).
 
 ## Rotating in each environment
 
 A new refresh token has to be set in every place the app reads `YOUTUBE_OAUTH_REFRESH_TOKEN`
 from, and the API and worker both need to restart after it changes:
 
-- Local development: set it in the ignored `Backend/.env` file, then restart `up.py` and any
-  running worker.
-- Staging droplet: set it in `/etc/tfh-staging/.env`, then restart the API and worker
-  services so they pick up the new value.
+- Local development: set it in the ignored `Backend/.env` file. Stop the Flask API, then
+  start it again from `Backend` with `./run.sh`. If `REDIS_URL` is configured, restart the
+  worker as well using the existing `poetry run python worker.py` command. Without Redis,
+  processing runs in the API and there is no separate worker to restart.
+- Staging droplet: pause scheduled caption batches and let active queue jobs finish before
+  rotating the value in `/etc/tfh-staging/.env`. Restart only `tfh-staging-api.service` and
+  `tfh-staging-worker.service`, then check their status and logs. Follow the queue and
+  service procedures in [deploying.md](deploying.md). Resume the caption timer only after
+  the authorized connection and processing providers are ready.
+
+`up.py` applies database migrations; it does not start or restart the Flask API. Token
+rotation does not require a migration. Preserve existing transcripts while recovering.
 
 `YOUTUBE_OAUTH_CLIENT_ID` and `YOUTUBE_OAUTH_CLIENT_SECRET` do not usually need to change when
 only the refresh token expires; only update them if the OAuth client itself was recreated or
 rotated in Google Cloud.
+
+Preview the affected batch before retrying it. For local development, from `Backend`:
+
+```sh
+poetry run flask --app "tsh:create_app('testing.cfg')" backfill-captions --failed-only --limit 1 --dry-run
+```
+
+After the cause is fixed, run the same reviewed command without `--dry-run` to retry one
+sermon. Staging commands must use the production factory and `tfh_run` wrapper from
+[deploying.md](deploying.md), not `testing.cfg`. A retry consumes API/provider resources;
+do not start a full-library run just to test a new token.
 
 ## Diagnosing a failure
 
