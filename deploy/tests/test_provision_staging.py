@@ -109,6 +109,25 @@ def test_existing_unsafe_environment_is_rejected_not_replaced(paths, name, value
     assert provision.ENV_FILE.read_text(encoding="utf-8") == content
 
 
+@pytest.mark.parametrize("host,model,allowed", [
+    ("http://127.0.0.1:11434", "nomic-embed-text:v1.5", True),
+    ("http://example.org:11434", "nomic-embed-text:v1.5", False),
+    ("http://127.0.0.1:11434", "cloud-pending", False),
+])
+def test_redeploy_preserves_only_the_approved_embedding_configuration(paths, host, model, allowed):
+    values = provision.new_environment(PUBLIC)
+    updates = {"OLLAMA_HOST": host, "EMBEDDING_MODEL": model}
+    lines = [line for line in values.splitlines() if line.partition("=")[0] not in updates]
+    content = "\n".join(lines + [f"{key}={json.dumps(value)}" for key, value in updates.items()]) + "\n"
+    provision.ENV_FILE.write_text(content, encoding="utf-8")
+    if allowed:
+        assert provision.prepare_environment(PUBLIC, 1234) is False
+    else:
+        with pytest.raises(ValueError, match="unapproved embedding"):
+            provision.prepare_environment(PUBLIC, 1234)
+    assert provision.ENV_FILE.read_text(encoding="utf-8") == content
+
+
 def test_database_bootstrap_uses_only_server_snapshot_once(paths):
     provision.SOURCE_BACKUP.parent.mkdir()
     with sqlite3.connect(provision.SOURCE_BACKUP) as source:
