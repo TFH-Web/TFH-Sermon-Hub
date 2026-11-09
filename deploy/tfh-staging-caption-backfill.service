@@ -1,0 +1,22 @@
+[Unit]
+Description=TFH staging Youtube caption backfill
+After=network.target
+
+[Service]
+Type=oneshot
+User=tfh-staging
+Group=tfh-staging
+WorkingDirectory=/opt/tfh-staging/current/Backend
+EnvironmentFile=/etc/tfh-staging/.env
+Environment=TFH_ENV=production FLASK_SKIP_DOTENV=1 PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+Environment=HOME=/var/lib/tfh-staging XDG_CACHE_HOME=/var/lib/tfh-staging/cache
+ExecStart=/opt/tfh-staging/current/Backend/.venv/bin/python -m flask --app "tsh.production:create_production_app()" backfill-captions --limit 40
+TimeoutStartSec=900
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/tfh-staging
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6

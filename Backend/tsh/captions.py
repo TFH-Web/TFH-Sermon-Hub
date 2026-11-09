@@ -70,6 +70,9 @@ def quota_message(resume) -> str:
 
 
 AUTH_EXPIRED = "YouTube sign-in expired, refresh the token"
+# Token rotation and recovery instructions; this path contains no credentials.
+RUNBOOK = "docs/youtube-token-renewal.md"
+
 
 # How a caption failure starts once the pipeline saves it in processing_error as "fetch_transcript: <message>".
 # Shared so backfill and the sync report recognise the same pauses.
@@ -94,13 +97,10 @@ def pause_reason() -> str | None:
 
 def auth_message(category: str) -> str:
     """Tell an admin to renew the sign-in. category is a label like invalid_grant, never a credential value."""
-    steps = (
-        "create a new refresh token for the TFH channel, set YOUTUBE_OAUTH_REFRESH_TOKEN in Backend/.env "
-        "and the worker's environment, restart the API and worker, then reprocess"
-    )
+    hint = "renew the token, then reprocess"
     if category == "token refresh failed":
-        steps = "check YOUTUBE_OAUTH_CLIENT_ID and YOUTUBE_OAUTH_CLIENT_SECRET, or " + steps
-    return f"{AUTH_EXPIRED} ({category}); {steps}"
+        hint = "check YOUTUBE_OAUTH_CLIENT_ID and YOUTUBE_OAUTH_CLIENT_SECRET, or " + hint
+    return f"{AUTH_EXPIRED} ({category}); {hint}, see {RUNBOOK}"
 
 
 def select_track(tracks: list[dict], language: str = "en") -> dict:
