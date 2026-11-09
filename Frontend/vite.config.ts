@@ -31,8 +31,15 @@ export default defineConfig({
 			// Include source files even when no unit test imports them.
 			include: ['src/**/*.{ts,tsx}'],
 
-			// Test files and TypeScript declarations are not application code.
-			exclude: ['**/*.test.{ts,tsx}', '**/*.d.ts'],
+			// Tests, declarations and test helpers are not production code.
+			exclude: ['**/*.test.{ts,tsx}', '**/*.d.ts', 'src/test/**'],
+
+			// Enforce minimum coverage across all production files.
+			thresholds: {
+				perFile: false,
+				lines: 55,
+				branches: 55,
+			},
 		},
 	},
 });
