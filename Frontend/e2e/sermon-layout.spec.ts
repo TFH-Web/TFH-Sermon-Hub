@@ -3,6 +3,7 @@ import { sermons } from './data';
 
 // Keep layout checks independent of YouTube availability and real sermon data.
 async function setupDetail(page: Page) {
+	const state = { deletes: 0 };
 	const sermon = {
 		...sermons[0],
 		title: 'Client feedback sermon',
@@ -13,7 +14,13 @@ async function setupDetail(page: Page) {
 	await page.route('**/api/**', route => {
 		const path = new URL(route.request().url()).pathname;
 		if (path === '/api/sermons') return route.fulfill({ json: [sermon] });
-		if (path === '/api/sermons/1') return route.fulfill({ json: sermon });
+		if (path === '/api/sermons/1') {
+			if (route.request().method() === 'DELETE') {
+				state.deletes += 1;
+				return route.fulfill({ status: 204, body: '' });
+			}
+			return route.fulfill({ json: sermon });
+		}
 		if (path === '/api/sermons/1/transcript') {
 			return route.fulfill({ json: { transcript: null, segments: [] } });
 		}
@@ -52,6 +59,7 @@ async function setupDetail(page: Page) {
 			},
 		});
 	});
+	return state;
 }
 
 for (const width of [1440, 1024, 768, 390, 320]) {
@@ -94,5 +102,58 @@ for (const width of [1440, 1024, 768, 390, 320]) {
 		} else {
 			expect(info.y).toBeGreaterThanOrEqual(video.y + video.height - 1);
 		}
+	});
+}
+
+for (const width of [1440, 390]) {
+	test(`separate Delete action retains keyboard confirmation and cancellation at ${width}px`, async ({
+		page,
+	}) => {
+		await page.setViewportSize({ width, height: 1000 });
+		const state = await setupDetail(page);
+		await page.goto('/sermons/1');
+		const danger = page.getByRole('region', {
+			name: 'Delete sermon',
+			exact: true,
+		});
+		const button = danger.getByRole('button', { name: 'Delete', exact: true });
+		await expect(button).toBeEnabled();
+		await expect(
+			page
+				.locator('.SermonDetail-btn-group')
+				.getByRole('button', { name: 'Delete', exact: true }),
+		).toHaveCount(0);
+		await button.scrollIntoViewIfNeeded();
+		const rect = await button.boundingBox();
+		expect(rect).not.toBeNull();
+		if (!rect) throw new Error('Missing Delete button');
+		expect(rect.x).toBeGreaterThanOrEqual(0);
+		expect(rect.x + rect.width).toBeLessThanOrEqual(width);
+		expect(
+			await danger.evaluate(element => {
+				const content = document.querySelector('.SermonDetail-grid');
+				return (
+					!!content &&
+					element.getBoundingClientRect().top >
+						content.getBoundingClientRect().bottom
+				);
+			}),
+		).toBe(true);
+
+		await button.focus();
+		await page.keyboard.press('Enter');
+		const dialog = page.getByRole('dialog');
+		await expect(dialog).toContainText('This action cannot be undone.');
+		expect(state.deletes).toBe(0);
+		await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+		await expect(dialog).toHaveCount(0);
+		expect(state.deletes).toBe(0);
+
+		await button.click();
+		await dialog
+			.getByRole('button', { name: 'Delete Sermon', exact: true })
+			.click();
+		await expect(page).toHaveURL(/\/sermons$/);
+		expect(state.deletes).toBe(1);
 	});
 }

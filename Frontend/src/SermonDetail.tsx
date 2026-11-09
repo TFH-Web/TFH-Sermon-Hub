@@ -350,15 +350,6 @@ function SermonDetailContent({
 								>
 									Edit
 								</Button>
-								<div className="SermonDetail-delete-btn-gap">
-									<Button
-										variant="danger"
-										disabled={!isAdmin}
-										onClick={() => setDeleteSermonOpen(true)}
-									>
-										Delete
-									</Button>
-								</div>
 							</div>
 						</div>
 					</div>
@@ -495,7 +486,23 @@ function SermonDetailContent({
 				</Card>
 			</div>
 
-			{/* Edit and Delete buttons */}
+			{/* Keep destructive actions apart from viewing, editing and upload controls. */}
+			{isAdmin && (
+				<section
+					className="SermonDetail-danger"
+					aria-labelledby="sermon-danger-title"
+				>
+					<div>
+						<h2 id="sermon-danger-title">Delete sermon</h2>
+						<p>Permanently remove this sermon and its associated content.</p>
+					</div>
+					<Button variant="danger" onClick={() => setDeleteSermonOpen(true)}>
+						Delete
+					</Button>
+				</section>
+			)}
+
+			{/* Confirmation is still required before a sermon can be deleted. */}
 			<EditSermonModal
 				isOpen={editSermonOpen}
 				onClose={() => setEditSermonOpen(false)}
