@@ -1,0 +1,17 @@
+[Unit]
+Description=Grant restricted offsite pull access to verified TFH backup pairs
+After=tfh-staging-backup.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/opt/tfh-staging/current/Backend/.venv/bin/python /opt/tfh-staging/tools/offsite-read-access-20261108/deploy/backup_read_access.py --backup-dir /var/backups/tfh-staging
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/backups/tfh-staging
+RestrictAddressFamilies=AF_UNIX

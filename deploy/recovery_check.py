@@ -151,7 +151,37 @@ def copy_snapshot(source: sqlite3.Connection, destination: Path) -> None:
         target.close()
 
 
-def rehearse(database: Path, manifest_path: Path | None = None, scratch_parent: Path | None = None) -> dict:
+def require_processed_data(connection: sqlite3.Connection, counts: dict) -> dict:
+    """Require representative linked chunks/vectors, without exposing their content."""
+    chunks = counts.get("sermon_chunk", 0)
+    vectors = counts.get("sermon_chunk_embedding", 0)
+    if not chunks or not vectors:
+        raise ValueError("Processed-data recovery requires nonempty sermon chunks and vectors")
+    linked = connection.execute(
+        "SELECT COUNT(*) FROM sermon_chunk_embedding AS e "
+        "JOIN sermon_chunk AS c ON c.id=e.sermon_chunk_id "
+        "JOIN sermon AS s ON s.id=c.sermon_id"
+    ).fetchone()[0]
+    if linked != vectors:
+        raise ValueError("Processed-data recovery found vectors without their sermon/chunk")
+    recorded = connection.execute(
+        "SELECT COUNT(*) FROM sermon_chunk_embedding AS e "
+        "JOIN sermon_chunk AS c ON c.id=e.sermon_chunk_id "
+        "WHERE c.embedding_model IS NOT NULL AND trim(c.embedding_model) != '' "
+        "AND lower(trim(c.embedding_model)) != 'cloud-pending'"
+    ).fetchone()[0]
+    if recorded != vectors:
+        raise ValueError("Processed-data recovery requires a recorded model for every vector")
+    return {"chunks": chunks, "vectors": vectors, "linked_vectors": linked}
+
+
+def rehearse(
+    database: Path,
+    manifest_path: Path | None = None,
+    scratch_parent: Path | None = None,
+    *,
+    require_processed: bool = False,
+) -> dict:
     database = safe_path(database)
     manifest_path = safe_path(manifest_path or database.with_suffix(database.suffix + ".json"))
     parent = safe_path(scratch_parent or Path(tempfile.gettempdir()), directory=True)
@@ -168,6 +198,10 @@ def rehearse(database: Path, manifest_path: Path | None = None, scratch_parent: 
     try:
         source.execute("BEGIN")
         inspected = backup.inspect_connection(source)
+        processed = (
+            require_processed_data(source, inspected["row_counts"])
+            if require_processed else None
+        )
         expected = fingerprint(source)
         for name, count in manifest["row_counts"].items():
             if name not in expected["tables"] or expected["tables"][name]["rows"] != count:
@@ -221,6 +255,8 @@ def rehearse(database: Path, manifest_path: Path | None = None, scratch_parent: 
         "sqlite_version": inspected["sqlite_version"],
         "sqlite_vec_version": inspected["sqlite_vec_version"],
         "alembic_revisions": inspected["alembic_revisions"],
+        "processed_data_required": require_processed,
+        "processed_data": processed,
         "content_fingerprint": expected,
         "scope": "standalone-backup-to-scratch-only; no live database, application, queue or provider access",
     }
@@ -231,9 +267,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--backup", required=True, type=Path)
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--scratch-parent", type=Path)
+    parser.add_argument(
+        "--require-processed-data", action="store_true",
+        help="Fail unless the backup contains linked sermon chunks/vectors with recorded models",
+    )
     args = parser.parse_args(argv)
     try:
-        print(json.dumps(rehearse(args.backup, args.manifest, args.scratch_parent), indent=2))
+        print(json.dumps(rehearse(
+            args.backup, args.manifest, args.scratch_parent,
+            require_processed=args.require_processed_data,
+        ), indent=2))
     except sqlite3.Error:
         print("Recovery check failed: SQLite validation/copy failed; no live restore was attempted", file=sys.stderr)
         return 1
