@@ -22,9 +22,14 @@ not expose staging, change public ports/DNS or add public Entra redirects as par
 of routine maintenance. HTTPS/public access and church DNS ownership remain
 deferred external follow-ups, not changes authorized by this guide.
 
-Last verified **2026-11-08 UTC**: deployed source `f9a2d83`, schema `e602c47a1025`,
+Last verified **2026-11-08 UTC**: deployed source `f9a2d83` (release
+`/opt/tfh-staging/releases/f9a2d83-tfh540-20261108T224455Z`, schema
+`e602c47a1025`; previous release `3144d67-tfh540-20261021-2` kept for rollback),
 450 sermons, healthy API/worker/Redis/embeddings and an active nightly backup
-timer after a host reboot. Check these again before a later handoff; this is a dated record, not a
+timer after a host reboot. `/api/whoami` without a token returns a JSON 401 and the
+old public site still returns 200. The YouTube caption credentials were added to
+the server env the same day and a read-only caption fetch from staging succeeded.
+Check these again before a later handoff; this is a dated record, not a
 live status page.
 
 Testers only need the access steps below. Maintainers can jump to the
@@ -352,6 +357,48 @@ ACL-protected off-droplet storage at
 Jack owns these recovery copies and their access/retention. They are one-off
 copies, not an automated off-site backup service. Samip owns runtime/provider
 configuration; public DNS ownership is still unconfirmed and deferred.
+
+### Anthropic SDK redeploy (2026-11-08 UTC)
+
+| Check | Result |
+| --- | --- |
+| Source | `f9a2d83` on `dev`, frontend built with Node 24.22.2; release `/opt/tfh-staging/releases/f9a2d83-tfh540-20261108T224455Z` |
+| Pre-deploy backup | `sermonhub-20261108T223654169250Z-57cf9ebc.sqlite3`, `--verify` passed (integrity, foreign keys, 450 sermons) |
+| Prepare | New venv with `anthropic` 0.125.0; `provision_staging.py --prepare-only` passed and kept the existing env and database |
+| Migration | `958b50d14869` to `e602c47a1025`, one head, 450 sermons before and after, preflight passed before and after |
+| Cutover | `current` switched 22:55 UTC; API `/api/health` 200, nginx 8081 200, `/api/whoami` JSON 401, worker idle on its queue, old public site PID 738 still 200 |
+| Post-cutover backup | `sermonhub-20261108T225609994629Z-58b8e75a.sqlite3`, integrity and foreign keys passed |
+| Credentials | The four YouTube caption settings were added to the server env (previous file kept root-only); a read-only caption fetch from staging returned 1,014 segments |
+| Rollback target | `3144d67-tfh540-20261021-2`, still installed |
+
+### Caption failure recovery rehearsal (TFH-656, 2026-11-08 UTC)
+
+Run on the staging host with the live release code and credentials, against a
+private copy of the staging database made with SQLite's online
+backup API, so no live row, service or env setting changed. The pipeline ran
+inline, so nothing was queued. One sermon with a YouTube ID and no saved
+transcript (id 173) was reprocessed after each failure and after each fix.
+
+| Scenario | Failure seen | After the fix and a reprocess |
+| --- | --- | --- |
+| Captions turned off | Status DRAFT, `fetch_transcript: captions are turned off (CAPTIONS_ENABLED is false)...`, no YouTube call | Captions on again: 766 timed segments saved |
+| Expired or revoked token | Status FAILED, `fetch_transcript: YouTube sign-in expired, refresh the token (invalid_grant)...`; quota breaker stayed closed | Real token restored: 766 segments saved |
+| Daily quota breaker | Breaker opened until 2026-11-09 00:00 PST; status FAILED, `fetch_transcript: YouTube quota exceeded...`; no YouTube call | Reset simulated on the copy: breaker clear, 766 segments saved |
+
+Result: 7 of 7 checks passed. Each caption pause produced the documented
+message and cleared after its fix and one reprocess. In this first run (23:03 UTC)
+the app could not reach an embedding provider, so each recovered sermon ended
+FAILED at `embed_chunks`.
+
+The same rehearsal was repeated at 01:17 UTC on 2026-11-09, after the staging
+embedding service was running, on a fresh private copy. 7 of 7 checks passed again,
+and this time each recovery ended **PUBLISHED** with 766 timed segments embedded.
+The only remaining error was the best-effort summary step, because `LLM_PROVIDER`
+is still `cloud-pending` until the answer provider key is configured (TFH-650).
+
+In both runs the live database kept 450 sermons, 189 transcripts and no saved
+quota block (the second run also confirmed its 21 chunks were unchanged), and the
+API and worker PIDs did not change. Each private copy was deleted afterward.
 
 </details>
 
