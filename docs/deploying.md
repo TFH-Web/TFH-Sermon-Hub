@@ -872,6 +872,14 @@ vault as `0600` files and prunes the vault (30 days and at least 30 copies by
 default). A pair that fails stays in the incoming folder and makes the run exit
 non-zero, so the scheduler can alert on it. The script uses no credentials or network.
 
+Each run also re-verifies pairs already in the vault instead of trusting their names,
+so a damaged vault copy is reported as failed. A run that stops partway can simply be
+run again: an identical manifest that was already published is reused, and a
+conflicting one fails without being overwritten. Any failure skips pruning for that
+run, so older recovery copies are never expired while something is wrong. One damaged
+vault copy therefore pauses retention on every run until an operator fixes it, which
+is why the non-zero exit must reach a person.
+
 Each scheduled run is two steps: pull new pairs, then verify them into the vault.
 The pull is append-only (`--ignore-existing`, no `--delete`), so a bad or wiped
 droplet can never remove copies already off it.
@@ -888,6 +896,10 @@ vault, which SSH account can read `/var/backups/tfh-staging` (ideally read-only,
 key-restricted to this rsync), the run time (after the 03:15 UTC nightly backup) and
 who receives failure alerts. After the first scheduled run, rehearse a restore from
 the vault with `deploy/recovery_check.py` and record it here.
+
+After a failed or interrupted run, fix the cause, run the verify step again, then
+remove any leftover `*.partial` files in the vault. The script never deletes
+temporary files from an earlier run, and they are not backups.
 
 ## Operational references
 
