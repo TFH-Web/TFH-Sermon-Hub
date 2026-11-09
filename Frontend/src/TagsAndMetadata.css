@@ -19,6 +19,14 @@
 	padding: 16px;
 }
 
+/* The shared UserManagement table is a CSS grid with 4 columns (built for the
+ * users table). This table has 5 (Tag, Sermons, Relevance Weight, Source,
+ * Actions), so with 4 columns every row wraps by one cell and the cells drift
+ * out from under their headings. Declare the real column count here. */
+.tag-card .UserManagement-users {
+	grid-template-columns: repeat(5, auto);
+}
+
 /* The tag name is a row header (<th scope="row">) for accessibility, but the
  * shared UserManagement table styles treat <th> as a faded column heading.
  * Make it look like the neighbouring <td> cells so the row dividers stay
