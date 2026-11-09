@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import axios, { type AxiosAdapter, AxiosError } from 'axios';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useAuth } from '$/lib/auth';
 import Series, { seriesHue } from './Series';
 
 vi.mock('@iconify-icon/react', () => ({ Icon: () => null }));
@@ -12,13 +13,14 @@ vi.mock('@iconify-icon/react', () => ({ Icon: () => null }));
 vi.mock('$/components/MainLayout', () => ({
 	default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
-// NewSeriesModal is currently a stub that saves nothing, so only whether it opens is checked here.
+// The modal has its own persistence tests; this page checks opening and role access.
 vi.mock('$/modals/NewSeriesModal', () => ({
 	default: ({ isOpen }: { isOpen: boolean }) =>
 		isOpen ? <div role="dialog">New series</div> : null,
 }));
 
 const originalAdapter = axios.defaults.adapter;
+const originalAuth = useAuth.getState();
 const adapter = vi.fn<AxiosAdapter>();
 let queryClient: QueryClient;
 
@@ -32,6 +34,12 @@ const dave = { id: 1, firstName: 'Dave', lastName: 'Patterson' };
 const jake = { id: 2, firstName: 'Jake', lastName: 'Taylor' };
 
 beforeEach(() => {
+	useAuth.setState({
+		status: 'ready',
+		account: null,
+		roles: ['Admin'],
+		message: null,
+	});
 	failing.clear();
 	cards = [
 		{
@@ -96,6 +104,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	cleanup();
+	useAuth.setState(originalAuth, true);
 	queryClient.clear();
 	axios.defaults.adapter = originalAdapter;
 });
@@ -175,7 +184,7 @@ describe('Series page', () => {
 		).toBe(true);
 	});
 
-	it('opens the new series dialog from the button', async () => {
+	it('lets an Admin open the new series dialog', async () => {
 		const user = userEvent.setup();
 		renderPage();
 		await screen.findByText('Page 1 of 3');
@@ -184,6 +193,14 @@ describe('Series page', () => {
 		await user.click(screen.getByRole('button', { name: '+ New Series' }));
 
 		expect(screen.getByRole('dialog')).toBeTruthy();
+	});
+
+	it('keeps series readable without offering creation to read-only staff', async () => {
+		useAuth.setState({ roles: ['InternalUser'] });
+		renderPage();
+		await screen.findByText('Grace Alone', { selector: 'h3' });
+		expect(screen.queryByRole('button', { name: '+ New Series' })).toBeNull();
+		expect(screen.queryByRole('dialog')).toBeNull();
 	});
 
 	it.each([

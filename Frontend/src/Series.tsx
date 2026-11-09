@@ -5,6 +5,7 @@ import { useState } from 'react';
 import ErrorBox from '$/components/ErrorBox';
 import Loading from '$/components/Loading';
 import MainLayout from '$/components/MainLayout';
+import { useIsAdmin } from '$/lib/auth';
 import NewSeriesModal from '$/modals/NewSeriesModal';
 import { type SeriesCard, SeriesPage } from '$/types/series';
 import { Sermon } from '$/types/sermon';
@@ -17,6 +18,7 @@ const PER_PAGE = 12;
 export default function Seriess() {
 	const [newSeriesOpen, setNewSeriesOpen] = useState(false); // Remembers if the "+ New Series" modal popup is open
 	const [page, setPage] = useState(1); // Tracks which page number the user is currently viewing
+	const isAdmin = useIsAdmin(); // Only admins can create series (the backend enforces it too)
 
 	// Ask the backend for the slice of series cards for the current page
 	const seriesQuery = useQuery({
@@ -77,13 +79,15 @@ export default function Seriess() {
 			{/* Page Header with title and + New Series button */}
 			<div className="series-header">
 				<p className="series-section-title">Sermon Series</p>
-				<button
-					type="button"
-					className="series-new-button"
-					onClick={() => setNewSeriesOpen(true)}
-				>
-					+ New Series
-				</button>
+				{isAdmin && (
+					<button
+						type="button"
+						className="series-new-button"
+						onClick={() => setNewSeriesOpen(true)}
+					>
+						+ New Series
+					</button>
+				)}
 			</div>
 
 			{/* Grid displaying the series cards for the current page */}
@@ -136,10 +140,17 @@ export default function Seriess() {
 			</div>
 
 			{/* Modal to create a new series */}
-			<NewSeriesModal
-				isOpen={newSeriesOpen}
-				onClose={() => setNewSeriesOpen(false)}
-			/>
+			{isAdmin && (
+				<NewSeriesModal
+					isOpen={newSeriesOpen}
+					onClose={() => setNewSeriesOpen(false)}
+					// New series have no sermons, so they sort to the very end of the list.
+					// Jump to the last page, counting the one just added, so it is on screen.
+					onCreated={() =>
+						setPage(Math.max(1, Math.ceil((total + 1) / PER_PAGE)))
+					}
+				/>
+			)}
 		</MainLayout>
 	);
 }
