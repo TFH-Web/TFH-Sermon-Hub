@@ -386,11 +386,19 @@ transcript (id 173) was reprocessed after each failure and after each fix.
 | Daily quota breaker | Breaker opened until 2026-11-09 00:00 PST; status FAILED, `fetch_transcript: YouTube quota exceeded...`; no YouTube call | Reset simulated on the copy: breaker clear, 766 segments saved |
 
 Result: 7 of 7 checks passed. Each caption pause produced the documented
-message and cleared after its fix and one reprocess. The sermon still ended
-FAILED at `embed_chunks`, because staging has no embedding provider yet (TFH-651),
-so publishing after recovery is not rehearsed until that is decided. The live
-database kept 450 sermons, 189 transcripts and no saved quota block; the API and
-worker PIDs were unchanged. The private copy was deleted afterward.
+message and cleared after its fix and one reprocess. In this first run (23:03 UTC)
+the app could not reach an embedding provider, so each recovered sermon ended
+FAILED at `embed_chunks`.
+
+The same rehearsal was repeated at 01:17 UTC on 2026-11-09, after the staging
+embedding service was running, on a fresh private copy. 7 of 7 checks passed again,
+and this time each recovery ended **PUBLISHED** with 766 timed segments embedded.
+The only remaining error was the best-effort summary step, because `LLM_PROVIDER`
+is still `cloud-pending` until the answer provider key is configured (TFH-650).
+
+In both runs the live database kept 450 sermons, 189 transcripts and no saved
+quota block (the second run also confirmed its 21 chunks were unchanged), and the
+API and worker PIDs did not change. Each private copy was deleted afterward.
 
 </details>
 
