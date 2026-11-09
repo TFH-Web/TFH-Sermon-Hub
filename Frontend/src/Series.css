@@ -14,7 +14,7 @@
 }
 
 /* Makes Green button in the same styling as the active filters in Sermons.css */
-.new-series-button {
+.series-new-button {
 	display: inline-block;
 	padding: 8px 16px;
 	font-size: 0.9rem;
@@ -27,7 +27,7 @@
 	border-radius: 8px;
 }
 
-.new-series-button:hover {
+.series-new-button:hover {
 	background: #3a5223;
 }
 

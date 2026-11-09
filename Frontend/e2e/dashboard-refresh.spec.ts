@@ -121,4 +121,57 @@ test('dashboard shows an edited sermon title', async ({ page }) => {
 	await page.getByRole('link', { name: 'Dashboard', exact: true }).click();
 	await expect(recentRows(page).first()).toHaveText('Sermon 12 renamed');
 	await expect(statCard(page, 'Total Sermons')).toContainText('12');
+
+	// Reload must retain the saved title.
+	await page.reload();
+	await expect(recentRows(page).first()).toHaveText('Sermon 12 renamed');
+});
+
+test('cancelling deletion keeps the sermon and dashboard total unchanged', async ({
+	page,
+}) => {
+	await libraryRoutes(page);
+
+	let deleteRequests = 0;
+
+	page.on('request', request => {
+		if (
+			request.method() === 'DELETE' &&
+			new URL(request.url()).pathname === '/api/sermons/12'
+		) {
+			deleteRequests += 1;
+		}
+	});
+
+	await page.goto('/');
+	await page.getByRole('link', { name: 'Sermon 12', exact: true }).click();
+
+	await page.getByRole('button', { name: 'Delete', exact: true }).click();
+
+	await expect(
+		page.getByRole('button', { name: 'Delete Sermon', exact: true }),
+	).toBeVisible();
+
+	await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+
+	// Cancel closes the confirmation without sending a delete request.
+	await expect(
+		page.getByRole('button', { name: 'Delete Sermon', exact: true }),
+	).toHaveCount(0);
+
+	await expect(
+		page.getByRole('heading', {
+			name: 'Sermon 12',
+			exact: true,
+			level: 1,
+		}),
+	).toBeVisible();
+
+	expect(deleteRequests).toBe(0);
+
+	// The sermon must also remain in the library totals and recent list.
+	await page.getByRole('link', { name: 'Dashboard', exact: true }).click();
+
+	await expect(statCard(page, 'Total Sermons')).toContainText('12');
+	await expect(recentRows(page).first()).toHaveText('Sermon 12');
 });

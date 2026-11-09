@@ -8,6 +8,7 @@ import {
 	render,
 	screen,
 	waitFor,
+	within,
 } from '@testing-library/react';
 import axios, {
 	type AxiosAdapter,
@@ -28,7 +29,6 @@ vi.mock('$/components/MainLayout', () => ({
 }));
 vi.mock('$/components/SermonTranscript', () => ({ default: () => null }));
 vi.mock('$/modals/EditSermonModal', () => ({ default: () => null }));
-vi.mock('$/modals/DeleteSermonModal', () => ({ default: () => null }));
 
 const body = (id: number) => ({
 	id,
@@ -50,6 +50,7 @@ const clients: QueryClient[] = [];
 let records: Record<number, Body>;
 let requests: { url: string | undefined; payload: unknown }[];
 let saveStatus: number;
+let deleteRequests: number;
 let releaseSave: (() => void) | null;
 let saveGate: Promise<void> | null;
 
@@ -71,6 +72,10 @@ function reply(
 }
 
 const adapter: AxiosAdapter = async config => {
+	if (config.method === 'delete') {
+		deleteRequests += 1;
+		return reply(config, 204, null);
+	}
 	if (config.method === 'patch') {
 		const payload = JSON.parse(config.data);
 		requests.push({ url: config.url, payload });
@@ -108,7 +113,10 @@ function open() {
 	});
 	clients.push(client);
 	const router = createMemoryRouter(
-		[{ path: '/sermons/:id', element: <SermonDetail /> }],
+		[
+			{ path: '/sermons/:id', element: <SermonDetail /> },
+			{ path: '/sermons', element: <p>Sermon library after deletion</p> },
+		],
 		{ initialEntries: ['/sermons/1'] },
 	);
 	render(
@@ -139,6 +147,7 @@ function holdSave() {
 beforeEach(() => {
 	records = { 1: body(1), 2: body(2) };
 	requests = [];
+	deleteRequests = 0;
 	saveStatus = 200;
 	releaseSave = null;
 	saveGate = null;
@@ -155,6 +164,46 @@ afterEach(() => {
 		account: null,
 		roles: [],
 		message: null,
+	});
+});
+
+describe('separate sermon deletion controls', () => {
+	it('requires confirmation and preserves the sermon when cancelled', async () => {
+		open();
+		const danger = await screen.findByRole('region', { name: 'Delete sermon' });
+		const button = within(danger).getByRole('button', {
+			name: 'Delete',
+		});
+		expect(button.closest('.SermonDetail-btn-group')).toBeNull();
+		expect(deleteRequests).toBe(0);
+		fireEvent.click(button);
+		const dialog = screen.getByRole('dialog');
+		expect(dialog.textContent).toContain('This action cannot be undone.');
+		expect(deleteRequests).toBe(0);
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+		expect(screen.queryByRole('dialog')).toBeNull();
+		expect(deleteRequests).toBe(0);
+	});
+
+	it('deletes only after the confirmation and returns to the library', async () => {
+		open();
+		const danger = await screen.findByRole('region', { name: 'Delete sermon' });
+		fireEvent.click(within(danger).getByRole('button', { name: 'Delete' }));
+		fireEvent.click(
+			within(screen.getByRole('dialog')).getByRole('button', {
+				name: 'Delete Sermon',
+			}),
+		);
+		await screen.findByText('Sermon library after deletion');
+		expect(deleteRequests).toBe(1);
+	});
+
+	it('does not offer the danger section to read-only staff', async () => {
+		auth('staff', ['InternalUser']);
+		open();
+		await screen.findByRole('button', { name: 'Edit Summary Manually' });
+		expect(screen.queryByRole('region', { name: 'Delete sermon' })).toBeNull();
+		expect(deleteRequests).toBe(0);
 	});
 });
 

@@ -127,9 +127,19 @@ def validate_environment(path: Path, public: dict[str, str]) -> None:
     if not path.is_file():
         raise ValueError("Existing staging environment is not a regular file")
     values = read_environment(path)
-    for name, expected in {**fixed_environment(), **public}.items():
+    expected_values = {**fixed_environment(), **public}
+    # New environments still start with embeddings disabled. Preserve the
+    # explicitly approved, loopback-only embedding setup on later redeploys.
+    expected_values.pop("OLLAMA_HOST")
+    for name, expected in expected_values.items():
         if values.get(name) != expected:
             raise ValueError(f"Existing staging environment does not match required {name}")
+    host = values.get("OLLAMA_HOST")
+    if host != "http://127.0.0.1:9" and not (
+        host == "http://127.0.0.1:11434"
+        and values.get("EMBEDDING_MODEL") == "nomic-embed-text:v1.5"
+    ):
+        raise ValueError("Existing staging environment has an unapproved embedding endpoint/model")
     for name in ("TESTING", "AUTH_TEST_BYPASS", "FLASK_DEBUG", "DEBUG", "VITE_E2E_TEST"):
         if values.get(name, "").strip().lower() not in {"", "0", "false", "no", "off"}:
             raise ValueError(f"Existing staging environment must disable {name}")

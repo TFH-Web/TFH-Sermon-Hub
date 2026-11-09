@@ -66,6 +66,90 @@ def test_empty_series(client: FlaskClient):
     assert empty["speakers"] == []
 
 
+def test_create_series(client: FlaskClient):
+    # Surrounding spaces are trimmed
+    res = client.post("/api/series", json={"title": "  Brand New  "})
+    assert res.status_code == 201
+    assert res.json["title"] == "Brand New"
+
+    created = all_series(client)["Brand New"]
+    assert created["id"] == res.json["id"]
+    assert created["sermonCount"] == 0
+
+    # No sermons, so it sorts to the very end of the list
+    last = client.get("/api/series?per_page=100").json["items"][-1]
+    assert last["title"] == "Brand New"
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {},
+        {"title": ""},
+        {"title": "   "},
+        {"title": 5},
+        {"title": "x" * 151},
+        ["not", "an", "object"],
+    ],
+)
+def test_create_series_rejects_bad_title(client: FlaskClient, body):
+    res = client.post("/api/series", json=body)
+    assert res.status_code == 422
+    assert client.get("/api/series").json["total"] == 5
+
+
+@pytest.mark.parametrize("title", ["Fearless", "  fearless  ", "FEARLESS"])
+def test_create_series_rejects_duplicate_title(client: FlaskClient, title):
+    res = client.post("/api/series", json={"title": title})
+    assert res.status_code == 422
+    assert "already exists" in res.json["errors"]["title"][0]
+    assert client.get("/api/series").json["total"] == 5
+
+
+def test_series_title_unique_ignoring_case_in_database(client: FlaskClient):
+    from sqlalchemy.exc import IntegrityError
+
+    from tsh.database import db
+    from tsh.models import Series
+
+    # Inserting directly skips the check in create_series, as a racing request would.
+    db.session.add(Series(id=None, title="fearless"))
+    with pytest.raises(IntegrityError):
+        db.session.commit()
+    db.session.rollback()
+
+
+def test_create_series_race_with_different_case_returns_422(
+    client: FlaskClient, monkeypatch
+):
+    from tsh import views
+
+    # Make the pre-check miss, as it does when both requests run it before either inserts.
+    class _NoMatch:
+        def first(self):
+            return None
+
+    monkeypatch.setattr(
+        views.db.session, "execute", lambda *a, **k: _NoMatch()
+    )
+    res = client.post("/api/series", json={"title": "FEARLESS"})
+    monkeypatch.undo()
+
+    assert res.status_code == 422
+    assert "already exists" in res.json["errors"]["title"][0]
+    assert client.get("/api/series").json["total"] == 5
+
+
+def test_create_series_is_admin_only(client: FlaskClient):
+    res = client.post(
+        "/api/series",
+        json={"title": "Sneaky"},
+        headers={"X-Test-Roles": "Internal User"},
+    )
+    assert res.status_code == 403
+    assert "Sneaky" not in all_series(client)
+
+
 def test_series_bad_page_args(client: FlaskClient):
     # Nonsense values fall back to something sensible instead of erroring
     res = client.get("/api/series?page=-4&per_page=abc").json
