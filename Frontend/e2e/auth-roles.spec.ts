@@ -64,14 +64,17 @@ test('InternalUser can read sermons but cannot access Admin controls or routes',
 		}),
 	).toBeVisible();
 
-	// Read-only staff can see these actions but cannot activate them.
+	// Read-only staff see a disabled Edit action; the Admin-only Delete section is absent.
 	await expect(
 		page.getByRole('button', { name: 'Edit', exact: true }),
 	).toBeDisabled();
 
 	await expect(
 		page.getByRole('button', { name: 'Delete', exact: true }),
-	).toBeDisabled();
+	).toHaveCount(0);
+	await expect(
+		page.getByRole('region', { name: 'Delete sermon', exact: true }),
+	).toHaveCount(0);
 
 	// Typing an Admin URL must not bypass the route guard.
 	await page.goto('/upload');
