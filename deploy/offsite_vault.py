@@ -24,6 +24,7 @@ import os
 import shutil
 import sqlite3
 import sys
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -65,8 +66,20 @@ def verify_pair(database: Path) -> dict:
 def publish(source: Path, vault: Path) -> None:
     """Copy one file into the vault as 0600, never overwriting an existing file."""
     destination = vault / source.name
-    temporary = vault / (source.name + ".partial")
-    descriptor = os.open(temporary, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    # A process can stop after publishing a manifest but before its database.
+    # Reuse that exact manifest on retry; conflicting content must fail closed.
+    if destination.exists() or destination.is_symlink():
+        if destination.is_symlink() or not destination.is_file():
+            raise ValueError(f"Not a regular vault file: {destination.name}")
+        if backup.sha256(destination) != backup.sha256(source):
+            raise ValueError(
+                f"Vault file conflicts with incoming file: {destination.name}"
+            )
+        return
+    descriptor, name = tempfile.mkstemp(
+        prefix=source.name + ".", suffix=".partial", dir=vault
+    )
+    temporary = Path(name)
     try:
         with os.fdopen(descriptor, "wb") as target, source.open("rb") as stream:
             shutil.copyfileobj(stream, target)
@@ -92,20 +105,23 @@ def accept(incoming: Path, vault: Path, retain_days: int, min_copies: int) -> di
     for database in sorted(incoming.iterdir()):
         if not backup.BACKUP_NAME.fullmatch(database.name):
             continue
-        if (vault / database.name).exists():
-            summary["skipped"].append(database.name)
-            continue
         try:
+            existing = vault / database.name
+            if existing.exists() or existing.is_symlink():
+                verify_pair(existing)
+                summary["skipped"].append(database.name)
+                continue
             verify_pair(database)
-        except (ValueError, RuntimeError, sqlite3.Error) as error:
+            # Publish the manifest first; an interrupted pair can be retried.
+            publish(database.with_suffix(database.suffix + ".json"), vault)
+            publish(database, vault)
+            summary["accepted"].append(database.name)
+        except (OSError, ValueError, RuntimeError, sqlite3.Error) as error:
             summary["failed"].append({"backup": database.name, "error": str(error)})
             continue
-        # The manifest goes in first, so a database in the vault always has its manifest.
-        publish(database.with_suffix(database.suffix + ".json"), vault)
-        publish(database, vault)
-        summary["accepted"].append(database.name)
-    # Pruning only ever sees verified pairs, and runs even when one pair failed today.
-    backup.prune_backups(vault, retain_days, min_copies, datetime.now(UTC))
+    # A failed copy or damaged existing pair must not expire older recovery copies.
+    if not summary["failed"]:
+        backup.prune_backups(vault, retain_days, min_copies, datetime.now(UTC))
     return summary
 
 

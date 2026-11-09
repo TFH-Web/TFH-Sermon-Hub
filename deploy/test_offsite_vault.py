@@ -7,6 +7,7 @@ import stat
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import backup
 import offsite_vault
@@ -105,9 +106,55 @@ class OffsiteVaultTests(unittest.TestCase):
 
     def test_symlinked_vault_is_refused(self):
         link = Path(self.temporary.name) / "vault-link"
-        link.symlink_to(self.vault, target_is_directory=True)
+        try:
+            link.symlink_to(self.vault, target_is_directory=True)
+        except OSError as error:
+            self.skipTest(f"Symlink creation is unavailable: {error}")
         with self.assertRaises(ValueError):
             offsite_vault.accept(self.incoming, link, 30, 30)
+
+    def test_retry_after_only_manifest_was_published(self):
+        name = self.pull()
+        offsite_vault.publish(self.incoming / (name + ".json"), self.vault)
+        summary = offsite_vault.accept(self.incoming, self.vault, 30, 30)
+        self.assertEqual(summary["accepted"], [name])
+        self.assertEqual(summary["failed"], [])
+        offsite_vault.verify_pair(self.vault / name)
+
+    def test_stale_partial_from_interrupted_copy_does_not_block_retry(self):
+        name = self.pull()
+        stale = self.vault / (name + ".json.partial")
+        stale.write_bytes(b"incomplete")
+        summary = offsite_vault.accept(self.incoming, self.vault, 30, 30)
+        self.assertEqual(summary["accepted"], [name])
+        self.assertEqual(stale.read_bytes(), b"incomplete")
+
+    def test_damaged_existing_database_is_failed_instead_of_skipped(self):
+        name = self.pull()
+        offsite_vault.accept(self.incoming, self.vault, 30, 30)
+        with (self.vault / name).open("ab") as stream:
+            stream.write(b"damaged")
+        summary = offsite_vault.accept(self.incoming, self.vault, 30, 30)
+        self.assertEqual(summary["skipped"], [])
+        self.assertIn("Checksum", summary["failed"][0]["error"])
+
+    def test_conflicting_partial_pair_is_not_overwritten(self):
+        name = self.pull()
+        manifest = self.vault / (name + ".json")
+        manifest.write_bytes(b"conflicting existing manifest")
+        summary = offsite_vault.accept(self.incoming, self.vault, 30, 30)
+        self.assertEqual(summary["accepted"], [])
+        self.assertIn("conflicts", summary["failed"][0]["error"])
+        self.assertEqual(manifest.read_bytes(), b"conflicting existing manifest")
+
+    def test_failed_publication_is_reported_and_retention_is_suppressed(self):
+        name = self.pull()
+        with patch.object(offsite_vault, "publish", side_effect=OSError("disk full")):
+            with patch.object(backup, "prune_backups") as prune:
+                summary = offsite_vault.accept(self.incoming, self.vault, 30, 30)
+        self.assertEqual(summary["accepted"], [])
+        self.assertEqual(summary["failed"], [{"backup": name, "error": "disk full"}])
+        prune.assert_not_called()
 
 
 if __name__ == "__main__":
