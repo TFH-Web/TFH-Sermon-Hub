@@ -394,3 +394,14 @@
 		overflow-wrap: anywhere;
 	}
 }
+
+/* A long sermon title must not force the shared shell wider than the screen. */
+.Layout:has(.SermonDetail-grid) .Layout-main,
+.Layout:has(.SermonDetail-grid) .Layout-header {
+	min-width: 0;
+}
+
+.Layout:has(.SermonDetail-grid) .Header-title {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}

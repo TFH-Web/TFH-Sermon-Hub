@@ -6,7 +6,7 @@ async function setupDetail(page: Page) {
 	const state = { deletes: 0 };
 	const sermon = {
 		...sermons[0],
-		title: 'Client feedback sermon',
+		title: 'The Empowerment of the Believer',
 		videoLink: 'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y',
 		summary: 'A saved summary for reviewing the sermon layout.',
 		summarySource: 'manual',
@@ -90,6 +90,11 @@ for (const width of [1440, 1024, 768, 390, 320]) {
 			)
 			.toBe(true);
 
+		expect(
+			await page
+				.locator('.Layout-main')
+				.evaluate(element => element.scrollWidth <= element.clientWidth + 1),
+		).toBe(true);
 		const video = await frame.boundingBox();
 		const info = await page.locator('.SermonDetail-info').boundingBox();
 		expect(video).not.toBeNull();

@@ -173,7 +173,6 @@ describe('separate sermon deletion controls', () => {
 		const danger = await screen.findByRole('region', { name: 'Delete sermon' });
 		const button = within(danger).getByRole('button', {
 			name: 'Delete',
-			exact: true,
 		});
 		expect(button.closest('.SermonDetail-btn-group')).toBeNull();
 		expect(deleteRequests).toBe(0);
@@ -189,9 +188,7 @@ describe('separate sermon deletion controls', () => {
 	it('deletes only after the confirmation and returns to the library', async () => {
 		open();
 		const danger = await screen.findByRole('region', { name: 'Delete sermon' });
-		fireEvent.click(
-			within(danger).getByRole('button', { name: 'Delete', exact: true }),
-		);
+		fireEvent.click(within(danger).getByRole('button', { name: 'Delete' }));
 		fireEvent.click(
 			within(screen.getByRole('dialog')).getByRole('button', {
 				name: 'Delete Sermon',
