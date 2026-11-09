@@ -2,8 +2,8 @@
 Description=Daily TFH staging YouTube caption backfill
 
 [Timer]
-# Youtube's Daily quota resets at midnight Pacific; this runs shortly after so each day gets a fresh ~10k allotment
-OnCalendar=*-*-* 08:10:00 UTC
+# Follow Pacific midnight through daylight-saving changes. Quota is shared with other requests.
+OnCalendar=*-*-* 00:10:00 America/Los_Angeles
 RandomizedDelaySec=15m
 Persistent=true
 Unit=tfh-staging-caption-backfill.service

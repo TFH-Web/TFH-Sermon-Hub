@@ -22,7 +22,11 @@ From `Backend`, install dependencies and start the API:
 ```sh
 poetry install
 poetry run python up.py
+./run.sh
 ```
+
+`up.py` updates the database schema; `./run.sh` starts Flask. Restart the API and
+any configured Redis worker after changing credentials or processing settings.
 
 Use the shared frontend setup in the main README. On a sermon page, an Admin can
 fetch or refresh captions. Saved text, timestamp links, copying, and tag keyword
@@ -69,7 +73,17 @@ running it by hand every day. On the staging droplet, that's instead a
 systemd timer: `deploy/tfh-staging-caption-backfill.timer` fires
 `deploy/tfh-staging-caption-backfill.service` daily, shortly after the
 midnight-Pacific quota reset, at `--limit 40` (the command's own per-run
-cap). Install it the same way as the existing backup timer, from
+cap). It runs at 00:10 in `America/Los_Angeles`, plus up to 15 minutes of
+jitter, including daylight-saving changes. The 40-attempt bound is not a
+separate daily allowance: imports and other requests share the same quota,
+and the existing quota breaker can stop a batch earlier.
+
+The unit files are deployment templates, not evidence that the timer is
+installed or that any captions have been downloaded. Before enabling them,
+confirm the authorized OAuth connection, caption switch, embedding model and
+answer provider are ready. Coordinate the daily batch with the staging owner;
+avoid other manual backfill runs against the same library. Install the units
+from the reviewed release, following
 [deploying.md](deploying.md#5-install-separate-services-and-private-nginx-site):
 
 ```bash
@@ -86,14 +100,34 @@ lands in the journal:
 journalctl -u tfh-staging-caption-backfill.service --since -7d
 ```
 
-`remaining` across recent runs then shows the backlog shrinking day over
-day. `systemctl status tfh-staging-caption-backfill.timer` shows the last
-and next run times. A run that fails the unit (exit 1) is a missing OAuth
-config or a sign-in/permission failure, not a quota pause, see the sign-in
-renewal steps below. There's no dashboard stat for remaining transcripts
-yet; `journalctl` is the only view into progress today, so a dashboard card
-showing sermons still missing a transcript would be a reasonable, separate
-follow-up to file rather than rolled in here.
+`remaining` counts eligible sermons not reached by that batch; it does not
+count every sermon missing captions. Other failed records and invalid video
+links can be excluded, so `remaining: 0` alone does not prove the whole library
+is complete. Read each `failed` result and resolve or assign those records.
+After repair, preview a small `--failed-only --dry-run` batch before retrying.
+
+Check the real library counts without changing the database:
+
+```bash
+sudo -u tfh-staging sqlite3 -readonly /var/lib/tfh-staging/sermonhub.sqlite3 \
+  "SELECT COUNT(*) AS total, SUM(CASE WHEN NULLIF(TRIM(transcript), '') IS NOT NULL THEN 1 ELSE 0 END) AS with_transcript, SUM(CASE WHEN NULLIF(TRIM(transcript), '') IS NULL THEN 1 ELSE 0 END) AS missing_transcript FROM sermon;"
+systemctl list-timers --all tfh-staging-caption-backfill.timer
+systemctl show tfh-staging-caption-backfill.service -p Result -p ExecMainStatus
+```
+
+The backlog's 444 imported sermons is a planning snapshot; record the actual
+total at activation and after each daily run. Record the release, date, next
+timer time, attempted/succeeded/failed counts and remaining missing transcripts
+in the TFH-671 handoff. A saved transcript is separate from completed AI
+processing and publication.
+
+A failed unit can mean missing configuration, captions disabled, an OAuth or
+permission failure, an unexpected error or a service timeout; inspect the journal
+instead of treating every failure as an expired token. Quota pauses return 0
+and should be recorded as paused, not as a successful completed batch.
+To pause future runs, use `systemctl disable --now tfh-staging-caption-backfill.timer`.
+This stops scheduling, not an already-running service; let its active work finish
+and coordinate any interruption with the operator.
 
 ## Daily quota breaker
 
