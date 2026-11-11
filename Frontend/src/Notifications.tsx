@@ -63,7 +63,7 @@ export default function Notifications() {
 									<p>
 										From:{' '}
 										<strong>
-											TFH Sermon Hub &lt;noreply@sermonhub.tfh.org&gt;
+											TFH Sermon Hub &lt;noreply@hub.tfh.org&gt;
 										</strong>
 									</p>
 									<p>

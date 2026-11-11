@@ -79,7 +79,7 @@ export default function Settings() {
 	/*
 	const [tenantId, setTenantId] = useState('tfh-org-tenant-abc123');
 	const [clientId, setClientId] = useState('1234abcd-56ef-78gh-90ij-klmnopqrstuv');
-	const [redirectUri, setRedirectUri] = useState('https://sermonhub.tfh.org/auth/callback');
+	const [redirectUri, setRedirectUri] = useState('https://hub.tfh.org/auth/callback');
 	const ssoStatus = 'Connected & Active';
 */
 

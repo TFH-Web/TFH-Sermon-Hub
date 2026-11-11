@@ -37,7 +37,7 @@ change reaches `dev`.
    each site's root URL exactly, with the trailing slash:
    - `http://localhost:5173/` for local development
    - the staging site's root URL, once staging has a domain
-   - `https://sermonhub.tfh.org/` for production
+   - `https://hub.tfh.org/` for production
 
    Each deployment sets `VITE_REDIRECT_URI` to its own entry from this list.
 
