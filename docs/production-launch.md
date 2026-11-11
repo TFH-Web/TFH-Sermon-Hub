@@ -122,6 +122,7 @@ manages the tfh.org DNS in Cloudflare.
 | Renewal | `certbot.timer` enabled; `certbot renew --dry-run --run-deploy-hooks` succeeded with the nginx deploy hook installed. |
 | Existing sites | The old public-IP site and the loopback staging site on 8081 still return 200. |
 | Entra | The SPA redirect `https://hub.tfh.org/` is registered. Tim's account was changed from Default Access to Admin, and the `#TFH-Staff` group from Default Access to Internal User, so staff get read-only access. Test accounts: `test-hub-admin` (Admin), `test-hub-user` (Internal User), plus an unassigned account for the denied check. |
+| AI provider | `LLM_PROVIDER=anthropic`, `LLM_MODEL=claude-sonnet-5`, with the church's Anthropic key in the server env only (checked by name and length). A test call to the model succeeded and the chat service answers and declines through it. |
 | Real sign-in | An Admin signed in on a phone and loaded the library (`/api/whoami` 200). An account with no real role got the expected 403 before its role was fixed. |
 
 Still open: the full three-account browser checks (TFH-654) and the client
