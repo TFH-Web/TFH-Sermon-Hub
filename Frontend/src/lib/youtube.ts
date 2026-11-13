@@ -69,6 +69,12 @@ export function buildYouTubeEmbedUrl(videoId: string): string | null {
 	return `https://www.youtube.com/embed/${videoId}`;
 }
 
+// hqdefault exists for every public video, unlike maxresdefault.
+export function buildYouTubeThumbnailUrl(videoId: string): string | null {
+	if (!VIDEO_ID.test(videoId)) return null;
+	return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+}
+
 // External YouTube links use whole seconds, matching the backend.
 export function buildYouTubeSourceUrl(
 	videoId: string,
