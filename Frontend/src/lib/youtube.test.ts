@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	buildYouTubeEmbedUrl,
 	buildYouTubeSourceUrl,
+	buildYouTubeThumbnailUrl,
 	buildYouTubeWatchUrl,
 	normalizeYouTubeUrl,
 	parseYouTubeVideoId,
@@ -134,6 +135,9 @@ describe('validated YouTube link builders', () => {
 		expect(buildYouTubeEmbedUrl(ID)).toBe(
 			`https://www.youtube.com/embed/${ID}`,
 		);
+		expect(buildYouTubeThumbnailUrl(ID)).toBe(
+			`https://i.ytimg.com/vi/${ID}/hqdefault.jpg`,
+		);
 	});
 
 	it.each([
@@ -144,6 +148,7 @@ describe('validated YouTube link builders', () => {
 	])('refuses invalid ID %j', videoId => {
 		expect(buildYouTubeWatchUrl(videoId)).toBeNull();
 		expect(buildYouTubeEmbedUrl(videoId)).toBeNull();
+		expect(buildYouTubeThumbnailUrl(videoId)).toBeNull();
 		expect(buildYouTubeSourceUrl(videoId, 30)).toBeNull();
 	});
 

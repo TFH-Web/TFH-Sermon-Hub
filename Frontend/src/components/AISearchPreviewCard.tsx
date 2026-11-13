@@ -4,9 +4,11 @@ import { useNavigate } from 'react-router-dom';
 // Use the shared result type for cards displaying API search results.
 import type { AISearchVisibleResult } from '$/lib/aiSearch';
 import { formatCalendarDateString } from '$/lib/date';
+import { buildYouTubeThumbnailUrl } from '$/lib/youtube';
 
 import type { AISearchResultPreview } from '$/types/aiSearch';
 import './AISearchPreviewCard.css';
+import ThumbnailPlaceholder from './ThumbnailPlaceholder';
 
 interface AISearchPreviewCardProps {
 	result: AISearchVisibleResult;
@@ -66,11 +68,10 @@ function renderHighlightedText(text: string, matchTerms: string[]) {
 	return parts.length > 0 ? parts : text;
 }
 
-function previewImageUrl(result: AISearchResultPreview) {
-	return (
-		result.thumbnailUrl ??
-		`https://unsplash.it/seed/${encodeURIComponent(result.title)}/1280/720`
-	);
+// Prefer an explicit thumbnail, then the sermon's own YouTube frame. Null means show the placeholder.
+function previewImageUrl(result: AISearchVisibleResult) {
+	if (result.thumbnailUrl) return result.thumbnailUrl;
+	return result.videoId ? buildYouTubeThumbnailUrl(result.videoId) : null;
 }
 
 export default function AISearchPreviewCard({
@@ -78,6 +79,8 @@ export default function AISearchPreviewCard({
 	onOpen,
 }: AISearchPreviewCardProps) {
 	const navigate = useNavigate();
+	const imageUrl = previewImageUrl(result);
+	const imageLabel = `${result.title} preview`;
 
 	function handleChatClick(e: MouseEvent<HTMLButtonElement>) {
 		e.stopPropagation();
@@ -99,11 +102,19 @@ export default function AISearchPreviewCard({
 				className="AISearchPreviewCard-open"
 				onClick={() => onOpen(result)}
 			>
-				<img
-					className="AISearchPreviewCard-thumb"
-					src={previewImageUrl(result)}
-					alt={`${result.title} preview`}
-				/>
+				{imageUrl ? (
+					<img
+						className="AISearchPreviewCard-thumb"
+						src={imageUrl}
+						alt={imageLabel}
+						loading="lazy"
+					/>
+				) : (
+					<ThumbnailPlaceholder
+						className="AISearchPreviewCard-thumb"
+						label={imageLabel}
+					/>
+				)}
 
 				<div className="AISearchPreviewCard-main">
 					<h2 className="AISearchPreviewCard-title">{result.title}</h2>

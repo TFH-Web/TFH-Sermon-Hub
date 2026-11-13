@@ -2,7 +2,8 @@ import { expect, test } from '@playwright/test';
 import { setupRoutes } from './setup';
 
 test.beforeEach(async ({ page }) => {
-	setupRoutes(page);
+	// Register the API mocks before any navigation, or early requests escape them.
+	await setupRoutes(page);
 	await page.goto('/tags');
 });
 

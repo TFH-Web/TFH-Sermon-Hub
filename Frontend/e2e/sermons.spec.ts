@@ -3,7 +3,8 @@ import { sermons } from './data';
 import { setupRoutes } from './setup';
 
 test.beforeEach(async ({ page }) => {
-	setupRoutes(page);
+	// Register the API mocks before any navigation, or early requests escape them.
+	await setupRoutes(page);
 });
 
 for (const { name, parameter, value } of [
