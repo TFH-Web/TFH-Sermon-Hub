@@ -1,6 +1,6 @@
 # Client acceptance agenda and decision record (TFH-675)
 
-**Status: accepted by Tim (TFH Technology Director), recorded 2026-11-13.**
+**Status: accepted by Tim (TFH Technology Director) and Pastor Michael, recorded 2026-11-13.**
 
 Coordinator: Jack. Client reviewers: Tim and Pastor Michael. Use this during the
 actual acceptance meeting after TFH-640 and the required regression fixes pass.
@@ -12,7 +12,7 @@ TFH-674; record actual delivery during the handoff.
 | Item | Record during the meeting |
 | --- | --- |
 | Date/time and timezone | Recorded 2026-11-13 (Pacific), after the 2026-11-11 go-live session with Tim |
-| Attendees | Tim (client), Samip |
+| Attendees | Tim and Pastor Michael (client), Samip |
 | Environment / approved URL | Production, https://hub.tfh.org |
 | Deployed commit / release | `bcbfc66`, release `bcbfc66-tfh540-20261113T223729Z` |
 | Recovery and production verification evidence | [Go-live record](../production-launch.md#production-go-live-record-2026-11-11) and [November 8 operations](sprint9-operations-20261108.md) |
@@ -46,7 +46,7 @@ of an older revision does not verify a later change.
 | Reviewer | Decision (accept / conditional / decline) | Date and evidence | Conditions / required fixes |
 | --- | --- | --- | --- |
 | Tim | Accept | Approved after the go-live and demo; recorded 2026-11-13 | None |
-| Pastor Michael | Not separately recorded | | |
+| Pastor Michael | Accept | Approved; recorded 2026-11-13 | None |
 
 Jack records what each reviewer actually decided. Leave the decision pending
 until the reviewer approves it. Link the completed record from the client

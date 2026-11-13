@@ -126,5 +126,5 @@ manages the tfh.org DNS in Cloudflare.
 | Real sign-in | An Admin signed in on a phone and loaded the library (`/api/whoami` 200). An account with no real role got the expected 403 before its role was fixed. |
 
 Follow-up (2026-11-13): the team tested the Admin, Internal User and unassigned
-test accounts on hub.tfh.org (TFH-654), and Tim accepted the release; see the
+test accounts on hub.tfh.org (TFH-654), and Tim and Pastor Michael accepted the release; see the
 [acceptance record](testing/sprint9-client-acceptance.md) (TFH-675).
