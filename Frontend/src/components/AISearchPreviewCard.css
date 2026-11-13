@@ -39,8 +39,8 @@
 	outline-offset: 2px;
 }
 
+/* No display here: as a grid item it is already block, and the placeholder needs its own grid. */
 .AISearchPreviewCard-thumb {
-	display: block;
 	width: 112px;
 	height: 72px;
 	object-fit: cover;

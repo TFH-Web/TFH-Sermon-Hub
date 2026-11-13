@@ -5,6 +5,7 @@ import { resolveYouTubeVideoId } from './youtube';
 // These extra values tell the card which snippet words to highlight.
 export type AISearchVisibleResult = AISearchResultPreview & {
 	sermonId: string;
+	videoId: string | null;
 	sourceStartSeconds: number | null;
 	previewSnippet: string;
 	previewHasLeadingEllipsis: boolean;
@@ -51,6 +52,7 @@ export function mapSearchResult(
 		// Convert the API fields to the names expected by the card.
 		id: String(item.id),
 		sermonId: String(sermonId),
+		videoId,
 		sourceStartSeconds,
 		title: item.title,
 		speaker: item.speaker,
