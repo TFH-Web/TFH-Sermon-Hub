@@ -26,8 +26,15 @@ vi.mock('$/components/MainLayout', () => ({
 
 const placeholder =
 	'Ask anything about sermons, speakers, topics, or scripture...';
-const accountA = { homeAccountId: 'account-A' } as AccountInfo;
-const accountB = { homeAccountId: 'account-B' } as AccountInfo;
+// AIChat reads the user's name for the avatar, so each account carries the username MSAL always sets.
+const accountA = {
+	homeAccountId: 'account-A',
+	username: 'a@example.invalid',
+} as AccountInfo;
+const accountB = {
+	homeAccountId: 'account-B',
+	username: 'b@example.invalid',
+} as AccountInfo;
 const originalAdapter = axios.defaults.adapter;
 const clients: QueryClient[] = [];
 
