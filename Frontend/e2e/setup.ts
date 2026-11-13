@@ -2,7 +2,28 @@ import type { Page, Route } from '@playwright/test';
 import { seriess, sermons, speakers, tags } from './data';
 import { paginated } from './pagination';
 
+// A 1x1 transparent PNG.
+const PIXEL = Buffer.from(
+	'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+	'base64',
+);
+
+/**
+ * Answers every non-localhost image (YouTube thumbnails) with a local pixel. Real ones can hang
+ * offline or in CI, and page.goto waits for the load event, which waits for every image.
+ */
+export async function stubExternalImages(page: Page) {
+	await page.route(
+		url => url.hostname !== 'localhost',
+		route =>
+			route.request().resourceType() === 'image'
+				? route.fulfill({ contentType: 'image/png', body: PIXEL })
+				: route.fallback(),
+	);
+}
+
 export async function setupRoutes(page: Page) {
+	await stubExternalImages(page);
 	await page.route('**/api/*', async route => {
 		const url = new URL(route.request().url());
 
@@ -28,6 +49,7 @@ export async function setupRoutes(page: Page) {
  * without leaking state into other tests that import the same data.ts array.
  */
 export async function setupTagMutationRoutes(page: Page) {
+	await stubExternalImages(page);
 	let mutableTags = tags.map(tag => ({ ...tag }));
 
 	async function mutateTag(route: Route, name: string | null) {
