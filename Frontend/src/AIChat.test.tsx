@@ -203,6 +203,7 @@ it('Retry resends the identical request, and a successful retry clears the error
 		message: 'What is grace?',
 		sermonId: null,
 		history: [],
+		contextSermonIds: [],
 	});
 	expect(mutate.mock.calls[1][0]).toBe(mutate.mock.calls[0][0]);
 	expect(screen.getAllByText('What is grace?')).toHaveLength(1);
@@ -245,10 +246,25 @@ it('sends earlier turns as history but never the greeting', async () => {
 
 	const request = mutate.mock.calls[1][0];
 	expect(request.sermonId).toBe(7);
+	expect(request.contextSermonIds).toEqual([7]);
 	expect(request.history).toEqual([
 		{ role: 'user', content: 'What is grace?' },
 		{ role: 'assistant', content: 'Grace is a gift.' },
 	]);
+});
+
+// A general follow-up names the sermons the last sourced answer came from, so the server stays on them.
+it('sends the sermons from the latest sourced answer as context on a follow-up', async () => {
+	renderAt('/ai-chat');
+	await ask('What is grace?');
+	answerCall(0, answer);
+	await ask('Thanks');
+	answerCall(1, { ...answer, answer: "You're welcome.", sources: [] });
+
+	await ask('Tell me more');
+
+	expect(mutate.mock.calls[0][0].contextSermonIds).toEqual([]);
+	expect(mutate.mock.calls[2][0].contextSermonIds).toEqual([source.sermon_id]);
 });
 
 // The server rejects a question over its limit and Retry would resend the same one, so the input stops it.
@@ -263,7 +279,7 @@ it("caps the chat input at the server's message limit", () => {
 it('cuts a long earlier answer to the history limit in the next request', async () => {
 	renderAt('/ai-chat');
 	await ask('What is grace?');
-	answerCall(0, { ...answer, answer: 'a'.repeat(1500) });
+	answerCall(0, { ...answer, answer: 'a'.repeat(MAX_HISTORY_CHARS + 500) });
 
 	await ask('Tell me more');
 

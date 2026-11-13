@@ -1,12 +1,15 @@
 import type { ChatHistoryTurn, Message } from '$/types/chat';
 
 // At most this many prior turns are sent as context; matches the server's chat.MAX_HISTORY_TURNS.
-export const MAX_HISTORY_TURNS = 6;
+export const MAX_HISTORY_TURNS = 10;
+
+// At most this many sermons carry over to a follow-up; matches the server's chat.MAX_CONTEXT_SERMONS.
+export const MAX_CONTEXT_SERMONS = 3;
 
 // The server rejects the whole request with a 400 when the question or any history turn is longer than this;
 // matches the server's chat.MAX_MESSAGE_CHARS and chat.MAX_HISTORY_CHARS.
 export const MAX_MESSAGE_CHARS = 1000;
-export const MAX_HISTORY_CHARS = 1000;
+export const MAX_HISTORY_CHARS = 4000;
 
 export function formatDuration(seconds: number) {
 	const whole = Math.floor(seconds);
@@ -32,4 +35,18 @@ export function buildHistory(messages: Message[]): ChatHistoryTurn[] {
 			content: truncate(m.text, MAX_HISTORY_CHARS),
 		}))
 		.slice(-MAX_HISTORY_TURNS);
+}
+
+// The sermons the latest sourced answer came from, so a follow-up such as "tell me more" stays on them.
+// Answers without sources (a greeting, "you're welcome") are skipped so they don't drop the topic.
+export function contextSermonIds(messages: Message[]): number[] {
+	for (let i = messages.length - 1; i >= 0; i--) {
+		const m = messages[i];
+		if (m.role === 'ai' && m.aiGenerated && m.sources.length > 0)
+			return [...new Set(m.sources.map(s => s.sermon_id))].slice(
+				0,
+				MAX_CONTEXT_SERMONS,
+			);
+	}
+	return [];
 }

@@ -51,11 +51,15 @@ def add_sermon(
         date=date(2026, 9, 6),
         description="",
         tags=[],
-        transcript=None,
+        # Chunks come from the timed transcript, so each chunk is also one transcript segment.
+        transcript=" ".join(text for text, _, _ in chunks) or None,
         summary=None,
         status=status,
         youtube_video_id=video_id,
     )
+    sermon.transcript_segments = [
+        {"start": start, "end": end, "text": text} for text, start, end in chunks
+    ] or None
     db.session.add(sermon)
     db.session.flush()
     for i, (text, start, end) in enumerate(chunks):
@@ -83,7 +87,7 @@ def add_sermon(
 class FakeLLM:
     """Stands in for llm.generate: records each call and returns a fixed reply."""
 
-    def __init__(self, reply: str = "Grace is a gift [1]."):
+    def __init__(self, reply="Grace is a gift [1]."):
         self.reply = reply
         self.calls: list[dict] = []
 
