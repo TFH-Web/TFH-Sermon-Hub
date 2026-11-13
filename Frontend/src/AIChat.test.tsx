@@ -152,6 +152,31 @@ it('renders the answer, the "AI generated" label and each cited source', async (
 	expect(screen.getByText('1:15–1:30')).toBeTruthy();
 });
 
+it("shows the signed-in user's own initials on their messages", async () => {
+	useAuth.setState({
+		account: {
+			homeAccountId: 'home-1',
+			localAccountId: 'local-1',
+			username: 'jane.doe@example.invalid',
+			name: 'Jane Doe',
+		} as never,
+	});
+	renderAt('/ai-chat');
+	await ask('What is grace?');
+
+	expect(screen.getByText('JD')).toBeTruthy();
+	expect(screen.queryByText('SG')).toBeNull();
+});
+
+it('falls back to a generic avatar when there is no signed-in user yet', async () => {
+	renderAt('/ai-chat');
+	await ask('What is grace?');
+
+	const avatar = document.querySelector('.AIChat-avatar--user');
+	expect(avatar?.textContent).toBe('');
+	expect(avatar?.querySelector('iconify-icon')).toBeTruthy();
+});
+
 it('does not label the sermon greeting "AI generated"', () => {
 	renderAt(sermonPath);
 
