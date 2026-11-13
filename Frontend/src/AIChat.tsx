@@ -14,6 +14,7 @@ import {
 	MAX_MESSAGE_CHARS,
 } from '$/lib/chat';
 import type { ChatAnswer, ChatRequest, ChatSource } from '$/types/chat';
+import { getInitials, useUser } from '$/types/user';
 
 const prompts = [
 	'What has Dave said about forgiveness?',
@@ -131,6 +132,8 @@ export default function AIChat() {
 	}
 
 	const isEmpty = messages.length === 0;
+	const user = useUser();
+	const initials = user ? getInitials(user) : '';
 
 	return (
 		<MainLayout title="AI Chat">
@@ -167,7 +170,10 @@ export default function AIChat() {
 							>
 								<div className={`AIChat-avatar AIChat-avatar--${msg.role}`}>
 									{msg.role === 'user' ? (
-										'SG'
+										// A generic icon until the session is verified (or if the name has no letters to use).
+										initials || (
+											<Icon icon="lucide:user" width={14} height={14} />
+										)
 									) : (
 										<Icon icon="lucide:message-circle" width={14} height={14} />
 									)}
