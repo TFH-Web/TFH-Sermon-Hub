@@ -87,8 +87,8 @@ def test_anthropic_caps_output_tokens(monkeypatch):
     original = module.Anthropic
 
     class Recording(original):
-        def __init__(self):
-            super().__init__()
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
             create = self.messages.create
             self.messages.create = lambda **kw: sent.update(kw) or create(**kw)
 
@@ -105,8 +105,11 @@ def test_chat_works_with_either_provider(client: FlaskClient, monkeypatch):
     import types
 
     add_sermon("Grace", [("Grace is a gift.", 0.0, 5.0)])
-    fake_anthropic(monkeypatch, content=[types.SimpleNamespace(type="text", text="A gift [1].")])
-    assert client.post("/api/chat", json={"message": "grace"}).json["answer"] == "A gift [1]."
+    # Anthropic reads the whole transcript and cites times; Ollama keeps numbered chunks.
+    fake_anthropic(monkeypatch, content=[types.SimpleNamespace(type="text", text="A gift [0:00].")])
+    body = client.post("/api/chat", json={"message": "grace"}).json
+    assert body["answer"] == "A gift [0:00]."
+    assert body["sources"][0]["start_sec"] == 0.0
 
     monkeypatch.setenv("LLM_PROVIDER", "ollama")
     monkeypatch.setattr(llm.requests, "post", lambda url, **kw: FakeResponse("Free [1]."))

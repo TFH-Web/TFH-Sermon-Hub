@@ -29,6 +29,8 @@ export interface ChatRequest {
 	message: string;
 	sermonId: number | null;
 	history: ChatHistoryTurn[];
+	// The sermons being discussed, so the server keeps reading their transcripts on a follow-up.
+	contextSermonIds: number[];
 }
 
 // One entry in a chat conversation. Lives here (not in a component) so plain helpers can use it too.

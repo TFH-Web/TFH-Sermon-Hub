@@ -1,8 +1,10 @@
 import { describe, expect, test } from 'vitest';
-import type { Message } from '$/types/chat';
+import type { ChatSource, Message } from '$/types/chat';
 import {
 	buildHistory,
+	contextSermonIds,
 	formatDuration,
+	MAX_CONTEXT_SERMONS,
 	MAX_HISTORY_CHARS,
 	MAX_HISTORY_TURNS,
 	MAX_MESSAGE_CHARS,
@@ -49,6 +51,60 @@ describe('formatDuration', () => {
 	});
 });
 
+describe('contextSermonIds', () => {
+	function sourced(id: number, sermonIds: number[]): Message {
+		const sources = sermonIds.map(
+			(sermon_id, i): ChatSource => ({
+				source_id: i + 1,
+				chunk_id: 0,
+				sermon_id,
+				title: 'T',
+				youtube_video_id: 'JQSUGFQO5FU',
+				start_sec: 0,
+				end_sec: 1,
+				url: 'https://www.youtube.com/watch?v=JQSUGFQO5FU&t=0s',
+			}),
+		);
+		return { id, role: 'ai', text: 'x', aiGenerated: true, sources };
+	}
+
+	// A new conversation has no sermons to keep talking about.
+	test('is empty with no sourced answer', () => {
+		expect(contextSermonIds([])).toEqual([]);
+		expect(
+			contextSermonIds([
+				greeting,
+				userMessage(2, 'hi'),
+				answerMessage(3, 'Hi!'),
+			]),
+		).toEqual([]);
+	});
+
+	// The latest sourced answer decides, once per sermon, capped like the server.
+	test('takes each sermon once from the latest sourced answer, up to the cap', () => {
+		const messages = [
+			sourced(1, [9]),
+			userMessage(2, 'And money?'),
+			sourced(3, [4, 4, 5, 6, 7]),
+		];
+
+		expect(contextSermonIds(messages)).toEqual(
+			[4, 5, 6].slice(0, MAX_CONTEXT_SERMONS),
+		);
+	});
+
+	// "Thanks" gets a reply without sources, which must not drop the sermon being discussed.
+	test('skips later answers that have no sources', () => {
+		const messages = [
+			sourced(1, [9]),
+			userMessage(2, 'Thanks'),
+			answerMessage(3, "You're welcome."),
+		];
+
+		expect(contextSermonIds(messages)).toEqual([9]);
+	});
+});
+
 describe('buildHistory', () => {
 	// The API only knows the roles user and assistant.
 	test('maps user to user and ai to assistant', () => {
@@ -72,7 +128,7 @@ describe('buildHistory', () => {
 
 	// Only the latest turns are sent, and they stay in conversation order.
 	test('keeps only the last MAX_HISTORY_TURNS turns, oldest first', () => {
-		const messages = Array.from({ length: 8 }, (_, i) =>
+		const messages = Array.from({ length: MAX_HISTORY_TURNS + 2 }, (_, i) =>
 			i % 2 === 0
 				? userMessage(i + 1, `message ${i + 1}`)
 				: answerMessage(i + 1, `message ${i + 1}`),
@@ -80,14 +136,9 @@ describe('buildHistory', () => {
 
 		const history = buildHistory(messages);
 
-		expect(history.map(turn => turn.content)).toEqual([
-			'message 3',
-			'message 4',
-			'message 5',
-			'message 6',
-			'message 7',
-			'message 8',
-		]);
+		expect(history.map(turn => turn.content)).toEqual(
+			Array.from({ length: MAX_HISTORY_TURNS }, (_, i) => `message ${i + 3}`),
+		);
 	});
 
 	// A new conversation has nothing to send yet.
@@ -115,19 +166,22 @@ describe('buildHistory', () => {
 
 	// The server counts code points, and cutting mid-emoji would send a lone surrogate it can't encode.
 	test('counts characters like the server, never splitting an emoji', () => {
-		const [turn] = buildHistory([answerMessage(2, '😀'.repeat(1200))]);
+		const [turn] = buildHistory([
+			answerMessage(2, '😀'.repeat(MAX_HISTORY_CHARS + 200)),
+		]);
 
 		expect(turn.content).toBe('😀'.repeat(MAX_HISTORY_CHARS));
 	});
 
 	// The server rejects longer histories, so the two limits must stay equal (Backend/tsh/chat.py).
 	test('MAX_HISTORY_TURNS matches the server cap', () => {
-		expect(MAX_HISTORY_TURNS).toBe(6);
+		expect(MAX_HISTORY_TURNS).toBe(10);
+		expect(MAX_CONTEXT_SERMONS).toBe(3);
 	});
 
 	// Same for the per-turn and question lengths (Backend/tsh/chat.py).
 	test('MAX_HISTORY_CHARS and MAX_MESSAGE_CHARS match the server caps', () => {
-		expect(MAX_HISTORY_CHARS).toBe(1000);
+		expect(MAX_HISTORY_CHARS).toBe(4000);
 		expect(MAX_MESSAGE_CHARS).toBe(1000);
 	});
 });

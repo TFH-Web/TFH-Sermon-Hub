@@ -5,11 +5,13 @@ import pytest
 from flask.testing import FlaskClient
 
 from tsh.chat import (
+    MAX_CONTEXT_SERMONS,
     MAX_HISTORY_CHARS,
     MAX_HISTORY_TURNS,
     MAX_MESSAGE_CHARS,
     MAX_REQUEST_BYTES,
     UNSUPPORTED_ANSWER,
+    parse_chat_request,
 )
 
 
@@ -43,6 +45,7 @@ def test_limits_are_inclusive(client: FlaskClient):
     body = {
         "message": "m" * MAX_MESSAGE_CHARS,
         "history": [turn(content="h" * MAX_HISTORY_CHARS)] * MAX_HISTORY_TURNS,
+        "contextSermonIds": list(range(1, MAX_CONTEXT_SERMONS + 1)),
     }
     assert post(client, body).status_code == 200
 
@@ -68,6 +71,14 @@ def test_limits_are_inclusive(client: FlaskClient):
         ({"message": "hi", "history": [{"role": "user"}]}, "history"),
         ({"message": "hi", "history": ["What is grace?"]}, "history"),
         ({"message": "hi", "sermonID": 3}, "sermonID"),
+        ({"message": "hi", "contextSermonIds": 3}, "contextSermonIds"),
+        ({"message": "hi", "contextSermonIds": ["3"]}, "contextSermonIds"),
+        ({"message": "hi", "contextSermonIds": [0]}, "contextSermonIds"),
+        ({"message": "hi", "contextSermonIds": [-1]}, "contextSermonIds"),
+        ({"message": "hi", "contextSermonIds": [2.5]}, "contextSermonIds"),
+        ({"message": "hi", "contextSermonIds": [True]}, "contextSermonIds"),
+        ({"message": "hi", "contextSermonIds": [None]}, "contextSermonIds"),
+        ({"message": "hi", "contextSermonIds": list(range(1, MAX_CONTEXT_SERMONS + 2))}, "contextSermonIds"),
     ],
 )
 def test_invalid_body_is_rejected(client: FlaskClient, body, field):
@@ -76,6 +87,11 @@ def test_invalid_body_is_rejected(client: FlaskClient, body, field):
     assert res.status_code == 400
     assert res.json["error"] == res.json["message"] == "Invalid chat request."
     assert field in res.json["errors"]
+
+
+def test_context_sermon_ids_default_to_empty_and_drop_repeats():
+    assert parse_chat_request({"message": "hi"})["context_sermon_ids"] == []
+    assert parse_chat_request({"message": "hi", "contextSermonIds": [4, 2, 4]})["context_sermon_ids"] == [4, 2]
 
 
 @pytest.mark.parametrize("data", ["[]", '"hello"', "null", "not json"])

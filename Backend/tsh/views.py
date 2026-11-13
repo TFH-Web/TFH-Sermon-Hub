@@ -973,7 +973,8 @@ def search():
 def chat():
     """Answer a question from published TFH sermons only, with timestamped sources.
 
-    Body: {"message": str, "sermonId": int | null, "history": [{"role": "user" | "assistant", "content": str}]}.
+    Body: {"message": str, "sermonId": int | null, "history": [{"role": "user" | "assistant", "content": str}],
+    "contextSermonIds": [int]}.
     See docs/ai-chat.md for the limits and the response. Returns 200 with the answer, or
     the fixed unsupported answer when published sermons do not support one.
     Sends 400 with per-field "errors" for an invalid body, 401 without a valid token,
@@ -998,7 +999,11 @@ def chat():
         message = "Invalid chat request."
         return jsonify({"error": message, "message": message, "errors": err.messages}), 400
     try:
-        return jsonify(chat_service.answer_question(data["message"], data["sermon_id"], data["history"]))
+        return jsonify(
+            chat_service.answer_question(
+                data["message"], data["sermon_id"], data["history"], data["context_sermon_ids"]
+            )
+        )
     except chat_service.SearchUnavailable:
         current_app.logger.exception("Chat could not search sermons")
         message = "Sermon search is unavailable right now. Please try again later."
