@@ -14,8 +14,8 @@ audit below is retained as a dated baseline.
 | TFH-651 | Private CPU embedding provider installed; real 21-chunk/vector sample passed; `flask reembed` exited 0 and every saved chunk records the selected model. Full-library processing was not run. |
 | TFH-657 | Off-droplet processed-data scratch restore passed: 450 sermons, 21 real chunks/vectors, all fingerprints matched, input unchanged, scratch removed. |
 | TFH-673 | In Progress: full host reboot and previous-release startup against a paired rollback copy passed. The personal-workstation schedule was removed and its server access revoked. Recurring offsite copies need an approved project destination and operator. |
-| TFH-640 / TFH-654 | Staging now runs `f9a2d83`; real three-account browser checks and the complete import/recovery/summary/chat flow remain pending. Anthropic setup needs Tim. |
-| TFH-645 / TFH-672 / TFH-675 | Production DNS/HTTPS/Entra, admin handoff and actual client approval remain pending. |
+| TFH-640 / TFH-654 | Update 2026-11-13: done. Production runs `bcbfc66` at https://hub.tfh.org and the team tested the three role accounts there. Earlier note: staging ran `f9a2d83`; real three-account browser checks and the complete import/recovery/summary/chat flow remain pending. Anthropic setup needs Tim. |
+| TFH-645 / TFH-672 / TFH-675 | Update 2026-11-13: production DNS, HTTPS and Entra are live (see the go-live record) and Tim and Pastor Michael accepted the release ([acceptance record](sprint9-client-acceptance.md)). |
 
 PR #157 contains the acceptance/operations tools and evidence. PR #161 targets
 PR #159's branch to fix interrupted backup publication and revalidate existing

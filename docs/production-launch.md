@@ -125,5 +125,6 @@ manages the tfh.org DNS in Cloudflare.
 | AI provider | `LLM_PROVIDER=anthropic`, `LLM_MODEL=claude-sonnet-5`, with the church's Anthropic key in the server env only (checked by name and length). A test call to the model succeeded and the chat service answers and declines through it. |
 | Real sign-in | An Admin signed in on a phone and loaded the library (`/api/whoami` 200). An account with no real role got the expected 403 before its role was fixed. |
 
-Still open: the full three-account browser checks (TFH-654) and the client
-acceptance record with Tim and Pastor Michael (TFH-675).
+Follow-up (2026-11-13): the team tested the Admin, Internal User and unassigned
+test accounts on hub.tfh.org (TFH-654), and Tim and Pastor Michael accepted the release; see the
+[acceptance record](testing/sprint9-client-acceptance.md) (TFH-675).
