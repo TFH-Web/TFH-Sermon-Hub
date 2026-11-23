@@ -1,0 +1,49 @@
+Case ST04 | Revision cbb113604c4699cb27f2bc5e40a8489f0ff241c2 (TFH-Web/TFH-Sermon-Hub) | Run by Givin Yang | Nov 22, 2026 09:48:59 PM PST (UTC-0800)
+Machine: Windows 11, Node v26.13.1, Playwright 1.60.0, project chromium
+$ npx playwright test e2e/ai-search.spec.ts --project=chromium
+
+(node:27392) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[WebServer] [33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - `__dirname` (vite.config.ts:11:20). Use `import.meta.dirname` instead
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+Running 18 tests using 8 workers
+
+(node:28696) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:9332) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:31936) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:19660) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:37056) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:37568) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:5288) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:20768) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  ok  8 [chromium] › e2e\ai-search.spec.ts:326:2 › /ai-search/results preserves the search when opening a direct link (904ms)
+  ok  4 [chromium] › e2e\ai-search.spec.ts:326:2 › /ai-search preserves the search when opening a direct link (914ms)
+  ok  1 [chromium] › e2e\ai-search.spec.ts:156:1 › shows loading and then an empty result message (1.0s)
+  ok  2 [chromium] › e2e\ai-search.spec.ts:188:1 › shows a request error and recovers when Retry is clicked (1.1s)
+  ok  3 [chromium] › e2e\ai-search.spec.ts:30:1 › submits filters and displays highlighted search results (1.2s)
+  ok  5 [chromium] › e2e\ai-search.spec.ts:244:1 › direct search URLs restore filters and page after reload (1.2s)
+  ok  7 [chromium] › e2e\ai-search.spec.ts:283:1 › filter changes reset pages and Back/Forward restore search state (1.2s)
+  ok  6 [chromium] › e2e\ai-search.spec.ts:77:1 › requests pages and resets pagination when the search changes (1.4s)
+  ok  9 [chromium] › e2e\ai-search.spec.ts:355:1 › a delayed old search cannot replace newer results (647ms)
+  ok 10 [chromium] › e2e\ai-search.spec.ts:453:3 › /ai-search opens fractional source without inventing a timestamp (813ms)
+  ok 11 [chromium] › e2e\ai-search.spec.ts:453:3 › /ai-search opens zero-second source without inventing a timestamp (822ms)
+  ok 12 [chromium] › e2e\ai-search.spec.ts:453:3 › /ai-search opens metadata-only result without inventing a timestamp (764ms)
+  ok 14 [chromium] › e2e\ai-search.spec.ts:453:3 › /ai-search/results opens fractional source without inventing a timestamp (718ms)
+  ok 13 [chromium] › e2e\ai-search.spec.ts:453:3 › /ai-search opens unavailable video source without inventing a timestamp (722ms)
+  ok 15 [chromium] › e2e\ai-search.spec.ts:453:3 › /ai-search/results opens zero-second source without inventing a timestamp (764ms)
+  ok 16 [chromium] › e2e\ai-search.spec.ts:453:3 › /ai-search/results opens metadata-only result without inventing a timestamp (687ms)
+  ok 17 [chromium] › e2e\ai-search.spec.ts:453:3 › /ai-search/results opens unavailable video source without inventing a timestamp (631ms)
+  ok 18 [chromium] › e2e\ai-search.spec.ts:511:1 › opening chat from a timed search result sends only the sermon ID (503ms)
+
+  18 passed (3.7s)
+EXIT=0

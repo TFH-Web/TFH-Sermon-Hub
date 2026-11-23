@@ -1,0 +1,44 @@
+Case ST10 | Revision cbb113604c4699cb27f2bc5e40a8489f0ff241c2 (TFH-Web/TFH-Sermon-Hub) | Run by Givin Yang | Nov 22, 2026 09:49:11 PM PST (UTC-0800)
+Machine: Windows 11, Python 3.13.17
+$ poetry run pytest tests/test_tag_names.py -v
+
+============================= test session starts =============================
+platform win32 -- Python 3.13.17, pytest-9.1.1, pluggy-1.6.0 -- D:\csc190Product\TFH_Sermon_Hub_Sprint2\TFH-Sermon-Hub\Backend\.venv\Scripts\python.exe
+rootdir: D:\csc190Product\TFH_Sermon_Hub_Sprint2\TFH-Sermon-Hub\Backend
+configfile: pyproject.toml
+plugins: anyio-4.14.2, platformdirs-4.13.0, cov-7.1.0, syrupy-5.1.0
+collecting ... collected 30 items
+
+tests/test_tag_names.py::test_accepted_name_round_trip_preserves_associations_and_filters[faith/grace] PASSED [  3%]
+tests/test_tag_names.py::test_accepted_name_round_trip_preserves_associations_and_filters[/faith] PASSED [  6%]
+tests/test_tag_names.py::test_accepted_name_round_trip_preserves_associations_and_filters[//faith//grace/] PASSED [ 10%]
+tests/test_tag_names.py::test_accepted_name_round_trip_preserves_associations_and_filters[/] PASSED [ 13%]
+tests/test_tag_names.py::test_accepted_name_round_trip_preserves_associations_and_filters[//] PASSED [ 16%]
+tests/test_tag_names.py::test_accepted_name_round_trip_preserves_associations_and_filters[.] PASSED [ 20%]
+tests/test_tag_names.py::test_accepted_name_round_trip_preserves_associations_and_filters[..] PASSED [ 23%]
+tests/test_tag_names.py::test_accepted_name_round_trip_preserves_associations_and_filters[grace/../hope] PASSED [ 26%]
+tests/test_tag_names.py::test_accepted_name_round_trip_preserves_associations_and_filters[faith?why#hope&love=1+2%] PASSED [ 30%]
+tests/test_tag_names.py::test_accepted_name_round_trip_preserves_associations_and_filters[literal%2Fslash] PASSED [ 33%]
+tests/test_tag_names.py::test_accepted_name_round_trip_preserves_associations_and_filters[r\xe9surrection/\u795e] PASSED [ 36%]
+tests/test_tag_names.py::test_preexisting_slash_tag_keeps_its_source_when_renamed PASSED [ 40%]
+tests/test_tag_names.py::test_query_mutations_reject_missing_or_blank_identifiers[None-PATCH] PASSED [ 43%]
+tests/test_tag_names.py::test_query_mutations_reject_missing_or_blank_identifiers[None-DELETE] PASSED [ 46%]
+tests/test_tag_names.py::test_query_mutations_reject_missing_or_blank_identifiers[query1-PATCH] PASSED [ 50%]
+tests/test_tag_names.py::test_query_mutations_reject_missing_or_blank_identifiers[query1-DELETE] PASSED [ 53%]
+tests/test_tag_names.py::test_query_mutations_reject_missing_or_blank_identifiers[query2-PATCH] PASSED [ 56%]
+tests/test_tag_names.py::test_query_mutations_reject_missing_or_blank_identifiers[query2-DELETE] PASSED [ 60%]
+tests/test_tag_names.py::test_query_mutations_report_missing_tags_without_changing_anything[PATCH] PASSED [ 63%]
+tests/test_tag_names.py::test_query_mutations_report_missing_tags_without_changing_anything[DELETE] PASSED [ 66%]
+tests/test_tag_names.py::test_query_mutations_stay_admin_only[PATCH-none-401] PASSED [ 70%]
+tests/test_tag_names.py::test_query_mutations_stay_admin_only[PATCH-Internal User-403] PASSED [ 73%]
+tests/test_tag_names.py::test_query_mutations_stay_admin_only[PATCH-InternalUser-403] PASSED [ 76%]
+tests/test_tag_names.py::test_query_mutations_stay_admin_only[PATCH-Nobody-403] PASSED [ 80%]
+tests/test_tag_names.py::test_query_mutations_stay_admin_only[DELETE-none-401] PASSED [ 83%]
+tests/test_tag_names.py::test_query_mutations_stay_admin_only[DELETE-Internal User-403] PASSED [ 86%]
+tests/test_tag_names.py::test_query_mutations_stay_admin_only[DELETE-InternalUser-403] PASSED [ 90%]
+tests/test_tag_names.py::test_query_mutations_stay_admin_only[DELETE-Nobody-403] PASSED [ 93%]
+tests/test_tag_names.py::test_query_rename_retains_duplicate_validation PASSED [ 96%]
+tests/test_tag_names.py::test_legacy_path_identifier_still_takes_precedence PASSED [100%]
+
+============================= 30 passed in 1.97s ==============================
+EXIT=0

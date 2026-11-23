@@ -1,0 +1,24 @@
+Case ST01 | Revision cbb113604c4699cb27f2bc5e40a8489f0ff241c2 (TFH-Web/TFH-Sermon-Hub) | Run by Givin Yang | Nov 22, 2026 09:48:31 PM PST (UTC-0800)
+Machine: Windows 11, Node v26.13.1, Playwright 1.60.0, project chromium
+$ npx playwright test e2e/auth-roles.spec.ts --project=chromium
+
+(node:38164) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[WebServer] [33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - `__dirname` (vite.config.ts:11:20). Use `import.meta.dirname` instead
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+Running 3 tests using 3 workers
+
+(node:24408) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:24264) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:11900) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  ok 1 [chromium] › e2e\auth-roles.spec.ts:84:1 › an account without a staff role is redirected to the sign-in page (533ms)
+  ok 3 [chromium] › e2e\auth-roles.spec.ts:28:1 › Admin can view a sermon and access edit and delete controls (581ms)
+  ok 2 [chromium] › e2e\auth-roles.spec.ts:52:1 › InternalUser can read sermons but cannot access Admin controls or routes (719ms)
+
+  3 passed (5.2s)
+EXIT=0
