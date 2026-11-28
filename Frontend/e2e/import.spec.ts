@@ -654,3 +654,33 @@ test('after a duplicate import, Open sermon then Edit saves the details, and the
 
 	await editThenReload(page, state, 1);
 });
+
+test('the upload modal covers the sidebar and header', async ({ page }) => {
+	await importRoutes(page);
+	await page.setViewportSize({ width: 1000, height: 800 });
+	await page.goto('/upload');
+	await page.locator('.Header-upload').click();
+	await expect(page.getByRole('dialog')).toBeVisible();
+
+	// Whatever is on top over the sidebar and the header must be the modal overlay.
+	const onTop = await page.evaluate(() =>
+		[
+			[20, 400],
+			[600, 30],
+		].map(
+			([x, y]) =>
+				document.elementFromPoint(x, y)?.closest('.Modal-overlay') !== null,
+		),
+	);
+	expect(onTop).toEqual([true, true]);
+
+	// The panel is fully on top of the sidebar, so its left edge is clickable.
+	const box = await page.locator('.Modal-panel').boundingBox();
+	if (!box) throw new Error('Missing modal panel');
+	const leftEdgeInPanel = await page.evaluate(
+		([x, y]) =>
+			document.elementFromPoint(x, y)?.closest('.Modal-panel') !== null,
+		[box.x + 4, box.y + box.height / 2],
+	);
+	expect(leftEdgeInPanel).toBe(true);
+});
