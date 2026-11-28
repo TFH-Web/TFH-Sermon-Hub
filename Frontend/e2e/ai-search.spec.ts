@@ -1,5 +1,11 @@
 import { expect, type Page, test } from '@playwright/test';
 import { sermons } from './data';
+import { stubExternalImages } from './setup';
+
+// Result cards can show YouTube thumbnails; keep them off the network.
+test.beforeEach(async ({ page }) => {
+	await stubExternalImages(page);
+});
 
 // Example API result used by the tests.
 const result = {

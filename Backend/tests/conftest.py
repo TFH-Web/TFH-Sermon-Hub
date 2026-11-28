@@ -79,6 +79,8 @@ def app():
 @pytest.fixture(autouse=True)
 def no_real_llm(request, monkeypatch):
     """Keep the suite off the network. TFH-461."""
+    # The provider decides how chat answers, so a developer's .env must not change which path a test covers.
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
     if request.node.get_closest_marker("real_llm"):
         return
 

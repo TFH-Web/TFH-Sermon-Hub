@@ -47,13 +47,14 @@ test('asks a question and opens the cited timestamp', async ({ page }) => {
 
 	await ask(page, question);
 
-	// The question reaches the API with no sermon selected and no earlier turns.
+	// The question reaches the API with no sermon selected, no earlier turns and no sermons in context.
 	const request = await requestPromise;
 	expect(request.method()).toBe('POST');
 	expect(request.postDataJSON()).toEqual({
 		message: question,
 		sermonId: null,
 		history: [],
+		contextSermonIds: [],
 	});
 
 	// The answer, its label and its source with the time range are shown.

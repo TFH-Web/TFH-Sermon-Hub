@@ -51,10 +51,12 @@
 	grid-area: thumbnail;
 }
 
+/* hqdefault is 4:3 with black bars, so crop it to the 16:9 video frame. */
 .SermonCard-thumbnailImage {
-	display: block;
 	width: 100%;
-	height: 100%;
+	aspect-ratio: 16 / 9;
+	/* Not display: block, which would override the placeholder's grid. This removes the inline image gap. */
+	vertical-align: top;
 	object-fit: cover;
 	border-start-start-radius: var(--border-radius);
 	border-start-end-radius: var(--border-radius);

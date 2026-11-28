@@ -2,6 +2,7 @@ import './SermonCard.css';
 import { Icon } from '@iconify-icon/react';
 import clsx from 'clsx';
 import { formatCalendarDate, toCalendarDateString } from '$/lib/date';
+import { buildYouTubeThumbnailUrl, resolveYouTubeVideoId } from '$/lib/youtube';
 import {
 	createOverlayInfo,
 	durationToDateTime,
@@ -13,6 +14,7 @@ import { getFullName } from '$/types/speaker';
 import Container from './Container';
 import SermonTag from './SermonTag';
 import Tag from './Tag';
+import ThumbnailPlaceholder from './ThumbnailPlaceholder';
 
 export interface SermonCardProps {
 	sermon: Sermon;
@@ -21,6 +23,9 @@ export interface SermonCardProps {
 
 export default function SermonCard({ className, sermon }: SermonCardProps) {
 	const overlayInfo = createOverlayInfo(sermon.status);
+	const videoId = resolveYouTubeVideoId(sermon);
+	const thumbnailUrl = videoId && buildYouTubeThumbnailUrl(videoId);
+	const thumbnailLabel = `${sermon.title} thumbnail`;
 
 	return (
 		<Container
@@ -41,12 +46,19 @@ export default function SermonCard({ className, sermon }: SermonCardProps) {
 			</div>
 
 			<div className="SermonCard-thumbnail">
-				{/* Placeholder for sermon thumbnail, could be an <img> tag with sermon.thumbnailUrl in the future */}
-				<img
-					className="SermonCard-thumbnailImage"
-					src={`https://unsplash.it/seed/${sermon.title}/1280/720`}
-					alt={`${sermon.title} thumbnail`}
-				/>
+				{thumbnailUrl ? (
+					<img
+						className="SermonCard-thumbnailImage"
+						src={thumbnailUrl}
+						alt={thumbnailLabel}
+						loading="lazy"
+					/>
+				) : (
+					<ThumbnailPlaceholder
+						className="SermonCard-thumbnailImage"
+						label={thumbnailLabel}
+					/>
+				)}
 				<time
 					className="SermonCard-duration"
 					dateTime={durationToDateTime(sermon.duration)}

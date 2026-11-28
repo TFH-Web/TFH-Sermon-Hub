@@ -1,5 +1,6 @@
 import type React from 'react';
 import { useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import './Modal.css';
 import clsx from 'clsx';
 
@@ -40,7 +41,9 @@ export default function Modal({
 
 	if (!isOpen) return null;
 
-	return (
+	// Render on document.body: a parent with its own z-index (the Header) would
+	// otherwise trap the overlay below the sidebar.
+	return createPortal(
 		// biome-ignore lint/a11y/noStaticElementInteractions: overlay click-to-close is intentional
 		<div
 			className="Modal-overlay"
@@ -71,6 +74,7 @@ export default function Modal({
 				<div className="Modal-body">{children}</div>
 				{footer && <div className="Modal-footer">{footer}</div>}
 			</div>
-		</div>
+		</div>,
+		document.body,
 	);
 }

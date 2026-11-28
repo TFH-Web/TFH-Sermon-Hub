@@ -62,9 +62,7 @@ export default function Notifications() {
 								<div className="Notifications-emailHeader">
 									<p>
 										From:{' '}
-										<strong>
-											TFH Sermon Hub &lt;noreply@sermonhub.tfh.org&gt;
-										</strong>
+										<strong>TFH Sermon Hub &lt;noreply@hub.tfh.org&gt;</strong>
 									</p>
 									<p>
 										To: <strong>samip@tfh.org</strong>

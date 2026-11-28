@@ -1,10 +1,10 @@
 # DigitalOcean deployment and access (TFH-540)
 
-**Start here:** this release is running on the droplet as **private staging**,
-not a public launch. `http://localhost:5173/` reaches the server through an SSH
-tunnel; the app and database are not running on your laptop. Neither
-`sermonhub.tfh.org` nor the proposed temporary sslip.io address is configured
-for this release yet.
+**Start here:** since 2026-11-11 the app is live at **https://hub.tfh.org**
+(see the [go-live record](production-launch.md#production-go-live-record-2026-11-11)).
+The bundle is built for that address, so sign in there; Microsoft sign-in through
+the old `http://localhost:5173/` SSH tunnel no longer returns to the tunnel.
+Maintainers still reach the server itself over SSH only.
 
 **Sprint 9 follow-up (checked 2026-11-08):** see the
 [Jack acceptance audit and role/recovery checks](testing/sprint9-jack.md),
@@ -712,7 +712,7 @@ NGINX HTTP on the public IP cannot replace HTTPS/Entra setup. Before broader
 browser access without individual SSH tunnels, select a trusted HTTPS staging
 hostname, configure its exact Entra SPA redirect/logout URI, rebuild the bundle
 for it and verify the access policy. Public
-`sermonhub.tfh.org` DNS/HTTPS/production redirects remain a separate launch step.
+`hub.tfh.org` DNS/HTTPS/production redirects were completed on 2026-11-11; see the go-live record.
 Microsoft requires HTTPS redirects except for localhost testing:
 [redirect URI restrictions](https://learn.microsoft.com/en-us/entra/identity-platform/reply-url).
 

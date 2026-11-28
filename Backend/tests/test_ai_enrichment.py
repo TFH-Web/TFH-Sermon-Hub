@@ -87,8 +87,8 @@ def test_anthropic_requires_model(monkeypatch):
 def test_provider_is_read_per_call(monkeypatch):
     """The switch must be an env change, not an import-time constant."""
     monkeypatch.setenv("LLM_PROVIDER", "ollama")
-    monkeypatch.setattr(llm, "_ollama", lambda p, s, j=False, m=1024: "from-ollama")
-    monkeypatch.setattr(llm, "_anthropic", lambda p, s, m: "from-anthropic")
+    monkeypatch.setattr(llm, "_ollama", lambda *args: "from-ollama")
+    monkeypatch.setattr(llm, "_anthropic", lambda *args: "from-anthropic")
     assert llm.generate("hi") == "from-ollama"
     monkeypatch.setenv("LLM_PROVIDER", "anthropic")
     assert llm.generate("hi") == "from-anthropic"
@@ -112,7 +112,9 @@ def fake_anthropic(monkeypatch, *, content=None, error=None):
             return types.SimpleNamespace(content=content)
 
     class Anthropic:
-        def __init__(self):
+        def __init__(self, **kwargs):
+            # Client options such as timeout and max_retries, so tests can check them.
+            self.kwargs = kwargs
             self.messages = Messages()
 
     module.APIError = APIError
@@ -138,10 +140,23 @@ def test_anthropic_empty_content_raises(monkeypatch):
 
 
 @pytest.mark.real_llm
-def test_anthropic_non_text_first_block_raises(monkeypatch):
+def test_anthropic_reply_without_text_raises(monkeypatch):
     fake_anthropic(monkeypatch, content=[types.SimpleNamespace(type="tool_use", id="t1")])
-    with pytest.raises(llm.LLMError, match="tool_use block"):
+    with pytest.raises(llm.LLMError, match="no text \\(blocks: tool_use\\)"):
         llm.generate("hi")
+
+
+@pytest.mark.real_llm
+def test_anthropic_skips_thinking_block_before_text(monkeypatch):
+    # Newer models can send a thinking block before the answer; only the text is returned.
+    fake_anthropic(
+        monkeypatch,
+        content=[
+            types.SimpleNamespace(type="thinking", thinking="..."),
+            types.SimpleNamespace(type="text", text="  The answer.  "),
+        ],
+    )
+    assert llm.generate("hi") == "The answer."
 
 
 @pytest.mark.real_llm

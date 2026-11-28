@@ -19,6 +19,8 @@ export default function useChatRequest() {
 				message: request.message,
 				sermonId: request.sermonId,
 				history: request.history,
+				// The sermons being discussed, so a follow-up stays on them.
+				contextSermonIds: request.contextSermonIds,
 			});
 			return ChatAnswer.parse(response.data);
 		},

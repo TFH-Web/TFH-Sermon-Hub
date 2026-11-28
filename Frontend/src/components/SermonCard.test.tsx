@@ -49,6 +49,31 @@ describe('SermonCard', () => {
 		expect(tags).toEqual(['grace · AI Generated', 'faith']);
 	});
 
+	it('shows the YouTube thumbnail for a valid video', () => {
+		const sermon = makeSermon({
+			videoLink: 'https://www.youtube.com/watch?v=F_OiCiZ3Y3Y',
+		});
+		const { getByRole } = render(<SermonCard sermon={sermon} />);
+
+		const image = getByRole('img', { name: 'Faith Over Fear thumbnail' });
+		expect(image.getAttribute('src')).toBe(
+			'https://i.ytimg.com/vi/F_OiCiZ3Y3Y/hqdefault.jpg',
+		);
+		expect(image.getAttribute('loading')).toBe('lazy');
+	});
+
+	// The default sample link is too short to be a video ID.
+	it('shows a local placeholder without a valid video', () => {
+		const { container, getByRole } = render(
+			<SermonCard sermon={makeSermon()} />,
+		);
+
+		const placeholder = getByRole('img', { name: 'Faith Over Fear thumbnail' });
+		expect(placeholder.tagName).toBe('DIV');
+		expect(container.querySelector('img')).toBeNull();
+		expect(container.querySelector('.SermonCard-duration')).not.toBeNull();
+	});
+
 	it('shows no label when a sermon has no tags', () => {
 		const { container } = render(<SermonCard sermon={makeSermon()} />);
 

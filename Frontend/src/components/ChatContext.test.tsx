@@ -188,7 +188,12 @@ it('rejects old scoped setters after an account change', () => {
 
 it('does not let an older attempt finish or clear a newer same-scope request', () => {
 	const { result } = renderGeneral();
-	const request = { message: 'A question', sermonId: null, history: [] };
+	const request = {
+		message: 'A question',
+		sermonId: null,
+		history: [],
+		contextSermonIds: [],
+	};
 	let first: number | null = null;
 	act(() => {
 		first = result.current.beginRequest(request);

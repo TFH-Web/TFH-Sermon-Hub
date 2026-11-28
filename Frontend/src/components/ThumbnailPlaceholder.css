@@ -1,0 +1,7 @@
+.ThumbnailPlaceholder {
+	display: grid;
+	place-items: center;
+	font-size: 2rem;
+	color: var(--cl-on-surface-muted);
+	background-color: var(--cl-surface-dim);
+}

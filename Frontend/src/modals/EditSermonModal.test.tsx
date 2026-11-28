@@ -28,7 +28,7 @@ describe('EditSermonModal', () => {
 		const queryClient = new QueryClient({
 			defaultOptions: { queries: { retry: false } },
 		});
-		const { container } = render(
+		const { baseElement } = render(
 			<QueryClientProvider client={queryClient}>
 				<EditSermonModal
 					isOpen
@@ -38,9 +38,10 @@ describe('EditSermonModal', () => {
 			</QueryClientProvider>,
 		);
 
-		// FormField labels are not linked to their inputs, so the field is found by its type.
+		// The modal renders on document.body, so query baseElement. FormField labels
+		// are not linked to their inputs, so the field is found by its type.
 		const date =
-			container.querySelector<HTMLInputElement>('input[type="date"]');
+			baseElement.querySelector<HTMLInputElement>('input[type="date"]');
 		expect(date?.value).toBe('2026-03-01');
 	});
 });
