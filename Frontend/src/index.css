@@ -85,6 +85,13 @@
 	--z-sidebar-backdrop: 500;
 	--z-header: 500;
 
+	/*
+	 * The production build rewrites every light-dark() above into a fallback that only
+	 * works where color-scheme is declared. Without this line every color token is
+	 * invalid on the deployed site (see-through modals, white text on white cards),
+	 * even though the dev server looks fine. The app is designed light only.
+	 */
+	color-scheme: light;
 	accent-color: var(--cl-accent);
 	cursor: auto;
 	interpolate-size: allow-keywords;
