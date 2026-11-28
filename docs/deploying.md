@@ -371,6 +371,17 @@ configuration; public DNS ownership is still unconfirmed and deferred.
 | Credentials | The four YouTube caption settings were added to the server env (previous file kept root-only); a read-only caption fetch from staging returned 1,014 segments |
 | Rollback target | `3144d67-tfh540-20261021-2`, still installed |
 
+### Server hardening after v1.0.0 (2026-11-28 UTC)
+
+| Change | Result |
+| --- | --- |
+| Old public-IP site | `tfh-sermon-hub` NGINX site disabled and `tfh-backend.service` (old app as root with `testing.cfg`, API open without sign-in) stopped and disabled. Files kept. `http://167.71.149.116/` now redirects to hub.tfh.org |
+| SSH | `/etc/ssh/sshd_config.d/00-hardening.conf`: keys only, root by key only. Every recorded login used a key; about 89,500 password guesses in the prior 7 days |
+| Firewall | `ufw` on: deny incoming except 22, 80 and 443 |
+| Brute force | `fail2ban` with the `sshd` jail (systemd backend, 5 tries in 10 minutes, 1 hour ban) |
+| LLMNR | Turned off in `systemd-resolved`; port 5355 no longer public |
+| Headers | `deploy/nginx-production.conf` adds HSTS (1 year, no subdomains), `nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy` and `Permissions-Policy`, repeated in locations that set their own headers. Previous config kept as `/root/tfh-production.conf.bak-20261128T105108Z` |
+
 ### Caption failure recovery rehearsal (TFH-656, 2026-11-08 UTC)
 
 Run on the staging host with the live release code and credentials, against a
